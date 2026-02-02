@@ -1,0 +1,100 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual trigger
+
+env:
+  DEPLOY_PATH: /opt/postmanxodja
+
+jobs:
+  deploy:
+    name: Deploy to postbaby.uz
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
+          CERT_EMAIL: ${{ secrets.CERT_EMAIL }}
+        run: |
+          # Copy files to server
+          ssh $SSH_USER@$SSH_HOST "mkdir -p /tmp/postmanxodja"
+          rsync -avz --delete \
+            --exclude 'node_modules' \
+            --exclude '.git' \
+            --exclude '.env' \
+            --exclude 'frontend/dist' \
+            --exclude 'backend/postmanxodja' \
+            ./ $SSH_USER@$SSH_HOST:/tmp/postmanxodja/
+
+          # Run deployment script
+          ssh $SSH_USER@$SSH_HOST "
+            export GOOGLE_CLIENT_ID='$GOOGLE_CLIENT_ID'
+            export GOOGLE_CLIENT_SECRET='$GOOGLE_CLIENT_SECRET'
+            export SMTP_HOST='$SMTP_HOST'
+            export SMTP_PORT='$SMTP_PORT'
+            export SMTP_USERNAME='$SMTP_USERNAME'
+            export SMTP_PASSWORD='$SMTP_PASSWORD'
+            export SMTP_FROM='$SMTP_FROM'
+            export CERT_EMAIL='$CERT_EMAIL'
+
+            sudo bash /tmp/postmanxodja/deploy.sh
+          "
+
+      - name: Verify deployment
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          ssh $SSH_USER@$SSH_HOST "
+            echo 'Checking service status...'
+            sudo systemctl status postmanxodja-backend --no-pager || true
+            sudo systemctl status nginx --no-pager || true
+
+            echo ''
+            echo 'Recent backend logs:'
+            sudo journalctl -u postmanxodja-backend -n 20 --no-pager || true
+          "
+
+      - name: Health check
+        run: |
+          sleep 5
+          echo "Testing application..."
+          curl -f https://postbaby.uz || exit 1
+          curl -f https://postbaby.uz/api/health || echo "Warning: Health endpoint not available"
+          echo "Deployment successful!"
+
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "✅ Deployment to postbaby.uz completed successfully!"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed! Check logs above."

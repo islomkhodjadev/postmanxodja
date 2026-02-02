@@ -1,0 +1,225 @@
+import { useState, useEffect } from 'react';
+import { getTeamMembers, removeTeamMember, getTeamInvites } from '../../services/team';
+import { useAuth } from '../../contexts/AuthContext';
+import ConfirmModal from '../ConfirmModal';
+import type { TeamMember, TeamInvite } from '../../types';
+
+interface TeamMembersModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  teamId: number;
+  teamName: string;
+  isOwner: boolean;
+}
+
+export default function TeamMembersModal({
+  isOpen,
+  onClose,
+  teamId,
+  teamName,
+  isOwner,
+}: TeamMembersModalProps) {
+  const { user } = useAuth();
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<TeamInvite[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(null);
+  const [removing, setRemoving] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadData();
+    }
+  }, [isOpen, teamId]);
+
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [membersData, invitesData] = await Promise.all([
+        getTeamMembers(teamId),
+        isOwner ? getTeamInvites(teamId) : Promise.resolve([]),
+      ]);
+      setMembers(membersData);
+      setPendingInvites(invitesData);
+    } catch (err) {
+      console.error('Failed to load team data:', err);
+      setError('Failed to load team members');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveMember = async () => {
+    if (!memberToRemove) return;
+    setRemoving(true);
+    try {
+      await removeTeamMember(teamId, memberToRemove.user_id);
+      setMembers((prev) => prev.filter((m) => m.id !== memberToRemove.id));
+      setMemberToRemove(null);
+    } catch (err) {
+      console.error('Failed to remove member:', err);
+      setError('Failed to remove member');
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50" onClick={onClose} />
+        <div className="relative bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">Team Members</h2>
+            <p className="text-sm text-gray-500">{teamName}</p>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                {error}
+              </div>
+            )}
+
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading members...</p>
+              </div>
+            ) : (
+              <>
+                {/* Members List */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">
+                    Members ({members.length})
+                  </h3>
+                  {members.map((member) => (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
+                          {member.user?.name?.charAt(0).toUpperCase() ||
+                            member.user?.email?.charAt(0).toUpperCase() ||
+                            '?'}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-800">
+                            {member.user?.name || member.user?.email}
+                            {member.user_id === user?.id && (
+                              <span className="text-gray-500 text-sm ml-1">(You)</span>
+                            )}
+                          </p>
+                          <p className="text-sm text-gray-500">{member.user?.email}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full ${
+                            member.role === 'owner'
+                              ? 'bg-purple-100 text-purple-700'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          {member.role}
+                        </span>
+                        {isOwner && member.role !== 'owner' && member.user_id !== user?.id && (
+                          <button
+                            onClick={() => setMemberToRemove(member)}
+                            className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
+                            title="Remove member"
+                          >
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Pending Invites */}
+                {isOwner && pendingInvites.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">
+                      Pending Invites ({pendingInvites.length})
+                    </h3>
+                    <div className="space-y-2">
+                      {pendingInvites.map((invite) => (
+                        <div
+                          key={invite.id}
+                          className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-100"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center text-white font-medium">
+                              <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                                />
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">{invite.invitee_email}</p>
+                              <p className="text-sm text-yellow-600">Invite pending</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Remove Member Confirmation */}
+      <ConfirmModal
+        isOpen={!!memberToRemove}
+        title="Remove Team Member"
+        message={`Are you sure you want to remove ${memberToRemove?.user?.name || memberToRemove?.user?.email} from the team?`}
+        confirmText={removing ? 'Removing...' : 'Remove'}
+        onConfirm={handleRemoveMember}
+        onCancel={() => setMemberToRemove(null)}
+        variant="danger"
+      />
+    </>
+  );
+}

@@ -1,0 +1,136 @@
+import axios from 'axios';
+import type { Collection, ExecuteRequest, ExecuteResponse, Environment } from '../types';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add auth header
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Response interceptor for handling auth errors
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Collection APIs (team-scoped)
+export const createCollection = async (teamId: number, name: string, description?: string): Promise<Collection> => {
+  const response = await api.post(`/teams/${teamId}/collections`, { name, description: description || '' });
+  return response.data;
+};
+
+export const importCollection = async (teamId: number, collectionJSON: string): Promise<Collection> => {
+  const response = await api.post(`/teams/${teamId}/collections/import`, { collection_json: collectionJSON });
+  return response.data;
+};
+
+export const getCollections = async (teamId: number): Promise<Collection[]> => {
+  const response = await api.get(`/teams/${teamId}/collections`);
+  return response.data;
+};
+
+export const getCollection = async (teamId: number, id: number): Promise<any> => {
+  const response = await api.get(`/teams/${teamId}/collections/${id}`);
+  return response.data;
+};
+
+export const deleteCollection = async (teamId: number, id: number): Promise<void> => {
+  await api.delete(`/teams/${teamId}/collections/${id}`);
+};
+
+export const updateCollection = async (teamId: number, id: number, data: { raw_json: string }): Promise<Collection> => {
+  const response = await api.put(`/teams/${teamId}/collections/${id}`, data);
+  return response.data;
+};
+
+export const exportCollection = async (teamId: number, id: number, collectionName: string): Promise<void> => {
+  try {
+    const response = await api.get(`/teams/${teamId}/collections/${id}/export`, {
+      responseType: 'blob',
+    });
+
+    // Create download link
+    const blob = new Blob([response.data], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${collectionName}.postman_collection.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Export failed:', error);
+    throw error;
+  }
+};
+
+// Request execution
+export const executeRequest = async (request: ExecuteRequest): Promise<ExecuteResponse> => {
+  const response = await api.post('/requests/execute', request);
+  return response.data;
+};
+
+// Environment APIs (team-scoped)
+export const getEnvironments = async (teamId: number): Promise<Environment[]> => {
+  const response = await api.get(`/teams/${teamId}/environments`);
+  return response.data;
+};
+
+export const createEnvironment = async (teamId: number, environment: Environment): Promise<Environment> => {
+  const response = await api.post(`/teams/${teamId}/environments`, environment);
+  return response.data;
+};
+
+export const updateEnvironment = async (teamId: number, id: number, environment: Environment): Promise<Environment> => {
+  const response = await api.put(`/teams/${teamId}/environments/${id}`, environment);
+  return response.data;
+};
+
+export const deleteEnvironment = async (teamId: number, id: number): Promise<void> => {
+  await api.delete(`/teams/${teamId}/environments/${id}`);
+};
+
+// Saved tabs APIs
+export interface SavedTab {
+  tab_id: string;
+  name: string;
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+  body: string;
+  query_params: Record<string, string>;
+  is_active: boolean;
+  sort_order: number;
+}
+
+export const getSavedTabs = async (): Promise<SavedTab[]> => {
+  const response = await api.get('/tabs');
+  return response.data;
+};
+
+export const saveTabs = async (tabs: SavedTab[], activeTabId: string): Promise<void> => {
+  await api.post('/tabs', { tabs, active_tab_id: activeTabId });
+};
+
+export default api;
