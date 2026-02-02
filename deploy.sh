@@ -104,6 +104,53 @@ else
 fi
 
 #################################################
+# Install and Configure PostgreSQL
+#################################################
+if ! command -v psql &> /dev/null; then
+    log_info "Installing PostgreSQL..."
+    apt-get install -y postgresql postgresql-contrib
+    systemctl start postgresql
+    systemctl enable postgresql
+else
+    log_info "PostgreSQL already installed"
+fi
+
+# Configure PostgreSQL database and user
+log_info "Configuring PostgreSQL database..."
+
+# Set default values if not provided
+POSTGRES_USER=${POSTGRES_USER:-postgres}
+POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+POSTGRES_DB=${POSTGRES_DB:-postmanxodja}
+
+# Check if database exists, create if not
+sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw "$POSTGRES_DB" || {
+    log_info "Creating database: $POSTGRES_DB"
+    sudo -u postgres psql -c "CREATE DATABASE $POSTGRES_DB;"
+}
+
+# Create user if it doesn't exist and set password
+if [ "$POSTGRES_USER" != "postgres" ]; then
+    sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='$POSTGRES_USER'" | grep -q 1 || {
+        log_info "Creating PostgreSQL user: $POSTGRES_USER"
+        sudo -u postgres psql -c "CREATE USER $POSTGRES_USER WITH PASSWORD '$POSTGRES_PASSWORD';"
+    }
+    # Always update password in case it changed
+    log_info "Updating PostgreSQL user password..."
+    sudo -u postgres psql -c "ALTER USER $POSTGRES_USER WITH PASSWORD '$POSTGRES_PASSWORD';"
+
+    # Grant privileges
+    log_info "Granting privileges..."
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $POSTGRES_DB TO $POSTGRES_USER;"
+else
+    # If using default postgres user, set the password
+    log_info "Setting password for postgres user..."
+    sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD '$POSTGRES_PASSWORD';"
+fi
+
+log_info "PostgreSQL configured successfully"
+
+#################################################
 # Create application directory
 #################################################
 log_info "Setting up application directory..."
@@ -158,6 +205,13 @@ SMTP_PASSWORD=${SMTP_PASSWORD:-}
 EOF
 
 log_info ".env file configured"
+log_info "Verifying environment variables (sanitized)..."
+log_info "  POSTGRES_USER: ${POSTGRES_USER:-NOT_SET}"
+log_info "  POSTGRES_DB: ${POSTGRES_DB:-NOT_SET}"
+log_info "  POSTGRES_HOST: ${POSTGRES_HOST:-NOT_SET}"
+log_info "  POSTGRES_PASSWORD: $([ -n "$POSTGRES_PASSWORD" ] && echo "***SET***" || echo "NOT_SET")"
+log_info "  GOOGLE_CLIENT_ID: $([ -n "$GOOGLE_CLIENT_ID" ] && echo "***SET***" || echo "NOT_SET")"
+log_info "  SMTP_HOST: ${SMTP_HOST:-NOT_SET}"
 
 #################################################
 # Build Frontend
