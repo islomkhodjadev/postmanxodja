@@ -27,9 +27,68 @@ jobs:
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
+          
+          # Add host to known_hosts
+          ssh-keyscan -H "$SSH_HOST" 2>/dev/null >> ~/.ssh/known_hosts
+          
+          # Test SSH connection
+          echo "Testing SSH connection..."
+          ssh -o ConnectTimeout=10 -o BatchMode=yes -o StrictHostKeyChecking=no \
+              -i ~/.ssh/id_rsa "$SSH_USER@$SSH_HOST" "echo 'SSH connection successful!'"
 
-      - name: Deploy to server
+      - name: Clean server for fresh deployment
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          ssh "$SSH_USER@$SSH_HOST" "
+            echo '=== Preparing server for deployment ==='
+            
+            # Stop services
+            sudo systemctl stop postmanxodja-backend 2>/dev/null || true
+            sudo systemctl disable postmanxodja-backend 2>/dev/null || true
+            
+            # Clean up old deployment
+            sudo rm -rf /tmp/postmanxodja 2>/dev/null || true
+            sudo rm -rf /opt/postmanxodja 2>/dev/null || true
+            
+            # Remove old systemd service
+            sudo rm -f /etc/systemd/system/postmanxodja-backend.service 2>/dev/null || true
+            sudo systemctl daemon-reload
+            
+            # Remove old nginx config
+            sudo rm -f /etc/nginx/sites-available/postmanxodja 2>/dev/null || true
+            sudo rm -f /etc/nginx/sites-enabled/postmanxodja 2>/dev/null || true
+            sudo systemctl reload nginx 2>/dev/null || true
+            
+            echo '=== Server cleanup complete ==='
+          "
+
+      - name: Copy files to server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          echo "Copying files to server..."
+          
+          # Create temporary directory
+          ssh "$SSH_USER@$SSH_HOST" "mkdir -p /tmp/postmanxodja && chmod 777 /tmp/postmanxodja"
+          
+          # Copy files using rsync
+          rsync -avz --delete \
+            --exclude 'node_modules' \
+            --exclude '.git' \
+            --exclude '.env' \
+            --exclude '.github' \
+            --exclude 'frontend/dist' \
+            --exclude 'backend/postmanxodja' \
+            --exclude '.DS_Store' \
+            --exclude '*.log' \
+            --exclude '*.pyc' \
+            --exclude '__pycache__' \
+            ./ "$SSH_USER@$SSH_HOST:/tmp/postmanxodja/"
+
+      - name: Run deployment script
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
@@ -42,18 +101,13 @@ jobs:
           SMTP_FROM: ${{ secrets.SMTP_FROM }}
           CERT_EMAIL: ${{ secrets.CERT_EMAIL }}
         run: |
-          # Copy files to server
-          ssh $SSH_USER@$SSH_HOST "mkdir -p /tmp/postmanxodja"
-          rsync -avz --delete \
-            --exclude 'node_modules' \
-            --exclude '.git' \
-            --exclude '.env' \
-            --exclude 'frontend/dist' \
-            --exclude 'backend/postmanxodja' \
-            ./ $SSH_USER@$SSH_HOST:/tmp/postmanxodja/
-
-          # Run deployment script
-          ssh $SSH_USER@$SSH_HOST "
+          echo "=== Starting deployment script ==="
+          
+          # Run the deployment script with debug output
+          ssh "$SSH_USER@$SSH_HOST" "
+            set -e
+            
+            echo 'Setting environment variables...'
             export GOOGLE_CLIENT_ID='$GOOGLE_CLIENT_ID'
             export GOOGLE_CLIENT_SECRET='$GOOGLE_CLIENT_SECRET'
             export SMTP_HOST='$SMTP_HOST'
@@ -62,8 +116,16 @@ jobs:
             export SMTP_PASSWORD='$SMTP_PASSWORD'
             export SMTP_FROM='$SMTP_FROM'
             export CERT_EMAIL='$CERT_EMAIL'
-
-            sudo bash /tmp/postmanxodja/deploy.sh
+            
+            echo 'Changing to deployment directory...'
+            cd /tmp/postmanxodja
+            
+            echo 'Making deploy.sh executable...'
+            chmod +x deploy.sh
+            
+            echo 'Running deployment script...'
+            # Run with sudo and capture output
+            sudo bash -x ./deploy.sh 2>&1
           "
 
       - name: Verify deployment
@@ -71,30 +133,184 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
         run: |
-          ssh $SSH_USER@$SSH_HOST "
-            echo 'Checking service status...'
-            sudo systemctl status postmanxodja-backend --no-pager || true
-            sudo systemctl status nginx --no-pager || true
-
+          echo "=== Verifying deployment ==="
+          
+          ssh "$SSH_USER@$SSH_HOST" "
+            echo '1. Checking systemd services...'
+            echo '------------------------------'
+            
+            # Check backend service
+            if [ -f '/etc/systemd/system/postmanxodja-backend.service' ]; then
+              echo 'Backend service:'
+              sudo systemctl status postmanxodja-backend --no-pager || echo 'Service not running'
+            else
+              echo 'Backend service file not found'
+            fi
+            
             echo ''
-            echo 'Recent backend logs:'
-            sudo journalctl -u postmanxodja-backend -n 20 --no-pager || true
+            echo '2. Checking Nginx...'
+            echo '-------------------'
+            sudo systemctl status nginx --no-pager || echo 'Nginx not running'
+            
+            echo ''
+            echo '3. Checking application files...'
+            echo '--------------------------------'
+            ls -la /opt/postmanxodja/ 2>/dev/null || echo 'App directory not found'
+            
+            echo ''
+            echo '4. Checking frontend build...'
+            echo '----------------------------'
+            if [ -d '/opt/postmanxodja/frontend/dist' ]; then
+              echo 'Frontend dist exists'
+              ls -la /opt/postmanxodja/frontend/dist/ | head -5
+            else
+              echo 'Frontend dist not found'
+            fi
+            
+            echo ''
+            echo '5. Checking backend binary...'
+            echo '----------------------------'
+            if [ -f '/opt/postmanxodja/backend/postmanxodja' ]; then
+              echo 'Backend binary exists'
+              ls -la /opt/postmanxodja/backend/postmanxodja
+            else
+              echo 'Backend binary not found'
+            fi
+            
+            echo ''
+            echo '6. Checking recent logs...'
+            echo '-------------------------'
+            sudo journalctl -u postmanxodja-backend -n 10 --no-pager 2>/dev/null || echo 'No backend logs'
+            
+            echo ''
+            echo '7. Checking Nginx config...'
+            echo '--------------------------'
+            sudo nginx -t 2>&1 || echo 'Nginx config test failed'
+            
+            echo ''
+            echo '8. Checking port 8080...'
+            echo '------------------------'
+            sudo netstat -tlnp | grep :8080 || echo 'Port 8080 not listening'
           "
 
       - name: Health check
         run: |
-          sleep 5
-          echo "Testing application..."
-          curl -f https://postbaby.uz || exit 1
-          curl -f https://postbaby.uz/api/health || echo "Warning: Health endpoint not available"
-          echo "Deployment successful!"
+          echo "=== Performing health checks ==="
+          
+          # Give services time to start
+          echo "Waiting 15 seconds for services to start..."
+          sleep 15
+          
+          # Try multiple times
+          MAX_RETRIES=10
+          RETRY_DELAY=5
+          
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Attempt $i/$MAX_RETRIES..."
+            
+            # Check if domain responds
+            if curl -f -s -o /dev/null -w "%{http_code}" https://postbaby.uz | grep -q "200\|30[0-9]"; then
+              echo "✅ Domain is responding"
+              
+              # Try API health endpoint
+              if curl -f -s https://postbaby.uz/api/health 2>/dev/null; then
+                echo "✅ API health endpoint is working"
+                break
+              else
+                echo "⚠️  API health endpoint not available, but domain is up"
+                break
+              fi
+            else
+              echo "❌ Domain not responding, retrying in $RETRY_DELAY seconds..."
+              sleep $RETRY_DELAY
+            fi
+            
+            if [ $i -eq $MAX_RETRIES ]; then
+              echo "❌ Health check failed after $MAX_RETRIES attempts"
+              echo "Last curl attempt:"
+              curl -v https://postbaby.uz 2>&1 | tail -20
+              exit 1
+            fi
+          done
+
+      - name: Final verification
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          echo "=== Final verification ==="
+          
+          # Quick test
+          ssh "$SSH_USER@$SSH_HOST" "
+            echo 'Quick smoke tests:'
+            echo '1. Backend process:'
+            ps aux | grep postmanxodja | grep -v grep || echo 'No backend process'
+            
+            echo ''
+            echo '2. Nginx process:'
+            ps aux | grep nginx | grep -v grep | head -2 || echo 'No nginx process'
+            
+            echo ''
+            echo '3. Disk space:'
+            df -h /opt
+            
+            echo ''
+            echo '4. Memory usage:'
+            free -h
+            
+            echo ''
+            echo '5. Uptime:'
+            uptime
+          "
 
       - name: Notify on success
         if: success()
         run: |
-          echo "✅ Deployment to postbaby.uz completed successfully!"
+          echo "========================================"
+          echo "✅ DEPLOYMENT SUCCESSFUL!"
+          echo "========================================"
+          echo ""
+          echo "Application deployed to: https://postbaby.uz"
+          echo ""
+          echo "Next steps:"
+          echo "1. Verify the website is working"
+          echo "2. Check email configuration"
+          echo "3. Test Google OAuth if configured"
+          echo ""
+          echo "For troubleshooting:"
+          echo "- SSH: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
+          echo "- Backend logs: sudo journalctl -u postmanxodja-backend -f"
+          echo "- Nginx logs: sudo tail -f /var/log/nginx/error.log"
+          echo "========================================"
 
       - name: Notify on failure
         if: failure()
         run: |
-          echo "❌ Deployment failed! Check logs above."
+          echo "========================================"
+          echo "❌ DEPLOYMENT FAILED!"
+          echo "========================================"
+          echo ""
+          echo "Common issues:"
+          echo "1. Check SSH key authentication"
+          echo "2. Verify all secrets are set in GitHub"
+          echo "3. Check server disk space"
+          echo "4. Look at the error logs above"
+          echo ""
+          echo "Debug commands:"
+          echo "ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
+          echo "sudo journalctl -u postmanxodja-backend -n 50"
+          echo "sudo systemctl status nginx"
+          echo "curl -v https://postbaby.uz"
+          echo "========================================"
+          
+          # Try to get more info even on failure
+          echo ""
+          echo "=== Attempting to gather debug info ==="
+          ssh "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" "
+            echo 'Last 20 lines of deploy.sh output:'
+            sudo journalctl -u postmanxodja-backend -n 20 --no-pager 2>/dev/null || echo 'No backend logs'
+            
+            echo ''
+            echo 'Nginx error log:'
+            sudo tail -20 /var/log/nginx/error.log 2>/dev/null || echo 'No nginx error log'
+          " || echo "Could not connect to server for debug info"
