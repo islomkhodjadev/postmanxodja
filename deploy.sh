@@ -171,47 +171,58 @@ fi
 #################################################
 log_info "Configuring environment variables..."
 
+# Set default values if not provided
+_POSTGRES_USER="${POSTGRES_USER:-postgres}"
+_POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
+_POSTGRES_DB="${POSTGRES_DB:-postmanxodja}"
+_POSTGRES_HOST="${POSTGRES_HOST:-localhost}"
+_SMTP_PORT="${SMTP_PORT:-587}"
+_SMTP_FROM="${SMTP_FROM:-PostmanXodja <noreply@$DOMAIN>}"
+
+# Build DATABASE_URL with actual values
+_DATABASE_URL="host=${_POSTGRES_HOST} user=${_POSTGRES_USER} password=${_POSTGRES_PASSWORD} dbname=${_POSTGRES_DB} port=5432 sslmode=disable"
+
 cat > $APP_DIR/.env << EOF
 # Application Configuration
 NODE_ENV=production
 
 # Database Configuration
-POSTGRES_USER=${POSTGRES_USER:-postgres}
-POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-}
-POSTGRES_DB=${POSTGRES_DB:-postmanxodja}
-POSTGRES_HOST=${POSTGRES_HOST:-localhost}
+POSTGRES_USER=${_POSTGRES_USER}
+POSTGRES_PASSWORD=${_POSTGRES_PASSWORD}
+POSTGRES_DB=${_POSTGRES_DB}
+POSTGRES_HOST=${_POSTGRES_HOST}
 POSTGRES_PORT=5432
 
 # Constructed DATABASE_URL (used by backend)
-DATABASE_URL=host=${POSTGRES_HOST:-localhost} user=${POSTGRES_USER:-postgres} password=${POSTGRES_PASSWORD:-} dbname=${POSTGRES_DB:-postmanxodja} port=5432 sslmode=disable
+DATABASE_URL=${_DATABASE_URL}
 
 # Frontend Configuration
 VITE_API_URL=https://$DOMAIN/api
 
 # Google OAuth
-GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
-GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
 GOOGLE_REDIRECT_URL=https://$DOMAIN/api/auth/google/callback
 
 # Application URLs
 FRONTEND_URL=https://$DOMAIN
 
 # Email Configuration
-SMTP_HOST=${SMTP_HOST:-}
-SMTP_PORT=${SMTP_PORT:-587}
-SMTP_FROM=${SMTP_FROM:-PostmanXodja <noreply@$DOMAIN>}
-SMTP_USERNAME=${SMTP_USERNAME:-}
-SMTP_PASSWORD=${SMTP_PASSWORD:-}
+SMTP_HOST=${SMTP_HOST}
+SMTP_PORT=${_SMTP_PORT}
+SMTP_FROM=${_SMTP_FROM}
+SMTP_USERNAME=${SMTP_USERNAME}
+SMTP_PASSWORD=${SMTP_PASSWORD}
 EOF
 
 log_info ".env file configured"
 log_info "Verifying environment variables (sanitized)..."
-log_info "  POSTGRES_USER: ${POSTGRES_USER:-NOT_SET}"
-log_info "  POSTGRES_DB: ${POSTGRES_DB:-NOT_SET}"
-log_info "  POSTGRES_HOST: ${POSTGRES_HOST:-NOT_SET}"
-log_info "  POSTGRES_PASSWORD: $([ -n "$POSTGRES_PASSWORD" ] && echo "***SET***" || echo "NOT_SET")"
+log_info "  POSTGRES_USER: ${_POSTGRES_USER}"
+log_info "  POSTGRES_DB: ${_POSTGRES_DB}"
+log_info "  POSTGRES_HOST: ${_POSTGRES_HOST}"
+log_info "  POSTGRES_PASSWORD: $([ -n "$_POSTGRES_PASSWORD" ] && echo "***SET***" || echo "NOT_SET")"
 log_info "  GOOGLE_CLIENT_ID: $([ -n "$GOOGLE_CLIENT_ID" ] && echo "***SET***" || echo "NOT_SET")"
-log_info "  SMTP_HOST: ${SMTP_HOST:-NOT_SET}"
+log_info "  SMTP_HOST: $([ -n "$SMTP_HOST" ] && echo "${SMTP_HOST}" || echo "NOT_SET")"
 
 #################################################
 # Build Frontend
