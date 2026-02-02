@@ -342,6 +342,36 @@ nginx -t
 systemctl reload nginx
 
 #################################################
+# Setup SSL with Certbot
+#################################################
+log_info "Setting up SSL certificates..."
+
+# Check if certificate already exists
+if [ ! -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+    log_info "Obtaining SSL certificate for $DOMAIN..."
+
+    # Get email for certificate notifications (from env or use a default)
+    CERT_EMAIL="${CERT_EMAIL:-admin@$DOMAIN}"
+
+    # Obtain certificate
+    certbot --nginx -d "$DOMAIN" -d "www.$DOMAIN" \
+        --non-interactive \
+        --agree-tos \
+        --email "$CERT_EMAIL" \
+        --redirect
+
+    if [ $? -eq 0 ]; then
+        log_info "✓ SSL certificate obtained successfully"
+    else
+        log_warn "⚠ Failed to obtain SSL certificate. Site will work on HTTP only."
+        log_warn "  You can run 'sudo certbot --nginx -d $DOMAIN' manually later."
+    fi
+else
+    log_info "SSL certificate already exists, renewing if needed..."
+    certbot renew --quiet || log_warn "Certificate renewal check failed"
+fi
+
+#################################################
 # Final checks
 #################################################
 log_info "Running final checks..."
