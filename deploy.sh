@@ -128,6 +128,16 @@ cat > $APP_DIR/.env << EOF
 # Application Configuration
 NODE_ENV=production
 
+# Database Configuration
+POSTGRES_USER=${POSTGRES_USER:-postgres}
+POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-}
+POSTGRES_DB=${POSTGRES_DB:-postmanxodja}
+POSTGRES_HOST=${POSTGRES_HOST:-localhost}
+POSTGRES_PORT=5432
+
+# Constructed DATABASE_URL (used by backend)
+DATABASE_URL=host=${POSTGRES_HOST:-localhost} user=${POSTGRES_USER:-postgres} password=${POSTGRES_PASSWORD:-} dbname=${POSTGRES_DB:-postmanxodja} port=5432 sslmode=disable
+
 # Frontend Configuration
 VITE_API_URL=https://$DOMAIN/api
 

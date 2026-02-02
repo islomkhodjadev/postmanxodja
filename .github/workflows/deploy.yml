@@ -100,6 +100,10 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SMTP_FROM: ${{ secrets.SMTP_FROM }}
           CERT_EMAIL: ${{ secrets.CERT_EMAIL }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
         run: |
           echo "=== Starting deployment script ==="
           
@@ -116,6 +120,10 @@ jobs:
             export SMTP_PASSWORD='$SMTP_PASSWORD'
             export SMTP_FROM='$SMTP_FROM'
             export CERT_EMAIL='$CERT_EMAIL'
+            export POSTGRES_USER='$POSTGRES_USER'
+            export POSTGRES_PASSWORD='$POSTGRES_PASSWORD'
+            export POSTGRES_DB='$POSTGRES_DB'
+            export POSTGRES_HOST='$POSTGRES_HOST'
             
             echo 'Changing to deployment directory...'
             cd /tmp/postmanxodja
@@ -124,8 +132,8 @@ jobs:
             chmod +x deploy.sh
             
             echo 'Running deployment script...'
-            # Run with sudo and capture output
-            sudo bash -x ./deploy.sh 2>&1
+            # Run with sudo -E to preserve environment variables
+            sudo -E bash -x ./deploy.sh 2>&1
           "
 
       - name: Verify deployment
