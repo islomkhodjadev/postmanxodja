@@ -218,6 +218,14 @@ log_info "  SMTP_HOST: ${SMTP_HOST:-NOT_SET}"
 #################################################
 log_info "Building frontend..."
 cd $APP_DIR/frontend
+
+# Create/overwrite frontend .env with production values
+log_info "Creating frontend .env with production API URL..."
+cat > $APP_DIR/frontend/.env << EOF
+VITE_API_URL=https://$DOMAIN/api
+EOF
+
+log_info "Building with VITE_API_URL=https://$DOMAIN/api"
 npm install --legacy-peer-deps
 npm run build
 

@@ -79,6 +79,7 @@ jobs:
             --exclude 'node_modules' \
             --exclude '.git' \
             --exclude '.env' \
+            --exclude 'frontend/.env' \
             --exclude '.github' \
             --exclude 'frontend/dist' \
             --exclude 'backend/postmanxodja' \
