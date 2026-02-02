@@ -118,10 +118,15 @@ fi
 # Configure PostgreSQL database and user
 log_info "Configuring PostgreSQL database..."
 
-# Set default values if not provided
-POSTGRES_USER=${POSTGRES_USER:-postgres}
-POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
-POSTGRES_DB=${POSTGRES_DB:-postmanxodja}
+# Trim function to remove whitespace and newlines
+trim_pg() {
+    echo "$1" | tr -d '\n\r' | xargs
+}
+
+# Set default values if not provided and trim
+POSTGRES_USER="$(trim_pg "${POSTGRES_USER:-postgres}")"
+POSTGRES_PASSWORD="$(trim_pg "${POSTGRES_PASSWORD:-changeme}")"
+POSTGRES_DB="$(trim_pg "${POSTGRES_DB:-postmanxodja}")"
 
 # Check if database exists, create if not
 sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw "$POSTGRES_DB" || {
@@ -171,13 +176,23 @@ fi
 #################################################
 log_info "Configuring environment variables..."
 
-# Set default values if not provided
-_POSTGRES_USER="${POSTGRES_USER:-postgres}"
-_POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
-_POSTGRES_DB="${POSTGRES_DB:-postmanxodja}"
-_POSTGRES_HOST="${POSTGRES_HOST:-localhost}"
-_SMTP_PORT="${SMTP_PORT:-587}"
-_SMTP_FROM="${SMTP_FROM:-PostmanXodja <noreply@$DOMAIN>}"
+# Trim function to remove whitespace and newlines
+trim() {
+    echo "$1" | tr -d '\n\r' | xargs
+}
+
+# Set default values if not provided and trim whitespace
+_POSTGRES_USER="$(trim "${POSTGRES_USER:-postgres}")"
+_POSTGRES_PASSWORD="$(trim "${POSTGRES_PASSWORD}")"
+_POSTGRES_DB="$(trim "${POSTGRES_DB:-postmanxodja}")"
+_POSTGRES_HOST="$(trim "${POSTGRES_HOST:-localhost}")"
+_SMTP_PORT="$(trim "${SMTP_PORT:-587}")"
+_SMTP_FROM="$(trim "${SMTP_FROM:-PostmanXodja <noreply@$DOMAIN>}")"
+GOOGLE_CLIENT_ID="$(trim "${GOOGLE_CLIENT_ID}")"
+GOOGLE_CLIENT_SECRET="$(trim "${GOOGLE_CLIENT_SECRET}")"
+SMTP_HOST="$(trim "${SMTP_HOST}")"
+SMTP_USERNAME="$(trim "${SMTP_USERNAME}")"
+SMTP_PASSWORD="$(trim "${SMTP_PASSWORD}")"
 
 # Build DATABASE_URL with actual values
 _DATABASE_URL="host=${_POSTGRES_HOST} user=${_POSTGRES_USER} password=${_POSTGRES_PASSWORD} dbname=${_POSTGRES_DB} port=5432 sslmode=disable"
@@ -351,7 +366,10 @@ if [ ! -d "/etc/letsencrypt/live/$DOMAIN" ]; then
     log_info "Obtaining SSL certificate for $DOMAIN..."
 
     # Get email for certificate notifications (from env or use a default)
-    CERT_EMAIL="${CERT_EMAIL:-admin@$DOMAIN}"
+    # Trim whitespace and newlines from CERT_EMAIL
+    CERT_EMAIL="$(echo "${CERT_EMAIL:-admin@$DOMAIN}" | tr -d '\n\r' | xargs)"
+
+    log_info "Using email for SSL: $CERT_EMAIL"
 
     # Obtain certificate
     certbot --nginx -d "$DOMAIN" -d "www.$DOMAIN" \
