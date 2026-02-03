@@ -66,7 +66,7 @@ export default function CollectionImporter({ onImportSuccess }: Props) {
             disabled={loading}
             className={`
               flex-1 px-3 py-2 rounded-lg shadow-sm font-medium text-sm
-              transition-colors duration-200 flex items-center justify-center gap-1
+               flex items-center justify-center gap-1
               ${loading
                 ? 'bg-gray-400 text-white cursor-not-allowed'
                 : 'bg-blue-500 hover:bg-blue-600 text-white'
@@ -82,7 +82,7 @@ export default function CollectionImporter({ onImportSuccess }: Props) {
             htmlFor="file-upload"
             className={`
               flex-1 px-3 py-2 rounded-lg shadow-sm font-medium text-sm
-              transition-colors duration-200 flex items-center justify-center gap-1 cursor-pointer
+               flex items-center justify-center gap-1 cursor-pointer
               ${loading
                 ? 'bg-gray-400 text-white cursor-not-allowed'
                 : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300'

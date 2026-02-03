@@ -108,7 +108,7 @@ export default function EnvironmentPanel({ onUpdate }: Props) {
         {!showForm && isExpanded && (
           <button
             onClick={(e) => { e.stopPropagation(); setShowForm(true); }}
-            className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg shadow-sm transition-colors duration-150"
+            className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg shadow-sm "
           >
             New
           </button>
@@ -151,7 +151,7 @@ export default function EnvironmentPanel({ onUpdate }: Props) {
                 />
                 <button
                   onClick={() => removeVariable(index)}
-                  className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150 flex-shrink-0"
+                  className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm  flex-shrink-0"
                 >
                   ×
                 </button>
@@ -160,7 +160,7 @@ export default function EnvironmentPanel({ onUpdate }: Props) {
           </div>
           <button
             onClick={addVariable}
-            className="mb-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm shadow-sm transition-colors duration-150"
+            className="mb-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm shadow-sm "
           >
             Add Variable
           </button>
@@ -168,13 +168,13 @@ export default function EnvironmentPanel({ onUpdate }: Props) {
           <div className="flex gap-2">
             <button
               onClick={handleSubmit}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm shadow-sm transition-colors duration-150"
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm shadow-sm "
             >
               Save
             </button>
             <button
               onClick={resetForm}
-              className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm shadow-sm transition-colors duration-150"
+              className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm shadow-sm "
             >
               Cancel
             </button>
@@ -187,7 +187,7 @@ export default function EnvironmentPanel({ onUpdate }: Props) {
           {environments.map(env => (
             <div
               key={env.id}
-              className="p-3 mb-2 bg-gray-50 border border-gray-200 rounded-lg flex justify-between items-center hover:bg-gray-100 transition-colors duration-150"
+              className="p-3 mb-2 bg-gray-50 border border-gray-200 rounded-lg flex justify-between items-center hover:bg-gray-100 "
             >
               <div className="min-w-0 flex-1 mr-2">
                 <div className="font-semibold text-gray-800 text-sm truncate">{env.name}</div>
@@ -198,13 +198,13 @@ export default function EnvironmentPanel({ onUpdate }: Props) {
               <div className="flex gap-1 flex-shrink-0">
                 <button
                   onClick={() => handleEdit(env)}
-                  className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded transition-colors duration-150"
+                  className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded "
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => env.id && handleDelete(env.id)}
-                  className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded transition-colors duration-150"
+                  className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded "
                 >
                   Del
                 </button>

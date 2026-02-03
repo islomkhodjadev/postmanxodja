@@ -1,3 +1,4 @@
+import { useRef, useEffect, useState } from 'react';
 import type { RequestTab } from '../types';
 
 interface TabsBarProps {
@@ -5,8 +6,9 @@ interface TabsBarProps {
   activeTabId: string;
   onTabSelect: (tabId: string) => void;
   onTabClose: (tabId: string) => void;
+  onTabRename: (tabId: string, newName: string) => void;
   onNewTab: () => void;
-  savingStatus?: 'idle' | 'saving' | 'saved';
+  onImportCurl: () => void;
 }
 
 export default function TabsBar({
@@ -14,9 +16,62 @@ export default function TabsBar({
   activeTabId,
   onTabSelect,
   onTabClose,
+  onTabRename,
   onNewTab,
-  savingStatus = 'idle',
+  onImportCurl,
 }: TabsBarProps) {
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const activeTabRef = useRef<HTMLButtonElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+
+  const checkScroll = () => {
+    const container = tabsContainerRef.current;
+    if (container) {
+      setCanScrollLeft(container.scrollLeft > 0);
+      setCanScrollRight(
+        container.scrollLeft < container.scrollWidth - container.clientWidth - 1
+      );
+    }
+  };
+
+  useEffect(() => {
+    if (activeTabRef.current && tabsContainerRef.current) {
+      activeTabRef.current.scrollIntoView({
+        behavior: 'auto',
+        block: 'nearest',
+        inline: 'center',
+      });
+    }
+  }, [activeTabId]);
+
+  useEffect(() => {
+    checkScroll();
+    const container = tabsContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', checkScroll);
+      window.addEventListener('resize', checkScroll);
+      return () => {
+        container.removeEventListener('scroll', checkScroll);
+        window.removeEventListener('resize', checkScroll);
+      };
+    }
+  }, [tabs]);
+
+  const scrollLeft = () => {
+    if (tabsContainerRef.current) {
+      tabsContainerRef.current.scrollBy({ left: -200, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (tabsContainerRef.current) {
+      tabsContainerRef.current.scrollBy({ left: 200, behavior: 'smooth' });
+    }
+  };
+
   const getMethodColor = (method: string) => {
     const colors: Record<string, string> = {
       GET: 'text-green-600',
@@ -28,74 +83,151 @@ export default function TabsBar({
     return colors[method] || 'text-gray-600';
   };
 
+  const handleStartRename = (tabId: string, currentName: string) => {
+    setRenamingTabId(tabId);
+    setRenameValue(currentName);
+  };
+
+  const handleFinishRename = (tabId: string) => {
+    if (renameValue.trim() && renameValue !== tabs.find(t => t.id === tabId)?.name) {
+      onTabRename(tabId, renameValue.trim());
+    }
+    setRenamingTabId(null);
+    setRenameValue('');
+  };
+
+  const handleCancelRename = () => {
+    setRenamingTabId(null);
+    setRenameValue('');
+  };
+
   return (
-    <div className="flex items-center bg-gray-100 border-b border-gray-200 overflow-x-auto">
-      <div className="flex items-center flex-1 min-w-0">
+    <>
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+      <div className="flex items-center bg-white border-b border-gray-300 w-full min-w-0 flex-shrink-0" style={{ transition: 'none' }}>
+        {canScrollLeft && (
+          <button
+            onClick={scrollLeft}
+            className="p-2 hover:bg-gray-100 rounded flex-shrink-0"
+            style={{ transition: 'none' }}
+            title="Scroll left"
+          >
+            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
+        <div
+          ref={tabsContainerRef}
+          className="hide-scrollbar flex items-center overflow-x-auto flex-1 min-w-0"
+          style={{
+            scrollbarWidth: 'none',
+            maxWidth: '100%',
+            transition: 'none',
+            msOverflowStyle: 'none'
+          }}
+        >
         {tabs.map((tab) => (
-          <div
+          <button
             key={tab.id}
+            ref={activeTabId === tab.id ? activeTabRef : null}
             onClick={() => onTabSelect(tab.id)}
+            style={{ transition: 'none' }}
             className={`
-              group flex items-center gap-2 px-4 py-2 cursor-pointer border-r border-gray-200
-              min-w-[120px] max-w-[200px] transition-colors
+              group flex items-center gap-2 px-4 py-2.5 cursor-pointer font-semibold text-sm border-b-2
+              min-w-[140px] max-w-[220px] flex-shrink-0
               ${activeTabId === tab.id
-                ? 'bg-white border-b-2 border-b-blue-500'
-                : 'bg-gray-50 hover:bg-gray-100'
+                ? 'border-blue-500 text-blue-600 bg-blue-50'
+                : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }
             `}
           >
             <span className={`text-xs font-bold ${getMethodColor(tab.method)}`}>
               {tab.method}
             </span>
-            <span className="text-sm text-gray-700 truncate flex-1">
-              {tab.name || 'Untitled'}
-            </span>
-            {tabs.length > 1 && (
-              <button
-                onClick={(e) => {
+            {renamingTabId === tab.id ? (
+              <input
+                type="text"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onBlur={() => handleFinishRename(tab.id)}
+                onKeyDown={(e) => {
                   e.stopPropagation();
-                  onTabClose(tab.id);
+                  if (e.key === 'Enter') {
+                    handleFinishRename(tab.id);
+                  } else if (e.key === 'Escape') {
+                    handleCancelRename();
+                  }
                 }}
-                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded transition-opacity"
+                onClick={(e) => e.stopPropagation()}
+                className="text-sm flex-1 px-1 py-0.5 border border-blue-500 rounded focus:outline-none bg-white text-gray-900"
+                autoFocus
+              />
+            ) : (
+              <span
+                className="text-sm truncate flex-1"
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  handleStartRename(tab.id, tab.name || 'Untitled');
+                }}
               >
-                <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+                {tab.name || 'Untitled'}
+              </span>
             )}
-          </div>
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                onTabClose(tab.id);
+              }}
+              style={{ transition: 'none' }}
+              className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-gray-200 rounded"
+            >
+              <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </span>
+          </button>
         ))}
       </div>
-      <button
-        onClick={onNewTab}
-        className="px-3 py-2 hover:bg-gray-200 transition-colors flex-shrink-0"
-        title="New Tab"
-      >
-        <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-        </svg>
-      </button>
-      {savingStatus !== 'idle' && (
-        <div className="px-3 py-2 text-xs text-gray-500 flex items-center gap-1 flex-shrink-0">
-          {savingStatus === 'saving' && (
-            <>
-              <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span>Saving...</span>
-            </>
-          )}
-          {savingStatus === 'saved' && (
-            <>
-              <svg className="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              <span className="text-green-600">Saved</span>
-            </>
-          )}
-        </div>
+      {canScrollRight && (
+        <button
+          onClick={scrollRight}
+          className="p-2 hover:bg-gray-100 rounded flex-shrink-0"
+          style={{ transition: 'none' }}
+          title="Scroll right"
+        >
+          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       )}
+      <div className="flex items-center flex-shrink-0 gap-1 px-2" style={{ transition: 'none' }}>
+        <button
+          onClick={onImportCurl}
+          className="p-2 hover:bg-gray-100 rounded"
+          style={{ transition: 'none' }}
+          title="Import from cURL"
+        >
+          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+          </svg>
+        </button>
+        <button
+          onClick={onNewTab}
+          className="p-2 hover:bg-gray-100 rounded"
+          style={{ transition: 'none' }}
+          title="New Tab"
+        >
+          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+      </div>
     </div>
+    </>
   );
 }

@@ -33,6 +33,8 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
   // Modal states
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [addTarget, setAddTarget] = useState<AddTarget | null>(null);
+  const [renamingItem, setRenamingItem] = useState<{ collectionId: number; path: string; currentName: string } | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   useEffect(() => {
     if (currentTeam) {
@@ -220,32 +222,132 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
     setExpandedFolders(newExpanded);
   };
 
+  const handleStartRename = (collectionId: number, path: string, currentName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRenamingItem({ collectionId, path, currentName });
+    setRenameValue(currentName);
+  };
+
+  const handleFinishRename = async () => {
+    if (!renamingItem || !currentTeam || !renameValue.trim()) {
+      setRenamingItem(null);
+      setRenameValue('');
+      return;
+    }
+
+    if (renameValue.trim() === renamingItem.currentName) {
+      setRenamingItem(null);
+      setRenameValue('');
+      return;
+    }
+
+    try {
+      const collection = collectionData.get(renamingItem.collectionId);
+      if (collection) {
+        const updatedCollection = renameItemInCollection(collection, renamingItem.path, renameValue.trim());
+        await updateCollection(currentTeam.id, renamingItem.collectionId, {
+          raw_json: JSON.stringify(updatedCollection),
+        });
+        setCollectionData(new Map(collectionData.set(renamingItem.collectionId, updatedCollection)));
+      }
+    } catch (err) {
+      console.error('Failed to rename item:', err);
+    }
+
+    setRenamingItem(null);
+    setRenameValue('');
+  };
+
+  const handleCancelRename = () => {
+    setRenamingItem(null);
+    setRenameValue('');
+  };
+
+  const renameItemInCollection = (collection: PostmanCollection, path: string, newName: string): PostmanCollection => {
+    const pathParts = path.split('/');
+    const oldName = pathParts[pathParts.length - 1];
+    const parentPath = pathParts.slice(0, -1);
+
+    const renameInItems = (items: PostmanItem[], currentPath: string[]): PostmanItem[] => {
+      if (currentPath.length === 0) {
+        return items.map(item => {
+          if (item.name === oldName) {
+            return { ...item, name: newName };
+          }
+          return item;
+        });
+      }
+
+      return items.map(item => {
+        if (item.name === currentPath[0] && item.item) {
+          return {
+            ...item,
+            item: renameInItems(item.item, currentPath.slice(1)),
+          };
+        }
+        return item;
+      });
+    };
+
+    return {
+      ...collection,
+      item: renameInItems(collection.item, parentPath),
+    };
+  };
+
   const renderItem = (item: PostmanItem, collectionId: number, depth = 0, parentPath = '') => {
     const itemPath = parentPath ? `${parentPath}/${item.name}` : item.name;
     const paddingLeft = `${depth * 16 + 12}px`;
 
     if (item.request) {
+      const isRenaming = renamingItem?.collectionId === collectionId && renamingItem?.path === itemPath;
+
       return (
         <div
           key={itemPath}
-          className="group py-2 px-3 cursor-pointer border-b border-gray-100 hover:bg-blue-50 transition-colors duration-150 flex items-center"
+          className="group py-2 px-3 cursor-pointer border-b border-gray-100 hover:bg-blue-50 flex items-center"
           style={{ paddingLeft }}
         >
           <div
-            className="flex-1 flex items-center"
-            onClick={() => onRequestSelect({ ...item.request, name: item.name, collectionId, itemPath })}
+            className="flex-1 flex items-center gap-2"
+            onClick={() => !isRenaming && onRequestSelect({ ...item.request, name: item.name, collectionId, itemPath })}
           >
             <span
-              className="font-semibold mr-2 text-xs"
+              className="font-semibold text-xs"
               style={{ color: getMethodColor(item.request.method) }}
             >
               {item.request.method}
             </span>
-            <span className="text-sm text-gray-700">{item.name}</span>
+            {isRenaming ? (
+              <input
+                type="text"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onBlur={handleFinishRename}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === 'Enter') {
+                    handleFinishRename();
+                  } else if (e.key === 'Escape') {
+                    handleCancelRename();
+                  }
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="text-sm px-2 py-1 border border-blue-500 rounded focus:outline-none bg-white text-gray-900"
+                autoFocus
+              />
+            ) : (
+              <span
+                className="text-sm text-gray-700"
+                onDoubleClick={(e) => handleStartRename(collectionId, itemPath, item.name, e)}
+              >
+                {item.name}
+              </span>
+            )}
           </div>
           <button
             onClick={(e) => handleDeleteClick({ type: 'request', collectionId, path: itemPath, name: item.name }, e)}
-            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded transition-opacity"
+            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded"
             title="Delete request"
           >
             <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -258,21 +360,45 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
 
     if (item.item) {
       const isExpanded = expandedFolders.has(itemPath);
+      const isRenaming = renamingItem?.collectionId === collectionId && renamingItem?.path === itemPath;
+
       return (
         <div key={itemPath}>
           <div
-            className="group py-2 px-3 font-semibold bg-gray-50 text-gray-700 text-sm cursor-pointer hover:bg-gray-100 transition-colors duration-150 flex items-center gap-2"
+            className="group py-2 px-3 font-semibold bg-gray-50 text-gray-700 text-sm cursor-pointer hover:bg-gray-100 flex items-center gap-2"
             style={{ paddingLeft }}
           >
-            <div className="flex-1 flex items-center gap-2" onClick={() => toggleFolder(itemPath)}>
+            <div className="flex-1 flex items-center gap-2" onClick={() => !isRenaming && toggleFolder(itemPath)}>
               <span className="text-gray-400 text-xs">{isExpanded ? '▼' : '▶'}</span>
               <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
               </svg>
-              <span>{item.name}</span>
+              {isRenaming ? (
+                <input
+                  type="text"
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  onBlur={handleFinishRename}
+                  onKeyDown={(e) => {
+                    e.stopPropagation();
+                    if (e.key === 'Enter') {
+                      handleFinishRename();
+                    } else if (e.key === 'Escape') {
+                      handleCancelRename();
+                    }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-sm px-2 py-1 border border-blue-500 rounded focus:outline-none bg-white text-gray-900"
+                  autoFocus
+                />
+              ) : (
+                <span onDoubleClick={(e) => handleStartRename(collectionId, itemPath, item.name, e)}>
+                  {item.name}
+                </span>
+              )}
               <span className="text-xs text-gray-400">{item.item.length}</span>
             </div>
-            <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
+            <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 ">
               <button
                 onClick={(e) => handleAddClick({ type: 'folder', collectionId, parentPath: itemPath }, e)}
                 className="p-1 hover:bg-blue-100 rounded"
@@ -345,7 +471,7 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
           <div key={collection.id} className="mb-2">
             <div
               onClick={() => toggleCollection(collection.id)}
-              className="group px-4 py-3 cursor-pointer bg-gray-50 hover:bg-gray-100 border-b border-gray-200 flex justify-between items-center transition-colors duration-150"
+              className="group px-4 py-3 cursor-pointer bg-gray-50 hover:bg-gray-100 border-b border-gray-200 flex justify-between items-center "
             >
               <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <span className="text-gray-500">{expandedCollections.has(collection.id) ? '▼' : '▶'}</span>
@@ -356,7 +482,7 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
                   <>
                     <button
                       onClick={(e) => handleAddClick({ type: 'folder', collectionId: collection.id }, e)}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-blue-100 rounded transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-blue-100 rounded "
                       title="Add folder"
                     >
                       <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -365,7 +491,7 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
                     </button>
                     <button
                       onClick={(e) => handleAddClick({ type: 'request', collectionId: collection.id }, e)}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-green-100 rounded transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-green-100 rounded "
                       title="Add request"
                     >
                       <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -384,14 +510,14 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
                       alert('Failed to export collection');
                     }
                   }}
-                  className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg shadow-sm transition-colors duration-150"
+                  className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg shadow-sm "
                   title="Export to Postman format"
                 >
                   Export
                 </button>
                 <button
                   onClick={(e) => handleDeleteClick({ type: 'collection', collectionId: collection.id, name: collection.name }, e)}
-                  className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded-lg shadow-sm transition-colors duration-150"
+                  className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded-lg shadow-sm "
                 >
                   Delete
                 </button>

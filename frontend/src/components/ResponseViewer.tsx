@@ -8,8 +8,6 @@ interface Props {
 export default function ResponseViewer({ response }: Props) {
   const [activeTab, setActiveTab] = useState<'body' | 'headers'>('body');
 
-  console.log('ResponseViewer received response:', response);
-
   if (!response) {
     return (
       <div className="p-8 text-gray-400 text-center">
@@ -22,6 +20,22 @@ export default function ResponseViewer({ response }: Props) {
     if (status >= 200 && status < 300) return '#28a745';
     if (status >= 300 && status < 400) return '#ffc107';
     return '#dc3545';
+  };
+
+  const getStatusText = (status: number) => {
+    const statusTexts: Record<number, string> = {
+      200: 'OK',
+      201: 'Created',
+      204: 'No Content',
+      400: 'Bad Request',
+      401: 'Unauthorized',
+      403: 'Forbidden',
+      404: 'Not Found',
+      500: 'Internal Server Error',
+      502: 'Bad Gateway',
+      503: 'Service Unavailable',
+    };
+    return statusTexts[status] || 'Unknown';
   };
 
   const formatJSON = (str: string) => {
@@ -46,7 +60,7 @@ export default function ResponseViewer({ response }: Props) {
                                response.status >= 400 ? '#f8d7da' : '#fff3cd'
             }}
           >
-            {response.status} {response.status_text}
+            {response.status_text || `${response.status} ${getStatusText(response.status)}`}
           </span>
         </div>
         <div className="flex items-center gap-2">

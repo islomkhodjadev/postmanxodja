@@ -66,7 +66,7 @@ export default function HorizontalSplitter({
     <div ref={containerRef} className="flex h-full relative">
       {/* Sidebar Content */}
       <div
-        className="flex flex-col bg-white border-r border-gray-200 shadow-sm transition-all duration-200 overflow-hidden"
+        className="flex flex-col bg-white border-r border-gray-200 shadow-sm  overflow-hidden"
         style={{ width: collapsed ? 0 : width }}
       >
         {!collapsed && children}
@@ -78,8 +78,7 @@ export default function HorizontalSplitter({
         {!collapsed && (
           <div
             className={`
-              w-1 h-full cursor-col-resize hover:bg-blue-400 transition-colors
-              ${isDragging ? 'bg-blue-500' : 'bg-gray-200'}
+              w-1 h-full cursor-col-resize hover:bg-blue-400               ${isDragging ? 'bg-blue-500' : 'bg-gray-200'}
             `}
             onMouseDown={handleMouseDown}
           />
@@ -93,7 +92,7 @@ export default function HorizontalSplitter({
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <svg
-            className={`w-4 h-4 text-gray-500 transition-transform ${collapsed ? '' : 'rotate-180'}`}
+            className={`w-4 h-4 text-gray-500  ${collapsed ? '' : 'rotate-180'}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
