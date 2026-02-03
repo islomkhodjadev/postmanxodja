@@ -212,7 +212,7 @@ export default function CollectionSelector({
         </div>
         {isAFolder && isExpanded && Array.isArray(item.item) && (
           <div>
-            {item.item.map((child: any, index: number) => 
+            {item.item.map((child: any) =>
               renderTreeNode(child, collectionId, depth + 1, currentPath)
             )}
           </div>
@@ -227,7 +227,6 @@ export default function CollectionSelector({
     
     const collectionName = collection.collection?.info?.name || collection.name || 'Unnamed Collection';
     const collectionItems = collection.collection?.item || [];
-    const collectionPath = [collectionName];
     const pathKey = `${collection.id}/${collectionName}`;
     const isSelected = selectedNode?.collectionId === collection.id && 
                       selectedNode.nodePath.length === 0;
@@ -280,7 +279,7 @@ export default function CollectionSelector({
               </div>
             ) : (
               <div className="py-2">
-                {collectionItems.map((item: any, index: number) =>
+                {collectionItems.map((item: any) =>
                   renderTreeNode(item, collection.id, 1, [])
                 )}
               </div>

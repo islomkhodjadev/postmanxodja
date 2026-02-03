@@ -33,3 +33,17 @@ func CreateEmptyCollection(name, description string) string {
 	jsonData, _ := json.Marshal(collection)
 	return string(jsonData)
 }
+
+// UpdateCollectionName updates the name in a collection's raw JSON
+func UpdateCollectionName(rawJSON string, newName string) (string, error) {
+	var collection models.PostmanCollection
+	if err := json.Unmarshal([]byte(rawJSON), &collection); err != nil {
+		return "", err
+	}
+	collection.Info.Name = newName
+	updatedJSON, err := json.Marshal(collection)
+	if err != nil {
+		return "", err
+	}
+	return string(updatedJSON), nil
+}

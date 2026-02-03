@@ -164,12 +164,12 @@ export default function TabsBar({
                   }
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className="text-sm flex-1 px-1 py-0.5 border border-blue-500 rounded focus:outline-none bg-white text-gray-900"
+                className="text-sm px-1 py-0.5 border border-blue-500 rounded focus:outline-none bg-white text-gray-900 min-w-0 w-[100px] max-w-[120px]"
                 autoFocus
               />
             ) : (
               <span
-                className="text-sm truncate flex-1"
+                className="text-sm truncate min-w-0 flex-1"
                 onDoubleClick={(e) => {
                   e.stopPropagation();
                   handleStartRename(tab.id, tab.name || 'Untitled');

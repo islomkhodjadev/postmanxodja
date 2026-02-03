@@ -129,7 +129,7 @@ func GetCollection(c *gin.Context) {
 	})
 }
 
-// UpdateCollection updates a collection's raw JSON
+// UpdateCollection updates a collection's raw JSON or name
 func UpdateCollection(c *gin.Context) {
 	teamID := c.GetUint("team_id")
 	id := c.Param("id")
@@ -140,7 +140,8 @@ func UpdateCollection(c *gin.Context) {
 	}
 
 	var req struct {
-		RawJSON string `json:"raw_json" binding:"required"`
+		RawJSON string `json:"raw_json"`
+		Name    string `json:"name"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -148,10 +149,9 @@ func UpdateCollection(c *gin.Context) {
 		return
 	}
 
-	// Validate it's a valid collection
-	parsed, err := services.ParsePostmanCollection(req.RawJSON)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid collection format"})
+	// At least one field must be provided
+	if req.RawJSON == "" && req.Name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Either raw_json or name must be provided"})
 		return
 	}
 
@@ -162,11 +162,28 @@ func UpdateCollection(c *gin.Context) {
 		return
 	}
 
-	// Update
-	name, description := services.ExtractCollectionInfo(parsed)
-	collection.RawJSON = req.RawJSON
-	collection.Name = name
-	collection.Description = description
+	// If raw_json is provided, validate and update it
+	if req.RawJSON != "" {
+		parsed, err := services.ParsePostmanCollection(req.RawJSON)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid collection format"})
+			return
+		}
+		name, description := services.ExtractCollectionInfo(parsed)
+		collection.RawJSON = req.RawJSON
+		collection.Name = name
+		collection.Description = description
+	} else if req.Name != "" {
+		// Update just the name - need to update both Name field and info.name in raw_json
+		collection.Name = req.Name
+		// Update the name in raw_json as well
+		updatedRawJSON, err := services.UpdateCollectionName(collection.RawJSON, req.Name)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update collection name"})
+			return
+		}
+		collection.RawJSON = updatedRawJSON
+	}
 
 	if err := database.GetDB().Save(&collection).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update collection"})

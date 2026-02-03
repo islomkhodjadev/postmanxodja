@@ -58,7 +58,7 @@ export const deleteCollection = async (teamId: number, id: number): Promise<void
   await api.delete(`/teams/${teamId}/collections/${id}`);
 };
 
-export const updateCollection = async (teamId: number, id: number, data: { raw_json: string }): Promise<Collection> => {
+export const updateCollection = async (teamId: number, id: number, data: { raw_json?: string; name?: string }): Promise<Collection> => {
   const response = await api.put(`/teams/${teamId}/collections/${id}`, data);
   return response.data;
 };

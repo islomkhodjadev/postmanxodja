@@ -35,6 +35,8 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
   const [addTarget, setAddTarget] = useState<AddTarget | null>(null);
   const [renamingItem, setRenamingItem] = useState<{ collectionId: number; path: string; currentName: string } | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [renamingCollectionId, setRenamingCollectionId] = useState<number | null>(null);
+  const [collectionRenameValue, setCollectionRenameValue] = useState('');
 
   useEffect(() => {
     if (currentTeam) {
@@ -263,6 +265,46 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
     setRenameValue('');
   };
 
+  // Collection rename handlers
+  const handleStartCollectionRename = (collectionId: number, currentName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRenamingCollectionId(collectionId);
+    setCollectionRenameValue(currentName);
+  };
+
+  const handleFinishCollectionRename = async () => {
+    if (!renamingCollectionId || !currentTeam || !collectionRenameValue.trim()) {
+      setRenamingCollectionId(null);
+      setCollectionRenameValue('');
+      return;
+    }
+
+    const collection = collections.find(c => c.id === renamingCollectionId);
+    if (!collection || collectionRenameValue.trim() === collection.name) {
+      setRenamingCollectionId(null);
+      setCollectionRenameValue('');
+      return;
+    }
+
+    try {
+      await updateCollection(currentTeam.id, renamingCollectionId, { name: collectionRenameValue.trim() });
+      // Update local state
+      setCollections(prev => prev.map(c =>
+        c.id === renamingCollectionId ? { ...c, name: collectionRenameValue.trim() } : c
+      ));
+    } catch (err) {
+      console.error('Failed to rename collection:', err);
+    }
+
+    setRenamingCollectionId(null);
+    setCollectionRenameValue('');
+  };
+
+  const handleCancelCollectionRename = () => {
+    setRenamingCollectionId(null);
+    setCollectionRenameValue('');
+  };
+
   const renameItemInCollection = (collection: PostmanCollection, path: string, newName: string): PostmanCollection => {
     const pathParts = path.split('/');
     const oldName = pathParts[pathParts.length - 1];
@@ -309,7 +351,7 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
           style={{ paddingLeft }}
         >
           <div
-            className="flex-1 flex items-center gap-2"
+            className="flex-1 flex items-center gap-2 min-w-0 overflow-hidden"
             onClick={() => !isRenaming && onRequestSelect({ ...item.request, name: item.name, collectionId, itemPath })}
           >
             <span
@@ -333,12 +375,12 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
                   }
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className="text-sm px-2 py-1 border border-blue-500 rounded focus:outline-none bg-white text-gray-900"
+                className="text-sm px-2 py-1 border border-blue-500 rounded focus:outline-none bg-white text-gray-900 min-w-0 flex-1 max-w-[200px]"
                 autoFocus
               />
             ) : (
               <span
-                className="text-sm text-gray-700"
+                className="text-sm text-gray-700 truncate"
                 onDoubleClick={(e) => handleStartRename(collectionId, itemPath, item.name, e)}
               >
                 {item.name}
@@ -368,7 +410,7 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
             className="group py-2 px-3 font-semibold bg-gray-50 text-gray-700 text-sm cursor-pointer hover:bg-gray-100 flex items-center gap-2"
             style={{ paddingLeft }}
           >
-            <div className="flex-1 flex items-center gap-2" onClick={() => !isRenaming && toggleFolder(itemPath)}>
+            <div className="flex-1 flex items-center gap-2 min-w-0 overflow-hidden" onClick={() => !isRenaming && toggleFolder(itemPath)}>
               <span className="text-gray-400 text-xs">{isExpanded ? '▼' : '▶'}</span>
               <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
@@ -388,15 +430,15 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
                     }
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  className="text-sm px-2 py-1 border border-blue-500 rounded focus:outline-none bg-white text-gray-900"
+                  className="text-sm px-2 py-1 border border-blue-500 rounded focus:outline-none bg-white text-gray-900 min-w-0 flex-1 max-w-[150px]"
                   autoFocus
                 />
               ) : (
-                <span onDoubleClick={(e) => handleStartRename(collectionId, itemPath, item.name, e)}>
+                <span className="truncate" onDoubleClick={(e) => handleStartRename(collectionId, itemPath, item.name, e)}>
                   {item.name}
                 </span>
               )}
-              <span className="text-xs text-gray-400">{item.item.length}</span>
+              <span className="text-xs text-gray-400 flex-shrink-0">{item.item.length}</span>
             </div>
             <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 ">
               <button
@@ -467,16 +509,43 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
           No collections yet. Import one to get started.
         </div>
       ) : (
-        collections.map(collection => (
+        collections.map(collection => {
+          const isRenamingCollection = renamingCollectionId === collection.id;
+          return (
           <div key={collection.id} className="mb-2">
             <div
-              onClick={() => toggleCollection(collection.id)}
+              onClick={() => !isRenamingCollection && toggleCollection(collection.id)}
               className="group px-4 py-3 cursor-pointer bg-gray-50 hover:bg-gray-100 border-b border-gray-200 flex justify-between items-center "
             >
-              <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <span className="text-gray-500">{expandedCollections.has(collection.id) ? '▼' : '▶'}</span>
-                {collection.name}
-              </span>
+              <div className="text-sm font-medium text-gray-700 flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+                <span className="text-gray-500 flex-shrink-0">{expandedCollections.has(collection.id) ? '▼' : '▶'}</span>
+                {isRenamingCollection ? (
+                  <input
+                    type="text"
+                    value={collectionRenameValue}
+                    onChange={(e) => setCollectionRenameValue(e.target.value)}
+                    onBlur={handleFinishCollectionRename}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === 'Enter') {
+                        handleFinishCollectionRename();
+                      } else if (e.key === 'Escape') {
+                        handleCancelCollectionRename();
+                      }
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-sm px-2 py-1 border border-blue-500 rounded focus:outline-none bg-white text-gray-900 min-w-0 flex-1 max-w-[180px]"
+                    autoFocus
+                  />
+                ) : (
+                  <span
+                    className="truncate"
+                    onDoubleClick={(e) => handleStartCollectionRename(collection.id, collection.name, e)}
+                  >
+                    {collection.name}
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-1">
                 {expandedCollections.has(collection.id) && (
                   <>
@@ -529,7 +598,8 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
               </div>
             )}
           </div>
-        ))
+        );
+        })
       )}
 
       {/* Delete Confirmation Modal */}
