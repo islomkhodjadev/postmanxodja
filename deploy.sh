@@ -306,7 +306,66 @@ fi
 #################################################
 log_info "Configuring Nginx..."
 
-cat > /etc/nginx/sites-available/postmanxodja << 'EOF'
+# Check if SSL certificate exists to determine which config to write
+if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+    log_info "SSL certificate exists, writing HTTPS nginx config..."
+
+    cat > /etc/nginx/sites-available/postmanxodja << 'EOF'
+server {
+    listen 80;
+    server_name postbaby.uz www.postbaby.uz;
+
+    # Redirect all HTTP to HTTPS
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name postbaby.uz www.postbaby.uz;
+
+    ssl_certificate /etc/letsencrypt/live/postbaby.uz/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/postbaby.uz/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    # Increase client body size for file uploads
+    client_max_body_size 50M;
+
+    # Frontend - serve static files
+    location / {
+        root /opt/postmanxodja/frontend/dist;
+        try_files $uri $uri/ /index.html;
+
+        # Cache static assets
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+
+    # Backend API
+    location /api {
+        proxy_pass http://localhost:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+EOF
+else
+    log_info "No SSL certificate yet, writing HTTP-only nginx config..."
+
+    cat > /etc/nginx/sites-available/postmanxodja << 'EOF'
 server {
     listen 80;
     server_name postbaby.uz www.postbaby.uz;
@@ -345,6 +404,7 @@ server {
     }
 }
 EOF
+fi
 
 # Enable site
 ln -sf /etc/nginx/sites-available/postmanxodja /etc/nginx/sites-enabled/
@@ -385,7 +445,7 @@ if [ ! -d "/etc/letsencrypt/live/$DOMAIN" ]; then
         log_warn "  You can run 'sudo certbot --nginx -d $DOMAIN' manually later."
     fi
 else
-    log_info "SSL certificate already exists, renewing if needed..."
+    log_info "SSL certificate already exists, checking renewal..."
     certbot renew --quiet || log_warn "Certificate renewal check failed"
 fi
 
