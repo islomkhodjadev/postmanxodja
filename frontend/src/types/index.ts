@@ -134,11 +134,22 @@ export interface PostmanVariable {
   type?: string;
 }
 
+export type BodyType = 'none' | 'raw' | 'form-data' | 'x-www-form-urlencoded';
+
+export interface FormDataItem {
+  key: string;
+  value: string;
+  type: 'text' | 'file';
+  file?: File;
+}
+
 export interface ExecuteRequest {
   method: string;
   url: string;
   headers: Record<string, string>;
   body: string;
+  body_type?: BodyType;
+  form_data?: FormDataItem[];
   query_params: Record<string, string>;
   environment_id?: number;
 }
@@ -167,6 +178,8 @@ export interface RequestTab {
   url: string;
   headers: Record<string, string>;
   body: string;
+  bodyType?: BodyType;
+  formData?: FormDataItem[];
   queryParams: Record<string, string>;
   request?: PostmanRequest;
   isDirty?: boolean;

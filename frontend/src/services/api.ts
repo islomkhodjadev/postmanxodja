@@ -87,6 +87,40 @@ export const exportCollection = async (teamId: number, id: number, collectionNam
 
 // Request execution
 export const executeRequest = async (request: ExecuteRequest): Promise<ExecuteResponse> => {
+  // For form-data with files, we need to use multipart/form-data
+  if (request.body_type === 'form-data' && request.form_data?.some(item => item.type === 'file' && item.file)) {
+    const formData = new FormData();
+
+    // Add request metadata
+    formData.append('_request_meta', JSON.stringify({
+      method: request.method,
+      url: request.url,
+      headers: request.headers,
+      query_params: request.query_params,
+      environment_id: request.environment_id,
+      body_type: request.body_type,
+    }));
+
+    // Add form data items
+    request.form_data?.forEach((item, index) => {
+      if (item.type === 'file' && item.file) {
+        formData.append(`file_${index}`, item.file, item.file.name);
+        formData.append(`file_${index}_key`, item.key);
+      } else {
+        formData.append(`text_${index}_key`, item.key);
+        formData.append(`text_${index}_value`, item.value);
+      }
+    });
+
+    const response = await api.post('/requests/execute-multipart', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  }
+
+  // For regular requests
   const response = await api.post('/requests/execute', request);
   return response.data;
 };

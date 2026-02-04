@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { executeRequest } from '../services/api';
 import VariableInput from './VariableInput';
-import type { ExecuteRequest, ExecuteResponse, Environment, RequestTab } from '../types';
+import type { ExecuteRequest, ExecuteResponse, Environment, RequestTab, BodyType, FormDataItem } from '../types';
 
 interface Props {
   environments: Environment[];
@@ -34,6 +34,8 @@ export default function RequestBuilder({
     Object.entries(initialHeaders).map(([key, value]) => ({ key, value }))
   );
   const [body, setBody] = useState(initialBody);
+  const [bodyType, setBodyType] = useState<BodyType>('raw');
+  const [formData, setFormData] = useState<FormDataItem[]>([]);
   const [queryParams, setQueryParams] = useState<Array<{ key: string; value: string }>>(() =>
     Object.entries(initialQueryParams).map(([key, value]) => ({ key, value }))
   );
@@ -154,7 +156,9 @@ export default function RequestBuilder({
         method,
         url,
         headers: Object.fromEntries(headers.filter(h => h.key).map(h => [h.key, h.value])),
-        body,
+        body: bodyType === 'raw' ? body : '',
+        body_type: bodyType,
+        form_data: bodyType === 'form-data' ? formData.filter(f => f.key) : undefined,
         query_params: Object.fromEntries(queryParams.filter(q => q.key).map(q => [q.key, q.value])),
         environment_id: selectedEnvId
       };
@@ -218,6 +222,27 @@ export default function RequestBuilder({
     setUrl(newUrl);
     notifyUpdate({ queryParams: newParams, url: newUrl });
     isUpdatingFromParams.current = false;
+  };
+
+  // Form data management
+  const addFormDataItem = () => {
+    setFormData([...formData, { key: '', value: '', type: 'text' }]);
+  };
+
+  const updateFormDataItem = (index: number, field: keyof FormDataItem, value: string | File) => {
+    const newFormData = [...formData];
+    if (field === 'file' && value instanceof File) {
+      newFormData[index] = { ...newFormData[index], file: value };
+    } else if (field === 'type') {
+      newFormData[index] = { ...newFormData[index], type: value as 'text' | 'file', file: undefined };
+    } else {
+      newFormData[index] = { ...newFormData[index], [field]: value as string };
+    }
+    setFormData(newFormData);
+  };
+
+  const removeFormDataItem = (index: number) => {
+    setFormData(formData.filter((_, i) => i !== index));
   };
 
   return (
@@ -381,19 +406,165 @@ export default function RequestBuilder({
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-        <h4 className="font-semibold text-gray-800 mb-3 text-sm">Body</h4>
-        <VariableInput
-          value={body}
-          onChange={(value) => {
-            setBody(value);
-            notifyUpdate({ body: value });
-          }}
-          placeholder="Request body (JSON, text, etc.)"
-          environments={environments}
-          selectedEnvId={selectedEnvId}
-          multiline
-          className="overflow-auto"
-        />
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="font-semibold text-gray-800 text-sm">Body</h4>
+          <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setBodyType('none')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                bodyType === 'none' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              none
+            </button>
+            <button
+              onClick={() => setBodyType('raw')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                bodyType === 'raw' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              raw
+            </button>
+            <button
+              onClick={() => setBodyType('form-data')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                bodyType === 'form-data' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              form-data
+            </button>
+            <button
+              onClick={() => setBodyType('x-www-form-urlencoded')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                bodyType === 'x-www-form-urlencoded' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              x-www-form-urlencoded
+            </button>
+          </div>
+        </div>
+
+        {bodyType === 'none' && (
+          <p className="text-gray-500 text-sm italic">This request does not have a body</p>
+        )}
+
+        {bodyType === 'raw' && (
+          <VariableInput
+            value={body}
+            onChange={(value) => {
+              setBody(value);
+              notifyUpdate({ body: value });
+            }}
+            placeholder="Request body (JSON, text, etc.)"
+            environments={environments}
+            selectedEnvId={selectedEnvId}
+            multiline
+            className="overflow-auto"
+          />
+        )}
+
+        {bodyType === 'form-data' && (
+          <div>
+            {formData.map((item, index) => (
+              <div key={index} className="flex gap-3 mb-2 items-center">
+                <input
+                  type="text"
+                  value={item.key}
+                  onChange={(e) => updateFormDataItem(index, 'key', e.target.value)}
+                  placeholder="Key"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                />
+                <select
+                  value={item.type}
+                  onChange={(e) => updateFormDataItem(index, 'type', e.target.value)}
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                >
+                  <option value="text">Text</option>
+                  <option value="file">File</option>
+                </select>
+                {item.type === 'text' ? (
+                  <div className="flex-1">
+                    <VariableInput
+                      value={item.value}
+                      onChange={(value) => updateFormDataItem(index, 'value', value)}
+                      placeholder="Value"
+                      environments={environments}
+                      selectedEnvId={selectedEnvId}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex-1">
+                    <label className="flex items-center gap-2 cursor-pointer border border-gray-300 rounded-lg px-3 py-2 text-sm hover:bg-gray-50 transition-colors">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-gray-600 truncate">
+                        {item.file ? item.file.name : 'Choose file...'}
+                      </span>
+                      <input
+                        type="file"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) updateFormDataItem(index, 'file', file);
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                )}
+                <button
+                  onClick={() => removeFormDataItem(index)}
+                  className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={addFormDataItem}
+              className="mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm shadow-sm transition-colors duration-150"
+            >
+              Add Field
+            </button>
+          </div>
+        )}
+
+        {bodyType === 'x-www-form-urlencoded' && (
+          <div>
+            {formData.map((item, index) => (
+              <div key={index} className="flex gap-3 mb-2">
+                <input
+                  type="text"
+                  value={item.key}
+                  onChange={(e) => updateFormDataItem(index, 'key', e.target.value)}
+                  placeholder="Key"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                />
+                <div className="flex-1">
+                  <VariableInput
+                    value={item.value}
+                    onChange={(value) => updateFormDataItem(index, 'value', value)}
+                    placeholder="Value"
+                    environments={environments}
+                    selectedEnvId={selectedEnvId}
+                  />
+                </div>
+                <button
+                  onClick={() => removeFormDataItem(index)}
+                  className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={addFormDataItem}
+              className="mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm shadow-sm transition-colors duration-150"
+            >
+              Add Field
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

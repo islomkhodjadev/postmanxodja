@@ -30,8 +30,11 @@ export default function VariableInput({
   rows = 6,
 }: VariableInputProps) {
   const [hoveredVariable, setHoveredVariable] = useState<VariableInfo | null>(null);
+  const [clickedVariable, setClickedVariable] = useState<VariableInfo | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [popoverPosition, setPopoverPosition] = useState({ x: 0, y: 0 });
   const [isFocused, setIsFocused] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -84,6 +87,41 @@ export default function VariableInput({
     setHoveredVariable(null);
   }, []);
 
+  const handleVariableClick = useCallback((variable: VariableInfo, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setClickedVariable(variable);
+    setPopoverPosition({ x: e.clientX, y: e.clientY });
+    setCopySuccess(false);
+  }, []);
+
+  const handleCopyValue = useCallback(async () => {
+    if (clickedVariable?.value !== undefined) {
+      try {
+        await navigator.clipboard.writeText(clickedVariable.value);
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 1500);
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
+    }
+  }, [clickedVariable]);
+
+  const handleCopyName = useCallback(async () => {
+    if (clickedVariable) {
+      try {
+        await navigator.clipboard.writeText(`{{${clickedVariable.name}}}`);
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 1500);
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
+    }
+  }, [clickedVariable]);
+
+  const closePopover = useCallback(() => {
+    setClickedVariable(null);
+  }, []);
+
   // Sync scroll between input and overlay
   const handleScroll = useCallback(() => {
     if (inputRef.current && overlayRef.current) {
@@ -93,7 +131,8 @@ export default function VariableInput({
   }, []);
 
   // Render highlighted text with hoverable variable spans
-  const renderHighlightedContent = () => {
+  // Render highlighted text with hoverable variable spans
+ const renderHighlightedContent = () => {
     if (variables.length === 0) {
       return <span className="text-transparent whitespace-pre-wrap">{value || placeholder}</span>;
     }
@@ -102,28 +141,29 @@ export default function VariableInput({
     let lastIndex = 0;
 
     variables.forEach((variable, index) => {
-      // Add text before the variable
+      // Regular text: pointer-events-none is inherited, so clicks pass through to input
       if (variable.start > lastIndex) {
         parts.push(
-          <span key={`text-${index}`} className="text-transparent whitespace-pre-wrap">
+          <span key={`text-${index}`} className="text-gray-900 whitespace-pre-wrap">
             {value.slice(lastIndex, variable.start)}
           </span>
         );
       }
 
-      // Add the variable with highlighting
+      // Variable Highlight: ADD 'pointer-events-auto' here
       const hasValue = variable.value !== undefined;
       parts.push(
         <span
           key={`var-${index}`}
-          className={`rounded cursor-help whitespace-pre-wrap ${
+          className={`rounded cursor-pointer whitespace-pre-wrap pointer-events-auto ${
             hasValue
-              ? 'bg-orange-200/80 text-orange-700'
-              : 'bg-red-200/80 text-red-700'
+              ? 'bg-orange-200/80 text-orange-700 hover:bg-orange-300/80'
+              : 'bg-red-200/80 text-red-700 hover:bg-red-300/80'
           }`}
           onMouseEnter={(e) => handleVariableHover(variable, e)}
           onMouseMove={(e) => setTooltipPosition({ x: e.clientX, y: e.clientY })}
           onMouseLeave={handleVariableLeave}
+          onClick={(e) => handleVariableClick(variable, e)}
         >
           {value.slice(variable.start, variable.end)}
         </span>
@@ -132,10 +172,9 @@ export default function VariableInput({
       lastIndex = variable.end;
     });
 
-    // Add remaining text
     if (lastIndex < value.length) {
       parts.push(
-        <span key="text-end" className="text-transparent whitespace-pre-wrap">
+        <span key="text-end" className="text-gray-900 whitespace-pre-wrap">
           {value.slice(lastIndex)}
         </span>
       );
@@ -150,21 +189,19 @@ export default function VariableInput({
 
   const focusClass = isFocused ? 'ring-2 ring-blue-500 border-blue-500' : '';
 
-  return (
+ return (
     <div className="relative">
       {/* Highlight overlay - positioned absolutely over the input */}
       <div
         ref={overlayRef}
+        // Ensure 'pointer-events-none' is active for the container
         className={`absolute inset-0 ${baseClass} ${focusClass} pointer-events-none overflow-hidden bg-transparent border-transparent`}
-        style={{
-          pointerEvents: variables.length > 0 ? 'auto' : 'none',
-        }}
       >
         <div className="pointer-events-none">
           {variables.length > 0 && (
             <div
               className="absolute inset-0 px-3 py-2"
-              style={{ pointerEvents: 'auto' }}
+              // REMOVE style={{ pointerEvents: 'auto' }} from here!
             >
               {renderHighlightedContent()}
             </div>
@@ -250,6 +287,73 @@ export default function VariableInput({
             style={{ bottom: '-4px', left: '20px' }}
           />
         </div>
+      )}
+
+      {/* Click Popover for Copy */}
+      {clickedVariable && (
+        <>
+          <div className="fixed inset-0 z-[9998]" onClick={closePopover} />
+          <div
+            className="fixed z-[9999] bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+            style={{
+              left: Math.min(popoverPosition.x, window.innerWidth - 220),
+              top: popoverPosition.y + 10,
+              minWidth: '200px',
+            }}
+          >
+            <div className="px-3 py-2 bg-gray-50 border-b border-gray-200">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                <span className="font-medium text-gray-800">{clickedVariable.name}</span>
+              </div>
+            </div>
+            <div className="p-2 space-y-1">
+              {clickedVariable.value !== undefined ? (
+                <>
+                  <div className="px-2 py-1">
+                    <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Value</div>
+                    <div className="text-sm text-gray-700 font-mono bg-gray-100 px-2 py-1 rounded truncate max-w-[180px]">
+                      {clickedVariable.value || <span className="text-gray-400 italic">empty</span>}
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleCopyValue}
+                    className="w-full flex items-center gap-2 px-2 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded transition-colors"
+                  >
+                    {copySuccess ? (
+                      <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    )}
+                    {copySuccess ? 'Copied!' : 'Copy Value'}
+                  </button>
+                </>
+              ) : (
+                <div className="px-2 py-2 flex items-center gap-2 text-red-500 text-sm">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  Variable not found
+                </div>
+              )}
+              <button
+                onClick={handleCopyName}
+                className="w-full flex items-center gap-2 px-2 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                Copy Variable Name
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
