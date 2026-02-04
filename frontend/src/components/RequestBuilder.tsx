@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { executeRequest } from '../services/api';
+import VariableInput from './VariableInput';
 import type { ExecuteRequest, ExecuteResponse, Environment, RequestTab } from '../types';
 
 interface Props {
@@ -43,6 +44,54 @@ export default function RequestBuilder({
   const isInitialMount = useRef(true);
   const onUpdateRef = useRef(onUpdate);
   onUpdateRef.current = onUpdate;
+
+  // Ref to prevent infinite loops when syncing URL and query params
+  const isUpdatingFromParams = useRef(false);
+
+  // Helper to parse query params from URL
+  const parseQueryParamsFromUrl = (urlString: string): Array<{ key: string; value: string }> => {
+    try {
+      const urlObj = new URL(urlString.startsWith('http') ? urlString : `http://${urlString}`);
+      const params: Array<{ key: string; value: string }> = [];
+      urlObj.searchParams.forEach((value, key) => {
+        params.push({ key, value });
+      });
+      return params;
+    } catch {
+      // Try to parse query string manually if URL is invalid
+      const queryIndex = urlString.indexOf('?');
+      if (queryIndex === -1) return [];
+      const queryString = urlString.slice(queryIndex + 1);
+      const params: Array<{ key: string; value: string }> = [];
+      queryString.split('&').forEach(part => {
+        const [key, value = ''] = part.split('=');
+        if (key) {
+          params.push({ key: decodeURIComponent(key), value: decodeURIComponent(value) });
+        }
+      });
+      return params;
+    }
+  };
+
+  // Helper to build URL with query params
+  const buildUrlWithParams = (baseUrl: string, params: Array<{ key: string; value: string }>): string => {
+    // Remove existing query params from URL
+    let cleanUrl = baseUrl;
+    const queryIndex = baseUrl.indexOf('?');
+    if (queryIndex !== -1) {
+      cleanUrl = baseUrl.slice(0, queryIndex);
+    }
+
+    // Build new query string from params
+    const validParams = params.filter(p => p.key);
+    if (validParams.length === 0) return cleanUrl;
+
+    const queryString = validParams
+      .map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`)
+      .join('&');
+    return `${cleanUrl}?${queryString}`;
+  };
+
 
   // Helper to notify parent of changes
   const notifyUpdate = (updates: {
@@ -142,18 +191,33 @@ export default function RequestBuilder({
   const addQueryParam = () => {
     const newParams = [...queryParams, { key: '', value: '' }];
     setQueryParams(newParams);
-    notifyUpdate({ queryParams: newParams });
+    // Update URL with new params
+    isUpdatingFromParams.current = true;
+    const newUrl = buildUrlWithParams(url, newParams);
+    setUrl(newUrl);
+    notifyUpdate({ queryParams: newParams, url: newUrl });
+    isUpdatingFromParams.current = false;
   };
   const updateQueryParam = (index: number, field: 'key' | 'value', value: string) => {
     const newParams = [...queryParams];
     newParams[index][field] = value;
     setQueryParams(newParams);
-    notifyUpdate({ queryParams: newParams });
+    // Update URL with new params
+    isUpdatingFromParams.current = true;
+    const newUrl = buildUrlWithParams(url, newParams);
+    setUrl(newUrl);
+    notifyUpdate({ queryParams: newParams, url: newUrl });
+    isUpdatingFromParams.current = false;
   };
   const removeQueryParam = (index: number) => {
     const newParams = queryParams.filter((_, i) => i !== index);
     setQueryParams(newParams);
-    notifyUpdate({ queryParams: newParams });
+    // Update URL with remaining params
+    isUpdatingFromParams.current = true;
+    const newUrl = buildUrlWithParams(url, newParams);
+    setUrl(newUrl);
+    notifyUpdate({ queryParams: newParams, url: newUrl });
+    isUpdatingFromParams.current = false;
   };
 
   return (
@@ -181,16 +245,30 @@ export default function RequestBuilder({
           <option>PATCH</option>
         </select>
 
-        <input
-          type="text"
-          value={url}
-          onChange={(e) => {
-            setUrl(e.target.value);
-            notifyUpdate({ url: e.target.value });
-          }}
-          placeholder="Enter request URL"
-          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none shadow-sm"
-        />
+        <div className="flex-1">
+          <VariableInput
+            value={url}
+            onChange={(newUrl) => {
+              setUrl(newUrl);
+              // Parse query params from URL and update params list
+              if (!isUpdatingFromParams.current) {
+                const parsedParams = parseQueryParamsFromUrl(newUrl);
+                // Merge with existing params that have keys not in URL
+                // This preserves params with empty keys being edited
+                const existingEmptyKeyParams = queryParams.filter(p => !p.key);
+                const newParams = [...parsedParams, ...existingEmptyKeyParams];
+                setQueryParams(newParams.length > 0 ? newParams : []);
+                notifyUpdate({ url: newUrl, queryParams: newParams });
+              } else {
+                notifyUpdate({ url: newUrl });
+              }
+            }}
+            placeholder="Enter request URL"
+            environments={environments}
+            selectedEnvId={selectedEnvId}
+            className="shadow-sm"
+          />
+        </div>
 
         <select
           value={selectedEnvId || ''}
@@ -217,21 +295,17 @@ export default function RequestBuilder({
           {loading ? 'Sending...' : 'Send'}
         </button>
         <button
-          onClick={() => notifyUpdate({})}
+          onClick={() => {
+            notifyUpdate({});
+            if (onSaveToCollection) {
+              onSaveToCollection();
+            }
+          }}
           className="px-4 py-2 rounded-lg shadow-sm font-medium text-sm transition-colors duration-150 bg-blue-500 hover:bg-blue-600 text-white"
-          title="Save tab (auto-saves after 1 second)"
+          title={hasCollectionSource ? "Save to collection" : "Save to collection"}
         >
           Save
         </button>
-        {hasCollectionSource && onSaveToCollection && (
-          <button
-            onClick={onSaveToCollection}
-            className="px-4 py-2 rounded-lg shadow-sm font-medium text-sm transition-colors duration-150 bg-purple-500 hover:bg-purple-600 text-white"
-            title="Save changes back to the collection"
-          >
-            Save to Collection
-          </button>
-        )}
       </div>
 
       <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
@@ -245,13 +319,15 @@ export default function RequestBuilder({
               placeholder="Key"
               className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
-            <input
-              type="text"
-              value={param.value}
-              onChange={(e) => updateQueryParam(index, 'value', e.target.value)}
-              placeholder="Value"
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            />
+            <div className="flex-1">
+              <VariableInput
+                value={param.value}
+                onChange={(value) => updateQueryParam(index, 'value', value)}
+                placeholder="Value"
+                environments={environments}
+                selectedEnvId={selectedEnvId}
+              />
+            </div>
             <button
               onClick={() => removeQueryParam(index)}
               className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150"
@@ -279,13 +355,15 @@ export default function RequestBuilder({
               placeholder="Key"
               className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
-            <input
-              type="text"
-              value={header.value}
-              onChange={(e) => updateHeader(index, 'value', e.target.value)}
-              placeholder="Value"
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            />
+            <div className="flex-1">
+              <VariableInput
+                value={header.value}
+                onChange={(value) => updateHeader(index, 'value', value)}
+                placeholder="Value"
+                environments={environments}
+                selectedEnvId={selectedEnvId}
+              />
+            </div>
             <button
               onClick={() => removeHeader(index)}
               className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150"
@@ -304,14 +382,17 @@ export default function RequestBuilder({
 
       <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
         <h4 className="font-semibold text-gray-800 mb-3 text-sm">Body</h4>
-        <textarea
+        <VariableInput
           value={body}
-          onChange={(e) => {
-            setBody(e.target.value);
-            notifyUpdate({ body: e.target.value });
+          onChange={(value) => {
+            setBody(value);
+            notifyUpdate({ body: value });
           }}
           placeholder="Request body (JSON, text, etc.)"
-          className="w-full min-h-[150px] max-h-[400px] border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y overflow-auto"
+          environments={environments}
+          selectedEnvId={selectedEnvId}
+          multiline
+          className="overflow-auto"
         />
       </div>
     </div>

@@ -112,12 +112,37 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
     setAddTarget(target);
   };
 
+  // Helper to check if item name exists in a given items array
+  const itemNameExists = (items: PostmanItem[], name: string): boolean => {
+    return items.some(item => item.name === name);
+  };
+
+  // Get items at a specific path
+  const getItemsAtPath = (collection: PostmanCollection, path?: string): PostmanItem[] => {
+    if (!path) return collection.item;
+    const pathParts = path.split('/');
+    let currentItems = collection.item;
+    for (const part of pathParts) {
+      const folder = currentItems.find(item => item.name === part && item.item);
+      if (!folder || !folder.item) return [];
+      currentItems = folder.item;
+    }
+    return currentItems;
+  };
+
   const handleConfirmAdd = async (name: string) => {
     if (!addTarget || !currentTeam) return;
 
     try {
       const collection = collectionData.get(addTarget.collectionId);
       if (collection) {
+        // Check for duplicate name at the target path
+        const itemsAtPath = getItemsAtPath(collection, addTarget.parentPath);
+        if (itemNameExists(itemsAtPath, name)) {
+          alert(`A ${addTarget.type === 'folder' ? 'folder' : 'request'} with name "${name}" already exists in this location.`);
+          return;
+        }
+
         let updatedCollection: PostmanCollection;
 
         if (addTarget.type === 'folder') {
@@ -246,6 +271,17 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
     try {
       const collection = collectionData.get(renamingItem.collectionId);
       if (collection) {
+        // Get parent path to check for duplicates
+        const pathParts = renamingItem.path.split('/');
+        const parentPath = pathParts.length > 1 ? pathParts.slice(0, -1).join('/') : undefined;
+        const itemsAtPath = getItemsAtPath(collection, parentPath);
+
+        // Check if new name already exists (excluding current item)
+        if (itemsAtPath.some(item => item.name === renameValue.trim() && item.name !== renamingItem.currentName)) {
+          alert(`An item with name "${renameValue.trim()}" already exists in this location.`);
+          return;
+        }
+
         const updatedCollection = renameItemInCollection(collection, renamingItem.path, renameValue.trim());
         await updateCollection(currentTeam.id, renamingItem.collectionId, {
           raw_json: JSON.stringify(updatedCollection),
@@ -283,6 +319,12 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
     if (!collection || collectionRenameValue.trim() === collection.name) {
       setRenamingCollectionId(null);
       setCollectionRenameValue('');
+      return;
+    }
+
+    // Check if collection name already exists (excluding current collection)
+    if (collections.some(c => c.name === collectionRenameValue.trim() && c.id !== renamingCollectionId)) {
+      alert(`A collection with name "${collectionRenameValue.trim()}" already exists.`);
       return;
     }
 

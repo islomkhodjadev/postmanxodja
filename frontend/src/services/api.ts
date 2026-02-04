@@ -111,6 +111,39 @@ export const deleteEnvironment = async (teamId: number, id: number): Promise<voi
   await api.delete(`/teams/${teamId}/environments/${id}`);
 };
 
+// API Keys
+export interface APIKey {
+  id: number;
+  team_id: number;
+  name: string;
+  key?: string; // Only returned on creation
+  key_prefix: string;
+  permissions: string;
+  last_used_at: string | null;
+  expires_at: string | null;
+  created_at: string;
+}
+
+export interface CreateAPIKeyRequest {
+  name: string;
+  permissions?: string; // read, write, read_write
+  expires_in?: number; // Days until expiration
+}
+
+export const getAPIKeys = async (teamId: number): Promise<APIKey[]> => {
+  const response = await api.get(`/teams/${teamId}/api-keys`);
+  return response.data;
+};
+
+export const createAPIKey = async (teamId: number, data: CreateAPIKeyRequest): Promise<APIKey> => {
+  const response = await api.post(`/teams/${teamId}/api-keys`, data);
+  return response.data;
+};
+
+export const deleteAPIKey = async (teamId: number, keyId: number): Promise<void> => {
+  await api.delete(`/teams/${teamId}/api-keys/${keyId}`);
+};
+
 // Saved tabs APIs
 export interface SavedTab {
   tab_id: string;

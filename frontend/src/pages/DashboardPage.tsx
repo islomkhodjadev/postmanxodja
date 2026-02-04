@@ -42,6 +42,7 @@ export default function DashboardPage() {
   const [activeCollectionId, setActiveCollectionId] = useState<number | null>(null);
   const [collectionSelectorOpen, setCollectionSelectorOpen] = useState(false);
   const [tabToSave, setTabToSave] = useState<RequestTab | null>(null);
+  const [closeTabAfterSave, setCloseTabAfterSave] = useState(false);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -187,11 +188,12 @@ export default function DashboardPage() {
     };
 
     if (emptyTab) {
-      // Reuse existing empty tab
+      // Reuse existing empty tab - generate new ID to force RequestBuilder remount
+      const newId = generateId();
       setTabs(prev => prev.map(tab =>
-        tab.id === emptyTab.id ? { ...tab, ...requestData } : tab
+        tab.id === emptyTab.id ? { ...tab, ...requestData, id: newId } : tab
       ));
-      setActiveTabId(emptyTab.id);
+      setActiveTabId(newId);
     } else {
       // Create new tab for this request
       const newTab: RequestTab = {
@@ -422,30 +424,40 @@ export default function DashboardPage() {
   }, [currentTeam]);
 
   const handleSaveToCollection = useCallback(async () => {
-    await saveTabToCollection(activeTab);
+    // If tab has a collection source, save directly to it
+    if (activeTab.collectionId && activeTab.itemPath) {
+      await saveTabToCollection(activeTab);
+    } else {
+      // For new tabs without collection, show selector to choose where to save
+      setTabToSave(activeTab);
+      setCollectionSelectorOpen(true);
+    }
   }, [activeTab, saveTabToCollection]);
 
   const handleCollectionSelect = useCallback(async (collectionId: number, folderPath: string[]) => {
     setCollectionSelectorOpen(false);
     if (tabToSave) {
       await saveTabToCollection(tabToSave, collectionId, folderPath);
-      // Close the tab after saving
-      const tabId = tabToSave.id;
-      setTabs(prev => {
-        const newTabs = prev.filter(t => t.id !== tabId);
-        if (tabId === activeTabId && newTabs.length > 0) {
-          const closedIndex = prev.findIndex(t => t.id === tabId);
-          const newActiveIndex = Math.min(closedIndex, newTabs.length - 1);
-          setActiveTabId(newTabs[newActiveIndex].id);
-        }
-        return newTabs;
-      });
-      setResponses(prev => {
-        const newResponses = new Map(prev);
-        newResponses.delete(tabId);
-        return newResponses;
-      });
+      // Only close the tab if requested (e.g., when closing tab with unsaved changes)
+      if (closeTabAfterSave) {
+        const tabId = tabToSave.id;
+        setTabs(prev => {
+          const newTabs = prev.filter(t => t.id !== tabId);
+          if (tabId === activeTabId && newTabs.length > 0) {
+            const closedIndex = prev.findIndex(t => t.id === tabId);
+            const newActiveIndex = Math.min(closedIndex, newTabs.length - 1);
+            setActiveTabId(newTabs[newActiveIndex].id);
+          }
+          return newTabs;
+        });
+        setResponses(prev => {
+          const newResponses = new Map(prev);
+          newResponses.delete(tabId);
+          return newResponses;
+        });
+      }
       setTabToSave(null);
+      setCloseTabAfterSave(false);
     }
   }, [tabToSave, saveTabToCollection, activeTabId]);
 
@@ -495,6 +507,7 @@ export default function DashboardPage() {
           if (!tabToClose.itemPath) {
             // Show collection selector for new tabs to let user choose where to save
             setTabToSave(tabToClose);
+            setCloseTabAfterSave(true); // Close tab after saving when triggered from close button
             setCollectionSelectorOpen(true);
           } else if (tabToClose.collectionId) {
             // Existing tab with collection, save directly

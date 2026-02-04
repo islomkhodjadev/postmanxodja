@@ -120,6 +120,30 @@ func main() {
 			teamApi.POST("/environments", handlers.CreateEnvironment)
 			teamApi.PUT("/environments/:id", handlers.UpdateEnvironment)
 			teamApi.DELETE("/environments/:id", handlers.DeleteEnvironment)
+
+			// Team API keys management
+			teamApi.GET("/api-keys", handlers.GetAPIKeys)
+			teamApi.POST("/api-keys", handlers.CreateAPIKey)
+			teamApi.DELETE("/api-keys/:key_id", handlers.DeleteAPIKey)
+		}
+	}
+
+	// Public API routes (authenticated via API key for third-party access)
+	publicApi := r.Group("/api/v1")
+	publicApi.Use(middleware.APIKeyMiddleware())
+	{
+		// Collections - read endpoints
+		publicApi.GET("/collections", handlers.PublicGetCollections)
+		publicApi.GET("/collections/:id", handlers.PublicGetCollection)
+		publicApi.GET("/collections/:id/raw", handlers.PublicGetCollectionRaw)
+
+		// Collections - write endpoints (require write permission)
+		writeApi := publicApi.Group("")
+		writeApi.Use(middleware.RequireWritePermission())
+		{
+			writeApi.POST("/collections", handlers.PublicCreateCollection)
+			writeApi.PUT("/collections/:id", handlers.PublicUpdateCollection)
+			writeApi.DELETE("/collections/:id", handlers.PublicDeleteCollection)
 		}
 	}
 
