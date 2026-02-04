@@ -24,6 +24,7 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
         run: |
+          echo "DONE USING CLOUDE AI - HAPPY POSTMANING!"
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
@@ -41,6 +42,7 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
         run: |
+          echo "DONE USING CLOUDE AI - HAPPY POSTMANING!"
           ssh "$SSH_USER@$SSH_HOST" "
             echo '=== Preparing server for deployment ==='
             
@@ -106,6 +108,7 @@ jobs:
           POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
           POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
         run: |
+          echo "DONE USING CLOUDE AI - HAPPY POSTMANING!"
           echo "=== Starting deployment script ==="
           
           # Run the deployment script with debug output
@@ -142,6 +145,7 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
         run: |
+          echo "DONE USING CLOUDE AI - HAPPY POSTMANING!"
           echo "=== Verifying deployment ==="
           
           ssh "$SSH_USER@$SSH_HOST" "
@@ -204,6 +208,7 @@ jobs:
 
       - name: Health check
         run: |
+          echo "DONE USING CLOUDE AI - HAPPY POSTMANING!"
           echo "=== Performing health checks ==="
           
           # Give services time to start
@@ -276,7 +281,8 @@ jobs:
         if: success()
         run: |
           echo "========================================"
-          echo "✅ DEPLOYMENT SUCCESSFUL!"
+          echo "DONE USING CLOUDE AI - HAPPY POSTMANING!"
+          echo "✅ DEPLOYMENT SUCCESSFUL!!!!!!"
           echo "========================================"
           echo ""
           echo "Application deployed to: https://postbaby.uz"
@@ -295,6 +301,7 @@ jobs:
       - name: Notify on failure
         if: failure()
         run: |
+          echo "DONE USING CLOUDE AI - HAPPY POSTMANING!"
           echo "========================================"
           echo "❌ DEPLOYMENT FAILED!"
           echo "========================================"
