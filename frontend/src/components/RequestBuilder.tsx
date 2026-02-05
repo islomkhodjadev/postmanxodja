@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { executeRequest } from '../services/api';
 import VariableInput from './VariableInput';
-import type { ExecuteRequest, ExecuteResponse, Environment, RequestTab, BodyType, FormDataItem } from '../types';
+import type { ExecuteRequest, ExecuteResponse, Environment, RequestTab, BodyType, FormDataItem, SentRequest } from '../types';
 
 interface Props {
   environments: Environment[];
-  onResponse: (response: ExecuteResponse) => void;
+  onResponse: (response: ExecuteResponse, sentRequest: SentRequest) => void;
   initialMethod?: string;
   initialUrl?: string;
   initialHeaders?: Record<string, string>;
@@ -41,6 +41,8 @@ export default function RequestBuilder({
   );
   const [selectedEnvId, setSelectedEnvId] = useState<number | undefined>();
   const [loading, setLoading] = useState(false);
+
+  console.log("body ==>", body, typeof body)
 
   // Track if this is the first render to skip initial onUpdate call
   const isInitialMount = useRef(true);
@@ -152,20 +154,43 @@ export default function RequestBuilder({
     setLoading(true);
 
     try {
+      const headersObj = Object.fromEntries(headers.filter(h => h.key).map(h => [h.key, h.value]));
+      const queryParamsObj = Object.fromEntries(queryParams.filter(q => q.key).map(q => [q.key, q.value]));
+
       const request: ExecuteRequest = {
         method,
         url,
-        headers: Object.fromEntries(headers.filter(h => h.key).map(h => [h.key, h.value])),
+        headers: headersObj,
         body: bodyType === 'raw' ? body : '',
         body_type: bodyType,
         form_data: bodyType === 'form-data' ? formData.filter(f => f.key) : undefined,
-        query_params: Object.fromEntries(queryParams.filter(q => q.key).map(q => [q.key, q.value])),
+        query_params: queryParamsObj,
         environment_id: selectedEnvId
       };
 
       const response = await executeRequest(request);
       console.log('Response received:', response);
-      onResponse(response);
+
+      // Debug: Log the body value
+      console.log('Body state value:', body);
+      console.log('Body type:', bodyType);
+      console.log('Body to send:', bodyType === 'raw' ? body : '');
+
+      // Create sent request info for Swagger-like display
+      // Always capture the body for raw type, don't check if empty
+      const sentRequest: SentRequest = {
+        method,
+        url,
+        headers: headersObj,
+        body: body, // Always pass the body, let the viewer handle display
+        bodyType,
+        queryParams: queryParamsObj,
+        timestamp: Date.now(),
+      };
+
+      console.log('Sent request object:', sentRequest);
+
+      onResponse(response, sentRequest);
     } catch (err: any) {
       console.error('Request failed:', err);
       console.error('Error details:', err.response);

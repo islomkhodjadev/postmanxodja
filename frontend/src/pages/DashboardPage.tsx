@@ -13,7 +13,7 @@ import CollectionSelector from '../components/CollectionSelector';
 import Header from '../components/layout/Header';
 import { useTeam } from '../contexts/TeamContext';
 import { getEnvironments, getSavedTabs, getCollection, updateCollection } from '../services/api';
-import type { ExecuteResponse, Environment, RequestTab } from '../types';
+import type { ExecuteResponse, Environment, RequestTab, SentRequest } from '../types';
 
 // Helper to generate unique IDs
 const generateId = () => Math.random().toString(36).substring(2, 11);
@@ -34,6 +34,7 @@ export default function DashboardPage() {
   const [tabs, setTabs] = useState<RequestTab[]>([defaultTab]);
   const [activeTabId, setActiveTabId] = useState<string>(defaultTab.id);
   const [responses, setResponses] = useState<Map<string, ExecuteResponse>>(new Map());
+  const [sentRequests, setSentRequests] = useState<Map<string, SentRequest>>(new Map());
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -66,6 +67,7 @@ export default function DashboardPage() {
   // Get current active tab
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0];
   const currentResponse = responses.get(activeTabId) || null;
+  const currentSentRequest = sentRequests.get(activeTabId) || null;
 
   // Load tabs from database on mount
   useEffect(() => {
@@ -266,8 +268,9 @@ export default function DashboardPage() {
     }
   }, [tabs]);
 
-  const handleResponse = useCallback((resp: ExecuteResponse) => {
+  const handleResponse = useCallback((resp: ExecuteResponse, sentReq: SentRequest) => {
     setResponses(prev => new Map(prev).set(activeTabId, resp));
+    setSentRequests(prev => new Map(prev).set(activeTabId, sentReq));
   }, [activeTabId]);
 
   const handleTabUpdate = useCallback((updates: Partial<RequestTab>) => {
@@ -455,6 +458,11 @@ export default function DashboardPage() {
           newResponses.delete(tabId);
           return newResponses;
         });
+        setSentRequests(prev => {
+          const newRequests = new Map(prev);
+          newRequests.delete(tabId);
+          return newRequests;
+        });
       }
       setTabToSave(null);
       setCloseTabAfterSave(false);
@@ -475,11 +483,16 @@ export default function DashboardPage() {
         }
         return newTabs;
       });
-      // Remove response for closed tab
+      // Remove response and request for closed tab
       setResponses(prev => {
         const newResponses = new Map(prev);
         newResponses.delete(tabId);
         return newResponses;
+      });
+      setSentRequests(prev => {
+        const newRequests = new Map(prev);
+        newRequests.delete(tabId);
+        return newRequests;
       });
     };
 
@@ -657,7 +670,7 @@ export default function DashboardPage() {
               />
             }
             bottomPanel={
-              <ResponseViewer response={currentResponse} />
+              <ResponseViewer response={currentResponse} request={currentSentRequest} />
             }
           />
         )}

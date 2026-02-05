@@ -162,6 +162,23 @@ export interface ExecuteResponse {
   time: number;
 }
 
+// Request info that was sent (for display in response viewer like Swagger)
+export interface SentRequest {
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+  body: string;
+  bodyType?: BodyType;
+  queryParams: Record<string, string>;
+  timestamp: number;
+}
+
+// Combined response with request info for Swagger-like display
+export interface ApiCallResult {
+  request: SentRequest;
+  response: ExecuteResponse;
+}
+
 export interface Environment {
   id?: number;
   name: string;
