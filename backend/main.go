@@ -83,6 +83,7 @@ func main() {
 
 		// Request execution (not team-scoped, uses environment_id in body)
 		api.POST("/requests/execute", handlers.ExecuteRequest)
+		api.POST("/requests/execute-multipart", handlers.ExecuteMultipartRequest)
 
 		// Saved tabs (user-scoped)
 		api.GET("/tabs", handlers.GetSavedTabs)
