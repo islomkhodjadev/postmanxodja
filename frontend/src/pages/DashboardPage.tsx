@@ -527,17 +527,17 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
+      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {/* cURL Import Modal */}
       <CurlImportModal
         isOpen={curlImportOpen}
@@ -603,13 +603,13 @@ export default function DashboardPage() {
 
         {/* Content Area */}
         {tabs.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
             <div className="text-center max-w-md p-8">
-              <svg className="w-24 h-24 mx-auto mb-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-24 h-24 mx-auto mb-6 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <h2 className="text-2xl font-semibold text-gray-700 mb-3">No Tabs Open</h2>
-              <p className="text-gray-500 mb-6">
+              <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-3">No Tabs Open</h2>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">
                 Start by creating a new request or importing from cURL
               </p>
               <div className="flex gap-3 justify-center">
@@ -624,7 +624,7 @@ export default function DashboardPage() {
                 </button>
                 <button
                   onClick={handleImportCurl}
-                  className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium flex items-center gap-2 border border-gray-300"
+                  className="px-6 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg font-medium flex items-center gap-2 border border-gray-300 dark:border-gray-600"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />

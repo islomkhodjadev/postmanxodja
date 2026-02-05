@@ -70,7 +70,7 @@ export default function ResizableSplitter({
     <div ref={containerRef} className="flex-1 flex flex-col min-h-0">
       {/* Top Panel */}
       <div
-        className={`overflow-y-auto bg-white ${collapsed ? 'flex-1' : 'flex-shrink-0'}`}
+        className={`overflow-y-auto bg-white dark:bg-gray-800 ${collapsed ? 'flex-1' : 'flex-shrink-0'}`}
         style={{ height: collapsed ? undefined : `${topHeight}%` }}
       >
         {topPanel}
@@ -83,25 +83,25 @@ export default function ResizableSplitter({
             className={`
               h-2 flex-1 cursor-row-resize
               flex items-center justify-center
-              bg-gray-100 border-y border-gray-200
-              hover:bg-blue-100
-              ${isDragging ? 'bg-blue-200' : ''}
+              bg-gray-100 dark:bg-gray-700 border-y border-gray-200 dark:border-gray-600
+              hover:bg-blue-100 dark:hover:bg-blue-900/30
+              ${isDragging ? 'bg-blue-200 dark:bg-blue-800' : ''}
             `}
             onMouseDown={handleMouseDown}
             style={{ transition: 'none' }}
           >
             <div className="flex gap-1">
-              <div className="w-8 h-0.5 bg-gray-400 rounded-full" />
+              <div className="w-8 h-0.5 bg-gray-400 dark:bg-gray-500 rounded-full" />
             </div>
           </div>
           <button
             onClick={toggleCollapse}
-            className="absolute left-1/2 -translate-x-1/2 z-10 h-6 w-12 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 flex items-center justify-center"
+            className="absolute left-1/2 -translate-x-1/2 z-10 h-6 w-12 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-center"
             style={{ top: -3, transition: 'none' }}
             title="Collapse response panel"
           >
             <svg
-              className="w-4 h-4 text-gray-500 rotate-90"
+              className="w-4 h-4 text-gray-500 dark:text-gray-400 rotate-90"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -115,7 +115,7 @@ export default function ResizableSplitter({
       {/* Bottom Panel */}
       {!collapsed && (
         <div
-          className="bg-gray-50 min-h-0 overflow-hidden"
+          className="bg-gray-50 dark:bg-gray-900 min-h-0 overflow-hidden"
           style={{ height: `${100 - topHeight}%` }}
         >
           {bottomPanel}
@@ -124,10 +124,10 @@ export default function ResizableSplitter({
 
       {/* Expand Button (when collapsed) */}
       {collapsed && (
-        <div className="relative flex items-center justify-center border-t-2 border-gray-300 bg-gray-100 py-2 flex-shrink-0">
+        <div className="relative flex items-center justify-center border-t-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 py-2 flex-shrink-0">
           <button
             onClick={toggleCollapse}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 text-gray-600 hover:text-gray-900"
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
             style={{ transition: 'none' }}
             title="Expand response panel"
           >

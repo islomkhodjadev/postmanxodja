@@ -389,7 +389,7 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
       return (
         <div
           key={itemPath}
-          className="group py-2 px-3 cursor-pointer border-b border-gray-100 hover:bg-blue-50 flex items-center"
+          className="group py-2 px-3 cursor-pointer border-b border-gray-100 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center"
           style={{ paddingLeft }}
         >
           <div
@@ -417,12 +417,12 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
                   }
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className="text-sm px-2 py-1 border border-blue-500 rounded focus:outline-none bg-white text-gray-900 min-w-0 flex-1 max-w-[200px]"
+                className="text-sm px-2 py-1 border border-blue-500 rounded focus:outline-none bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 min-w-0 flex-1 max-w-[200px]"
                 autoFocus
               />
             ) : (
               <span
-                className="text-sm text-gray-700 truncate"
+                className="text-sm text-gray-700 dark:text-gray-300 truncate"
                 onDoubleClick={(e) => handleStartRename(collectionId, itemPath, item.name, e)}
               >
                 {item.name}
@@ -431,7 +431,7 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
           </div>
           <button
             onClick={(e) => handleDeleteClick({ type: 'request', collectionId, path: itemPath, name: item.name }, e)}
-            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded"
+            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
             title="Delete request"
           >
             <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -449,7 +449,7 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
       return (
         <div key={itemPath}>
           <div
-            className="group py-2 px-3 font-semibold bg-gray-50 text-gray-700 text-sm cursor-pointer hover:bg-gray-100 flex items-center gap-2"
+            className="group py-2 px-3 font-semibold bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 flex items-center gap-2"
             style={{ paddingLeft }}
           >
             <div className="flex-1 flex items-center gap-2 min-w-0 overflow-hidden" onClick={() => !isRenaming && toggleFolder(itemPath)}>
@@ -472,7 +472,7 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
                     }
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  className="text-sm px-2 py-1 border border-blue-500 rounded focus:outline-none bg-white text-gray-900 min-w-0 flex-1 max-w-[150px]"
+                  className="text-sm px-2 py-1 border border-blue-500 rounded focus:outline-none bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 min-w-0 flex-1 max-w-[150px]"
                   autoFocus
                 />
               ) : (
@@ -485,7 +485,7 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
             <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 ">
               <button
                 onClick={(e) => handleAddClick({ type: 'folder', collectionId, parentPath: itemPath }, e)}
-                className="p-1 hover:bg-blue-100 rounded"
+                className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded"
                 title="Add folder"
               >
                 <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -494,7 +494,7 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
               </button>
               <button
                 onClick={(e) => handleAddClick({ type: 'request', collectionId, parentPath: itemPath }, e)}
-                className="p-1 hover:bg-green-100 rounded"
+                className="p-1 hover:bg-green-100 dark:hover:bg-green-900/30 rounded"
                 title="Add request"
               >
                 <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -503,7 +503,7 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
               </button>
               <button
                 onClick={(e) => handleDeleteClick({ type: 'folder', collectionId, path: itemPath, name: item.name }, e)}
-                className="p-1 hover:bg-red-100 rounded"
+                className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
                 title="Delete folder"
               >
                 <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -513,7 +513,7 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
             </div>
           </div>
           {isExpanded && (
-            <div className="bg-white">
+            <div className="bg-white dark:bg-gray-800">
               {item.item.map(subItem => renderItem(subItem, collectionId, depth + 1, itemPath))}
             </div>
           )}
@@ -537,17 +537,17 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
 
   if (!currentTeam) {
     return (
-      <div className="h-full overflow-y-auto border-r border-gray-200 bg-white p-4">
-        <p className="text-sm text-gray-500">Select a team to view collections</p>
+      <div className="h-full overflow-y-auto border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+        <p className="text-sm text-gray-500 dark:text-gray-400">Select a team to view collections</p>
       </div>
     );
   }
 
   return (
-    <div className="h-full overflow-y-auto border-r border-gray-200 bg-white">
-      <h3 className="px-4 py-3 font-semibold text-gray-800 border-b border-gray-200">Collections</h3>
+    <div className="h-full overflow-y-auto border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <h3 className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700">Collections</h3>
       {collections.length === 0 ? (
-        <div className="px-4 py-8 text-center text-gray-500 text-sm">
+        <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400 text-sm">
           No collections yet. Import one to get started.
         </div>
       ) : (
@@ -557,10 +557,10 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
           <div key={collection.id} className="mb-2">
             <div
               onClick={() => !isRenamingCollection && toggleCollection(collection.id)}
-              className="group px-4 py-3 cursor-pointer bg-gray-50 hover:bg-gray-100 border-b border-gray-200 flex justify-between items-center "
+              className="group px-4 py-3 cursor-pointer bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center "
             >
-              <div className="text-sm font-medium text-gray-700 flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
-                <span className="text-gray-500 flex-shrink-0">{expandedCollections.has(collection.id) ? '▼' : '▶'}</span>
+              <div className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+                <span className="text-gray-500 dark:text-gray-400 flex-shrink-0">{expandedCollections.has(collection.id) ? '▼' : '▶'}</span>
                 {isRenamingCollection ? (
                   <input
                     type="text"
@@ -576,7 +576,7 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
                       }
                     }}
                     onClick={(e) => e.stopPropagation()}
-                    className="text-sm px-2 py-1 border border-blue-500 rounded focus:outline-none bg-white text-gray-900 min-w-0 flex-1 max-w-[180px]"
+                    className="text-sm px-2 py-1 border border-blue-500 rounded focus:outline-none bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 min-w-0 flex-1 max-w-[180px]"
                     autoFocus
                   />
                 ) : (
@@ -635,7 +635,7 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
               </div>
             </div>
             {expandedCollections.has(collection.id) && collectionData.get(collection.id) && (
-              <div className="bg-white">
+              <div className="bg-white dark:bg-gray-800">
                 {collectionData.get(collection.id)!.item.map((item: PostmanItem) => renderItem(item, collection.id))}
               </div>
             )}

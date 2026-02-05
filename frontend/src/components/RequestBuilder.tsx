@@ -248,9 +248,9 @@ export default function RequestBuilder({
   return (
     <div className="p-6 h-full overflow-auto">
       {selectedEnvId && (
-        <div className="p-3 mb-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg">
-          <p className="text-sm text-blue-800">
-            Use <code className="bg-white px-2 py-0.5 rounded text-xs font-mono">{'{{variableName}}'}</code> to insert environment variables in URL, headers, params, or body
+        <div className="p-3 mb-4 bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 rounded-r-lg">
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            Use <code className="bg-white dark:bg-gray-700 px-2 py-0.5 rounded text-xs font-mono">{'{{variableName}}'}</code> to insert environment variables in URL, headers, params, or body
           </p>
         </div>
       )}
@@ -261,7 +261,7 @@ export default function RequestBuilder({
             setMethod(e.target.value);
             notifyUpdate({ method: e.target.value });
           }}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white shadow-sm"
+          className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100 shadow-sm"
         >
           <option>GET</option>
           <option>POST</option>
@@ -298,7 +298,7 @@ export default function RequestBuilder({
         <select
           value={selectedEnvId || ''}
           onChange={(e) => setSelectedEnvId(e.target.value ? Number(e.target.value) : undefined)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white shadow-sm"
+          className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100 shadow-sm"
         >
           <option value="">No Environment</option>
           {environments.map(env => (
@@ -333,8 +333,8 @@ export default function RequestBuilder({
         </button>
       </div>
 
-      <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-        <h4 className="font-semibold text-gray-800 mb-3 text-sm">Query Parameters</h4>
+      <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+        <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-3 text-sm">Query Parameters</h4>
         {queryParams.map((param, index) => (
           <div key={index} className="flex gap-3 mb-2">
             <input
@@ -342,7 +342,7 @@ export default function RequestBuilder({
               value={param.key}
               onChange={(e) => updateQueryParam(index, 'key', e.target.value)}
               placeholder="Key"
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
             />
             <div className="flex-1">
               <VariableInput
@@ -369,8 +369,8 @@ export default function RequestBuilder({
         </button>
       </div>
 
-      <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-        <h4 className="font-semibold text-gray-800 mb-3 text-sm">Headers</h4>
+      <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+        <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-3 text-sm">Headers</h4>
         {headers.map((header, index) => (
           <div key={index} className="flex gap-3 mb-2">
             <input
@@ -378,7 +378,7 @@ export default function RequestBuilder({
               value={header.key}
               onChange={(e) => updateHeader(index, 'key', e.target.value)}
               placeholder="Key"
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
             />
             <div className="flex-1">
               <VariableInput
@@ -405,14 +405,14 @@ export default function RequestBuilder({
         </button>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
-          <h4 className="font-semibold text-gray-800 text-sm">Body</h4>
-          <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+          <h4 className="font-semibold text-gray-800 dark:text-gray-200 text-sm">Body</h4>
+          <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
             <button
               onClick={() => setBodyType('none')}
               className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                bodyType === 'none' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                bodyType === 'none' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
               none
@@ -420,7 +420,7 @@ export default function RequestBuilder({
             <button
               onClick={() => setBodyType('raw')}
               className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                bodyType === 'raw' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                bodyType === 'raw' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
               raw
@@ -428,7 +428,7 @@ export default function RequestBuilder({
             <button
               onClick={() => setBodyType('form-data')}
               className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                bodyType === 'form-data' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                bodyType === 'form-data' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
               form-data
@@ -436,7 +436,7 @@ export default function RequestBuilder({
             <button
               onClick={() => setBodyType('x-www-form-urlencoded')}
               className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                bodyType === 'x-www-form-urlencoded' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                bodyType === 'x-www-form-urlencoded' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
               x-www-form-urlencoded
@@ -445,7 +445,7 @@ export default function RequestBuilder({
         </div>
 
         {bodyType === 'none' && (
-          <p className="text-gray-500 text-sm italic">This request does not have a body</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm italic">This request does not have a body</p>
         )}
 
         {bodyType === 'raw' && (
@@ -472,12 +472,12 @@ export default function RequestBuilder({
                   value={item.key}
                   onChange={(e) => updateFormDataItem(index, 'key', e.target.value)}
                   placeholder="Key"
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
                 />
                 <select
                   value={item.type}
                   onChange={(e) => updateFormDataItem(index, 'type', e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                  className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
                 >
                   <option value="text">Text</option>
                   <option value="file">File</option>
@@ -494,11 +494,11 @@ export default function RequestBuilder({
                   </div>
                 ) : (
                   <div className="flex-1">
-                    <label className="flex items-center gap-2 cursor-pointer border border-gray-300 rounded-lg px-3 py-2 text-sm hover:bg-gray-50 transition-colors">
-                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <label className="flex items-center gap-2 cursor-pointer border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors dark:text-gray-200">
+                      <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      <span className="text-gray-600 truncate">
+                      <span className="text-gray-600 dark:text-gray-300 truncate">
                         {item.file ? item.file.name : 'Choose file...'}
                       </span>
                       <input
@@ -538,7 +538,7 @@ export default function RequestBuilder({
                   value={item.key}
                   onChange={(e) => updateFormDataItem(index, 'key', e.target.value)}
                   placeholder="Key"
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
                 />
                 <div className="flex-1">
                   <VariableInput
