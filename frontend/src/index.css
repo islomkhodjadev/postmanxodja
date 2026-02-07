@@ -26,3 +26,92 @@ body {
 .dark ::-webkit-scrollbar-thumb:hover {
   background: #6b7280;
 }
+
+/* ── VariableInput Editor Styles ── */
+
+.vi-editor-wrapper {
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.vi-editor-wrapper:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.dark .vi-editor-wrapper {
+  border-color: #4b5563;
+  background: #374151;
+}
+
+.dark .vi-editor-wrapper:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+/* Textarea (transparent text, handles input) */
+.vi-textarea {
+  color: transparent !important;
+  caret-color: #111827;
+  outline: none !important;
+}
+
+.dark .vi-textarea {
+  caret-color: #f3f4f6;
+}
+
+/* Pre (renders highlighted text) */
+.vi-pre {
+  color: #111827;
+}
+
+.dark .vi-pre {
+  color: #f3f4f6;
+}
+
+/* Single-line mode */
+.vi-singleline .vi-textarea,
+.vi-singleline .vi-pre {
+  white-space: pre !important;
+  word-wrap: normal !important;
+  overflow-wrap: normal !important;
+}
+
+/* Multiline mode */
+.vi-multiline {
+  resize: vertical;
+}
+
+/* Variable highlight spans */
+.vi-var {
+  border-radius: 3px;
+  padding: 0 2px;
+  border: 1px solid;
+  cursor: pointer;
+}
+
+.vi-var-found {
+  background: rgba(255, 237, 213, 0.9);
+  color: #c2410c;
+  border-color: #fdba74;
+}
+
+.vi-var-missing {
+  background: rgba(254, 226, 226, 0.9);
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
+.dark .vi-var-found {
+  background: rgba(194, 65, 12, 0.25);
+  color: #fb923c;
+  border-color: rgba(251, 146, 60, 0.4);
+}
+
+.dark .vi-var-missing {
+  background: rgba(185, 28, 28, 0.25);
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.4);
+}

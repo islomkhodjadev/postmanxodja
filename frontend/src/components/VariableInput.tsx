@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
+import Editor from 'react-simple-code-editor';
 import type { Environment } from '../types';
 
 interface VariableInputProps {
@@ -19,6 +20,15 @@ interface VariableInfo {
   end: number;
 }
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 export default function VariableInput({
   value,
   onChange,
@@ -29,17 +39,20 @@ export default function VariableInput({
   multiline = false,
   rows = 6,
 }: VariableInputProps) {
-  const [hoveredVariable, setHoveredVariable] = useState<VariableInfo | null>(null);
-  const [clickedVariable, setClickedVariable] = useState<VariableInfo | null>(null);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [activeVariable, setActiveVariable] = useState<VariableInfo | null>(null);
   const [popoverPosition, setPopoverPosition] = useState({ x: 0, y: 0 });
-  const [isFocused, setIsFocused] = useState(false);
-  const [copySuccess, setCopySuccess] = useState(false);
-  const [inputWidth, setInputWidth] = useState(0);
+  const [copySuccess, setCopySuccess] = useState<'value' | 'name' | null>(null);
+  const [isOverPopover, setIsOverPopover] = useState(false);
 
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear hide timer on unmount
+  useEffect(() => {
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+  }, []);
 
   /* ---------------- Environment Variables ---------------- */
 
@@ -68,7 +81,7 @@ export default function VariableInput({
     return vars;
   }, [environments, selectedEnvId]);
 
-  /* ---------------- Parse Variables ---------------- */
+  /* ---------------- Parse Variables (for tooltip data) ---------------- */
 
   const variables = useMemo(() => {
     const regex = /\{\{([^}]+)\}\}/g;
@@ -87,261 +100,237 @@ export default function VariableInput({
     return matches;
   }, [value, envVariables]);
 
-  /* ---------------- Measure Input Width ---------------- */
+  /* ---------------- Highlight Function ---------------- */
 
-  useEffect(() => {
-    const updateWidth = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setInputWidth(rect.width);
+  const highlightCode = useCallback(
+    (code: string): string => {
+      if (!code) return '';
+
+      const regex = /\{\{([^}]+)\}\}/g;
+      let result = '';
+      let lastIndex = 0;
+      let match;
+
+      while ((match = regex.exec(code)) !== null) {
+        result += escapeHtml(code.slice(lastIndex, match.index));
+
+        const varName = match[1];
+        const hasValue = envVariables[varName] !== undefined;
+        const cls = hasValue ? 'vi-var vi-var-found' : 'vi-var vi-var-missing';
+        result += `<span class="${cls}" data-var-name="${escapeHtml(varName)}">${escapeHtml(match[0])}</span>`;
+
+        lastIndex = match.index + match[0].length;
       }
-    };
 
-    updateWidth();
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
+      result += escapeHtml(code.slice(lastIndex));
+      return result;
+    },
+    [envVariables],
+  );
+
+  /* ---------------- Popover show/hide helpers ---------------- */
+
+  const scheduleHide = useCallback(() => {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => {
+      setActiveVariable(null);
+      setCopySuccess(null);
+    }, 200);
   }, []);
 
-  /* ---------------- Render Variables Overlay ---------------- */
+  const cancelHide = useCallback(() => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, []);
 
-  const renderVariablesOverlay = () => {
-    if (!value || variables.length === 0) return null;
+  /* ---------------- Mouse Handlers for Variable Detection ---------------- */
 
-    // For textarea (multiline), we need to handle line breaks differently
-    if (multiline) {
-      return variables.map((variable, index) => {
-        const hasValue = variable.value !== undefined;
-        
-        // Calculate position based on text before the variable
-        const textBefore = value.slice(0, variable.start);
-        const linesBefore = textBefore.split('\n');
-        const currentLine = linesBefore.length - 1;
-        const charsInCurrentLine = linesBefore[currentLine].length;
-        
-        // Approximate positioning (this is a simplified approach)
-        const lineHeight = 20; // Approximate line height in pixels
-        const charWidth = 8.4; // Approximate character width for monospace font
-        
-        const top = currentLine * lineHeight + 8; // 8px for padding
-        const left = charsInCurrentLine * charWidth + 12; // 12px for padding
-        
-        return (
-          <div
-            key={`var-${index}`}
-            className={`absolute rounded px-0.5 whitespace-pre-wrap cursor-pointer pointer-events-auto border ${
-              hasValue
-                ? 'bg-orange-100/90 text-orange-700 hover:bg-orange-200/90 border-orange-300'
-                : 'bg-red-100/90 text-red-700 hover:bg-red-200/90 border-red-300'
-            }`}
-            style={{
-              top: `${top}px`,
-              left: `${left}px`,
-              maxWidth: `${inputWidth - left - 12}px`,
-              wordBreak: 'break-all',
-            }}
-            onMouseEnter={(e) => {
-              setHoveredVariable(variable);
-              setTooltipPosition({ x: e.clientX, y: e.clientY });
-            }}
-            onMouseMove={(e) =>
-              setTooltipPosition({ x: e.clientX, y: e.clientY })
+  const findVariableAtPoint = useCallback(
+    (clientX: number, clientY: number): VariableInfo | null => {
+      if (!containerRef.current) return null;
+
+      // Query all .vi-var spans and hit-test via bounding rects
+      // (elementsFromPoint won't work because the pre has pointer-events:none)
+      const varSpans = containerRef.current.querySelectorAll('.vi-var');
+
+      for (const span of varSpans) {
+        const rect = span.getBoundingClientRect();
+        if (
+          clientX >= rect.left &&
+          clientX <= rect.right &&
+          clientY >= rect.top &&
+          clientY <= rect.bottom
+        ) {
+          const varName = span.getAttribute('data-var-name');
+          if (!varName) continue;
+
+          return (
+            variables.find(v => v.name === varName) || {
+              name: varName,
+              value: envVariables[varName],
+              start: 0,
+              end: 0,
             }
-            onMouseLeave={() => setHoveredVariable(null)}
-            onClick={(e) => {
-              e.stopPropagation();
-              setClickedVariable(variable);
-              setPopoverPosition({ x: e.clientX, y: e.clientY });
-              setCopySuccess(false);
-            }}
-          >
-            {value.slice(variable.start, variable.end)}
-          </div>
-        );
-      });
+          );
+        }
+      }
+
+      return null;
+    },
+    [variables, envVariables],
+  );
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      const varInfo = findVariableAtPoint(e.clientX, e.clientY);
+
+      if (varInfo) {
+        cancelHide();
+        setActiveVariable(varInfo);
+        setPopoverPosition({ x: e.clientX, y: e.clientY });
+      } else if (!isOverPopover) {
+        scheduleHide();
+      }
+    },
+    [findVariableAtPoint, isOverPopover, cancelHide, scheduleHide],
+  );
+
+  const handleMouseLeave = useCallback(() => {
+    if (!isOverPopover) {
+      scheduleHide();
     }
+  }, [isOverPopover, scheduleHide]);
 
-    // For single-line input (URL)
-    return variables.map((variable, index) => {
-      const hasValue = variable.value !== undefined;
-      const textBefore = value.slice(0, variable.start);
-      const charWidth = 8.4; // Approximate character width for monospace font
-      const left = textBefore.length * charWidth + 12; // 12px for padding
-      
-      return (
-        <div
-          key={`var-${index}`}
-          className={`absolute rounded px-0.5 whitespace-nowrap cursor-pointer pointer-events-auto border ${
-            hasValue
-              ? 'bg-orange-100/90 text-orange-700 hover:bg-orange-200/90 border-orange-300'
-              : 'bg-red-100/90 text-red-700 hover:bg-red-200/90 border-red-300'
-          }`}
-          style={{
-            top: '8px',
-            left: `${left}px`,
-            maxWidth: `${inputWidth - left - 12}px`,
-          }}
-          onMouseEnter={(e) => {
-            setHoveredVariable(variable);
-            setTooltipPosition({ x: e.clientX, y: e.clientY });
-          }}
-          onMouseMove={(e) =>
-            setTooltipPosition({ x: e.clientX, y: e.clientY })
-          }
-          onMouseLeave={() => setHoveredVariable(null)}
-          onClick={(e) => {
-            e.stopPropagation();
-            setClickedVariable(variable);
-            setPopoverPosition({ x: e.clientX, y: e.clientY });
-            setCopySuccess(false);
-          }}
-        >
-          {value.slice(variable.start, variable.end)}
-        </div>
-      );
-    });
-  };
+  /* ---------------- Popover Mouse Handlers ---------------- */
 
-  /* ---------------- Scroll Sync ---------------- */
+  const handlePopoverEnter = useCallback(() => {
+    setIsOverPopover(true);
+    cancelHide();
+  }, [cancelHide]);
 
-  const handleScroll = useCallback(() => {
-    if (inputRef.current && overlayRef.current) {
-      overlayRef.current.scrollTop = inputRef.current.scrollTop;
-      overlayRef.current.scrollLeft = inputRef.current.scrollLeft;
-    }
-  }, []);
+  const handlePopoverLeave = useCallback(() => {
+    setIsOverPopover(false);
+    scheduleHide();
+  }, [scheduleHide]);
 
-  /* ---------------- Base Styles ---------------- */
+  /* ---------------- Copy Handlers ---------------- */
 
-  const baseClass = multiline
-    ? 'w-full min-h-[150px] max-h-[400px] resize-y'
-    : 'w-full';
+  const handleCopyValue = useCallback(async () => {
+    if (!activeVariable?.value) return;
+    await navigator.clipboard.writeText(activeVariable.value);
+    setCopySuccess('value');
+    setTimeout(() => setCopySuccess(null), 1200);
+  }, [activeVariable]);
 
-  const inputClass =
-    'border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-mono bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100';
+  const handleCopyName = useCallback(async () => {
+    if (!activeVariable) return;
+    await navigator.clipboard.writeText(`{{${activeVariable.name}}}`);
+    setCopySuccess('name');
+    setTimeout(() => setCopySuccess(null), 1200);
+  }, [activeVariable]);
 
-  const focusClass = isFocused ? 'ring-2 ring-blue-500 border-blue-500' : '';
+  /* ---------------- Prevent Enter for Single-line ---------------- */
 
-  /* ---------------- Render ---------------- */
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!multiline && e.key === 'Enter') {
+        e.preventDefault();
+      }
+    },
+    [multiline],
+  );
+
+  /* ---------------- Styles ---------------- */
+
+  const minHeight = multiline ? Math.max(150, rows * 20) : 38;
 
   return (
     <div ref={containerRef} className="relative">
-      {/* Input (always visible) */}
-      {multiline ? (
-        <textarea
-          ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+      <div
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        className={`vi-editor-wrapper ${multiline ? 'vi-multiline' : 'vi-singleline'} ${className}`}
+      >
+        <Editor
           value={value}
-          rows={rows}
-          onChange={(e) => onChange(e.target.value)}
-          onScroll={handleScroll}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onValueChange={onChange}
+          highlight={highlightCode}
+          onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className={`${baseClass} ${inputClass} ${focusClass} outline-none ${className}`}
+          padding={{ top: 8, right: 12, bottom: 8, left: 12 }}
           style={{
-            caretColor: 'currentColor',
+            fontFamily:
+              'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+            fontSize: '0.875rem',
+            lineHeight: '1.25rem',
+            minHeight: `${minHeight}px`,
+            maxHeight: multiline ? '400px' : `${minHeight}px`,
+            overflow: multiline ? 'auto' : 'hidden',
           }}
+          textareaClassName="vi-textarea"
+          preClassName="vi-pre"
         />
-      ) : (
-        <input
-          ref={inputRef as React.RefObject<HTMLInputElement>}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onScroll={handleScroll}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          placeholder={placeholder}
-          className={`${baseClass} ${inputClass} ${focusClass} outline-none ${className}`}
-          style={{
-            caretColor: 'currentColor',
-          }}
-        />
-      )}
+      </div>
 
-      {/* Overlay for variable highlighting only */}
-      {variables.length > 0 && (
+      {/* Interactive hover popover */}
+      {activeVariable && (
         <div
-          ref={overlayRef}
-          className="absolute inset-0 pointer-events-none overflow-hidden select-none"
+          className="fixed z-[9999] bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-xl border border-gray-700"
           style={{
-            padding: '8px 12px',
-            zIndex: 1,
+            left: Math.min(popoverPosition.x + 12, window.innerWidth - 260),
+            top: popoverPosition.y - 10,
+            minWidth: 200,
+            maxWidth: 280,
+            transform: 'translateY(-100%)',
           }}
+          onMouseEnter={handlePopoverEnter}
+          onMouseLeave={handlePopoverLeave}
         >
-          {renderVariablesOverlay()}
-        </div>
-      )}
+          {/* Variable name header */}
+          <div className="px-3 py-2 border-b border-gray-700 flex items-center justify-between">
+            <span className="font-semibold text-orange-400 text-sm">
+              {activeVariable.name}
+            </span>
+            <span className="text-[10px] text-gray-500 ml-2">
+              {activeVariable.value !== undefined ? 'resolved' : 'unresolved'}
+            </span>
+          </div>
 
-      {/* Tooltip */}
-      {hoveredVariable && (
-        <div
-          className="fixed z-[9999] bg-gray-900 text-white text-xs rounded shadow-lg pointer-events-none"
-          style={{
-            left: Math.min(tooltipPosition.x + 12, window.innerWidth - 260),
-            top: tooltipPosition.y - 50,
-            maxWidth: 240,
-          }}
-        >
-          <div className="px-3 py-2">
-            <div className="font-semibold text-orange-400">
-              {hoveredVariable.name}
-            </div>
-            {hoveredVariable.value !== undefined ? (
-              <div className="mt-1 font-mono break-all">
-                {hoveredVariable.value || (
-                  <span className="italic text-gray-400">empty</span>
+          {/* Variable value display */}
+          <div className="px-3 py-2 border-b border-gray-700">
+            {activeVariable.value !== undefined ? (
+              <div className="font-mono text-green-400 break-all text-xs">
+                {activeVariable.value || (
+                  <span className="italic text-gray-500">empty string</span>
                 )}
               </div>
             ) : (
-              <div className="mt-1 text-red-400">
+              <div className="text-red-400 text-xs">
                 Not found in environment
               </div>
             )}
           </div>
-        </div>
-      )}
 
-      {/* Click Popover */}
-      {clickedVariable && (
-        <>
-          <div
-            className="fixed inset-0 z-[9998]"
-            onClick={() => setClickedVariable(null)}
-          />
-          <div
-            className="fixed z-[9999] bg-white rounded-lg shadow-xl border border-gray-200"
-            style={{
-              left: Math.min(popoverPosition.x, window.innerWidth - 220),
-              top: popoverPosition.y + 8,
-              minWidth: 200,
-            }}
-          >
-            <div className="px-3 py-2 border-b font-medium">
-              {clickedVariable.name}
-            </div>
-            <div className="p-2 space-y-1">
-              {clickedVariable.value !== undefined && (
-                <button
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(clickedVariable.value!);
-                    setCopySuccess(true);
-                    setTimeout(() => setCopySuccess(false), 1200);
-                  }}
-                  className="w-full px-2 py-1 text-sm hover:bg-blue-50 rounded"
-                >
-                  {copySuccess ? 'Copied!' : 'Copy Value'}
-                </button>
-              )}
+          {/* Copy buttons */}
+          <div className="p-1.5 flex gap-1">
+            {activeVariable.value !== undefined && (
               <button
-                onClick={async () =>
-                  navigator.clipboard.writeText(`{{${clickedVariable.name}}}`)
-                }
-                className="w-full px-2 py-1 text-sm hover:bg-blue-50 rounded"
+                onClick={handleCopyValue}
+                className="flex-1 px-2 py-1.5 text-xs rounded hover:bg-gray-700 dark:hover:bg-gray-700 transition-colors text-gray-300 hover:text-white"
               >
-                Copy Variable Name
+                {copySuccess === 'value' ? 'Copied!' : 'Copy Value'}
               </button>
-            </div>
+            )}
+            <button
+              onClick={handleCopyName}
+              className="flex-1 px-2 py-1.5 text-xs rounded hover:bg-gray-700 dark:hover:bg-gray-700 transition-colors text-gray-300 hover:text-white"
+            >
+              {copySuccess === 'name' ? 'Copied!' : 'Copy Key'}
+            </button>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
