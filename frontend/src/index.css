@@ -71,7 +71,17 @@ body {
   color: #f3f4f6;
 }
 
-/* Single-line mode */
+/* Single-line mode — scroll horizontally for long text, clip vertically */
+.vi-singleline {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none; /* Firefox */
+}
+
+.vi-singleline::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
 .vi-singleline .vi-textarea,
 .vi-singleline .vi-pre {
   white-space: pre !important;
@@ -114,4 +124,52 @@ body {
   background: rgba(185, 28, 28, 0.25);
   color: #f87171;
   border-color: rgba(248, 113, 113, 0.4);
+}
+
+/* ── JSON Syntax Highlighting ── */
+
+/* Keys: "property": */
+.vi-json-key {
+  color: #9333ea;
+}
+
+.dark .vi-json-key {
+  color: #c084fc;
+}
+
+/* String values */
+.vi-json-string {
+  color: #16a34a;
+}
+
+.dark .vi-json-string {
+  color: #4ade80;
+}
+
+/* Numbers */
+.vi-json-number {
+  color: #d97706;
+}
+
+.dark .vi-json-number {
+  color: #fbbf24;
+}
+
+/* Booleans (true / false) */
+.vi-json-boolean {
+  color: #dc2626;
+}
+
+.dark .vi-json-boolean {
+  color: #f87171;
+}
+
+/* null */
+.vi-json-null {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.dark .vi-json-null {
+  color: #9ca3af;
 }

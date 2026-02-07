@@ -11,6 +11,7 @@ interface VariableInputProps {
   selectedEnvId?: number;
   multiline?: boolean;
   rows?: number;
+  jsonHighlight?: boolean;
 }
 
 interface VariableInfo {
@@ -38,6 +39,7 @@ export default function VariableInput({
   selectedEnvId,
   multiline = false,
   rows = 6,
+  jsonHighlight = false,
 }: VariableInputProps) {
   const [activeVariable, setActiveVariable] = useState<VariableInfo | null>(null);
   const [popoverPosition, setPopoverPosition] = useState({ x: 0, y: 0 });
@@ -100,9 +102,9 @@ export default function VariableInput({
     return matches;
   }, [value, envVariables]);
 
-  /* ---------------- Highlight Function ---------------- */
+  /* ---------------- Highlight Functions ---------------- */
 
-  const highlightCode = useCallback(
+  const highlightPlain = useCallback(
     (code: string): string => {
       if (!code) return '';
 
@@ -128,6 +130,61 @@ export default function VariableInput({
     [envVariables],
   );
 
+  const highlightJson = useCallback(
+    (code: string): string => {
+      if (!code) return '';
+
+      // Combined regex: variables | JSON strings | numbers | booleans | null
+      const tokenRegex = /(\{\{[^}]+\}\})|("(?:[^"\\]|\\.)*")|(-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b)|(\btrue\b|\bfalse\b)|(\bnull\b)/g;
+
+      let result = '';
+      let lastIndex = 0;
+      let match;
+
+      while ((match = tokenRegex.exec(code)) !== null) {
+        // Non-matched text before this token
+        if (match.index > lastIndex) {
+          result += escapeHtml(code.slice(lastIndex, match.index));
+        }
+
+        const fullMatch = match[0];
+
+        if (match[1]) {
+          // Variable {{name}}
+          const varName = fullMatch.slice(2, -2);
+          const hasValue = envVariables[varName] !== undefined;
+          const cls = hasValue ? 'vi-var vi-var-found' : 'vi-var vi-var-missing';
+          result += `<span class="${cls}" data-var-name="${escapeHtml(varName)}">${escapeHtml(fullMatch)}</span>`;
+        } else if (match[2]) {
+          // String — check if it's a key (followed by colon)
+          const afterMatch = code.slice(match.index + fullMatch.length);
+          const isKey = /^\s*:/.test(afterMatch);
+          const cls = isKey ? 'vi-json-key' : 'vi-json-string';
+          result += `<span class="${cls}">${escapeHtml(fullMatch)}</span>`;
+        } else if (match[3]) {
+          result += `<span class="vi-json-number">${escapeHtml(fullMatch)}</span>`;
+        } else if (match[4]) {
+          result += `<span class="vi-json-boolean">${escapeHtml(fullMatch)}</span>`;
+        } else if (match[5]) {
+          result += `<span class="vi-json-null">${escapeHtml(fullMatch)}</span>`;
+        }
+
+        lastIndex = match.index + fullMatch.length;
+      }
+
+      result += escapeHtml(code.slice(lastIndex));
+      return result;
+    },
+    [envVariables],
+  );
+
+  const highlightCode = useCallback(
+    (code: string): string => {
+      return jsonHighlight ? highlightJson(code) : highlightPlain(code);
+    },
+    [jsonHighlight, highlightJson, highlightPlain],
+  );
+
   /* ---------------- Popover show/hide helpers ---------------- */
 
   const scheduleHide = useCallback(() => {
@@ -151,8 +208,6 @@ export default function VariableInput({
     (clientX: number, clientY: number): VariableInfo | null => {
       if (!containerRef.current) return null;
 
-      // Query all .vi-var spans and hit-test via bounding rects
-      // (elementsFromPoint won't work because the pre has pointer-events:none)
       const varSpans = containerRef.current.querySelectorAll('.vi-var');
 
       for (const span of varSpans) {
@@ -248,10 +303,13 @@ export default function VariableInput({
 
   return (
     <div ref={containerRef} className="relative">
+      {/* Outer scroll wrapper for multiline — keeps Editor at full content height
+          so the textarea covers all text and stays editable everywhere */}
       <div
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         className={`vi-editor-wrapper ${multiline ? 'vi-multiline' : 'vi-singleline'} ${className}`}
+        style={multiline ? { maxHeight: '400px', overflow: 'auto' } : undefined}
       >
         <Editor
           value={value}
@@ -266,8 +324,7 @@ export default function VariableInput({
             fontSize: '0.875rem',
             lineHeight: '1.25rem',
             minHeight: `${minHeight}px`,
-            maxHeight: multiline ? '400px' : `${minHeight}px`,
-            overflow: multiline ? 'auto' : 'hidden',
+            ...(!multiline ? { maxHeight: `${minHeight}px`, overflow: 'visible' } : {}),
           }}
           textareaClassName="vi-textarea"
           preClassName="vi-pre"

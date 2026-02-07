@@ -662,6 +662,7 @@ export default function DashboardPage() {
                 initialHeaders={activeTab?.headers || {}}
                 initialBody={activeTab?.body || ''}
                 initialQueryParams={activeTab?.queryParams || {}}
+                initialName={activeTab?.name || 'Untitled'}
                 environments={environments}
                 onResponse={handleResponse}
                 onUpdate={handleTabUpdate}

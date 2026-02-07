@@ -11,6 +11,7 @@ interface Props {
   initialHeaders?: Record<string, string>;
   initialBody?: string;
   initialQueryParams?: Record<string, string>;
+  initialName?: string;
   onUpdate?: (updates: Partial<RequestTab>) => void;
   hasCollectionSource?: boolean;
   onSaveToCollection?: () => void;
@@ -24,6 +25,7 @@ export default function RequestBuilder({
   initialHeaders = {},
   initialBody = '',
   initialQueryParams = {},
+  initialName = 'Untitled',
   onUpdate,
   hasCollectionSource = false,
   onSaveToCollection,
@@ -112,27 +114,31 @@ export default function RequestBuilder({
     const currentParams = updates.queryParams ?? queryParams;
     const currentUrl = updates.url ?? url;
 
-    // Generate tab name from URL
-    let name = 'Untitled';
-    if (currentUrl) {
-      try {
-        const urlObj = new URL(currentUrl.startsWith('http') ? currentUrl : `http://${currentUrl}`);
-        name = urlObj.pathname === '/' ? urlObj.hostname : urlObj.pathname.split('/').pop() || urlObj.hostname;
-      } catch {
-        // If URL parsing fails, use last part of the string
-        const parts = currentUrl.split('/');
-        name = parts[parts.length - 1] || parts[parts.length - 2] || 'Untitled';
-      }
-    }
-
-    onUpdateRef.current({
-      name,
+    const result: Partial<RequestTab> = {
       method: updates.method ?? method,
       url: currentUrl,
       headers: Object.fromEntries(currentHeaders.filter(h => h.key).map(h => [h.key, h.value])),
       body: updates.body ?? body,
       queryParams: Object.fromEntries(currentParams.filter(q => q.key).map(q => [q.key, q.value])),
-    });
+    };
+
+    // Only auto-generate tab name for fresh "Untitled" tabs when the URL changes.
+    // Existing requests (from collections, imports, or user renames) keep their name.
+    if (updates.url !== undefined && initialName === 'Untitled') {
+      let name = 'Untitled';
+      if (currentUrl) {
+        try {
+          const urlObj = new URL(currentUrl.startsWith('http') ? currentUrl : `http://${currentUrl}`);
+          name = urlObj.pathname === '/' ? urlObj.hostname : urlObj.pathname.split('/').pop() || urlObj.hostname;
+        } catch {
+          const parts = currentUrl.split('/');
+          name = parts[parts.length - 1] || parts[parts.length - 2] || 'Untitled';
+        }
+      }
+      result.name = name;
+    }
+
+    onUpdateRef.current(result);
   };
 
   // Mark initial mount as complete after first render
@@ -295,7 +301,7 @@ export default function RequestBuilder({
           <option>PATCH</option>
         </select>
 
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <VariableInput
             value={url}
             onChange={(newUrl) => {
@@ -369,7 +375,7 @@ export default function RequestBuilder({
               placeholder="Key"
               className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
             />
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <VariableInput
                 value={param.value}
                 onChange={(value) => updateQueryParam(index, 'value', value)}
@@ -405,7 +411,7 @@ export default function RequestBuilder({
               placeholder="Key"
               className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
             />
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <VariableInput
                 value={header.value}
                 onChange={(value) => updateHeader(index, 'value', value)}
@@ -474,18 +480,51 @@ export default function RequestBuilder({
         )}
 
         {bodyType === 'raw' && (
-          <VariableInput
-            value={body}
-            onChange={(value) => {
-              setBody(value);
-              notifyUpdate({ body: value });
-            }}
-            placeholder="Request body (JSON, text, etc.)"
-            environments={environments}
-            selectedEnvId={selectedEnvId}
-            multiline
-            className="overflow-auto"
-          />
+          <div>
+            <div className="flex justify-end mb-2">
+              <button
+                onClick={() => {
+                  try {
+                    // Swap {{variables}} with unique placeholders so JSON.parse works
+                    const placeholders: string[] = [];
+                    const safeBody = body.replace(/\{\{([^}]+)\}\}/g, (m) => {
+                      const idx = placeholders.length;
+                      placeholders.push(m);
+                      return `"__VAR_${idx}__"`;
+                    });
+
+                    const parsed = JSON.parse(safeBody);
+                    let formatted = JSON.stringify(parsed, null, 2);
+
+                    // Restore the original {{variables}}
+                    placeholders.forEach((original, idx) => {
+                      formatted = formatted.replace(`"__VAR_${idx}__"`, original);
+                    });
+
+                    setBody(formatted);
+                    notifyUpdate({ body: formatted });
+                  } catch {
+                    // not valid JSON — ignore
+                  }
+                }}
+                className="px-3 py-1 text-xs font-medium rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Beautify JSON
+              </button>
+            </div>
+            <VariableInput
+              value={body}
+              onChange={(value) => {
+                setBody(value);
+                notifyUpdate({ body: value });
+              }}
+              placeholder="Request body (JSON, text, etc.)"
+              environments={environments}
+              selectedEnvId={selectedEnvId}
+              multiline
+              jsonHighlight
+            />
+          </div>
         )}
 
         {bodyType === 'form-data' && (
@@ -508,7 +547,7 @@ export default function RequestBuilder({
                   <option value="file">File</option>
                 </select>
                 {item.type === 'text' ? (
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <VariableInput
                       value={item.value}
                       onChange={(value) => updateFormDataItem(index, 'value', value)}
@@ -518,7 +557,7 @@ export default function RequestBuilder({
                     />
                   </div>
                 ) : (
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <label className="flex items-center gap-2 cursor-pointer border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors dark:text-gray-200">
                       <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -565,7 +604,7 @@ export default function RequestBuilder({
                   placeholder="Key"
                   className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
                 />
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <VariableInput
                     value={item.value}
                     onChange={(value) => updateFormDataItem(index, 'value', value)}
