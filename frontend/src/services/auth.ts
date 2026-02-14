@@ -58,6 +58,19 @@ export const getStoredTokens = () => {
   };
 };
 
+export const getCachedUser = (): User | null => {
+  try {
+    const cached = localStorage.getItem('cached_user');
+    return cached ? JSON.parse(cached) : null;
+  } catch {
+    return null;
+  }
+};
+
+export const cacheUser = (user: User) => {
+  localStorage.setItem('cached_user', JSON.stringify(user));
+};
+
 export const storeTokens = (accessToken: string, refreshToken: string) => {
   localStorage.setItem('access_token', accessToken);
   localStorage.setItem('refresh_token', refreshToken);
@@ -66,6 +79,7 @@ export const storeTokens = (accessToken: string, refreshToken: string) => {
 export const clearTokens = () => {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
+  localStorage.removeItem('cached_user');
 };
 
 // Google OAuth

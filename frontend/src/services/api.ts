@@ -24,10 +24,13 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // Only redirect to login on genuine 401 responses from the server.
+    // Network errors (no response) should NOT clear tokens or redirect —
+    // the user may simply be offline.
     if (error.response?.status === 401) {
-      // Token expired or invalid
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
+      localStorage.removeItem('cached_user');
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -88,42 +91,31 @@ export const exportCollection = async (teamId: number, id: number, collectionNam
 
 // Request execution
 export const executeRequest = async (request: ExecuteRequest): Promise<ExecuteResponse> => {
-  // Check if the target is a localhost URL being accessed from a remote origin
-  // (e.g. postbaby.uz → localhost:3000). In that case, direct fetch will always
-  // fail due to mixed-content / CORS, so we MUST use the backend proxy.
-  const isRemoteToLocal = (() => {
+  // Detect if the target is a localhost / loopback / private-network address.
+  // These MUST be fetched directly from the browser so they hit the USER's
+  // machine — routing through the backend proxy would hit the server's localhost.
+  const isLocalTarget = (() => {
     try {
       const targetUrl = request.url.match(/^https?:\/\//i) ? request.url : 'http://' + request.url;
       const target = new URL(targetUrl);
-      const tHost = target.hostname;
-      const isLocalTarget = tHost === 'localhost' || tHost === '127.0.0.1' || tHost === '::1';
-      const pageHost = window.location.hostname;
-      const isLocalPage = pageHost === 'localhost' || pageHost === '127.0.0.1' || pageHost === '::1';
-      return isLocalTarget && !isLocalPage;
+      const h = target.hostname;
+      return h === 'localhost' || h === '127.0.0.1' || h === '::1' ||
+        h.startsWith('192.168.') || h.startsWith('10.') || h.startsWith('172.');
     } catch { return false; }
   })();
 
-  // Try the backend proxy first; fall back to direct browser fetch when
-  // the backend is unreachable (offline / local-only mode).
-  // But never fall back for remote→localhost requests (CORS will block).
-  const backendAvailable = await isBackendReachable(API_BASE_URL);
-
-  if (!backendAvailable && !isRemoteToLocal) {
-    console.info('[offline] Backend unreachable — executing request directly from browser');
+  // For localhost / private-network targets → always use direct browser fetch
+  if (isLocalTarget) {
+    console.info('[local] Target is localhost/private — fetching directly from browser');
     return executeRequestDirect(request);
   }
 
-  if (!backendAvailable && isRemoteToLocal) {
-    // Backend is down and we can't direct-fetch localhost from a remote origin
-    return {
-      status: 0,
-      status_text: 'Backend Unavailable',
-      headers: {},
-      body: JSON.stringify({
-        error: 'The backend server is unreachable. Requests to localhost/private addresses require the backend proxy. Please make sure the backend is running.',
-      }),
-      time: 0,
-    };
+  // For remote targets: try the backend proxy first, fall back to direct fetch
+  const backendAvailable = await isBackendReachable(API_BASE_URL);
+
+  if (!backendAvailable) {
+    console.info('[offline] Backend unreachable — executing request directly from browser');
+    return executeRequestDirect(request);
   }
 
   try {
@@ -164,10 +156,9 @@ export const executeRequest = async (request: ExecuteRequest): Promise<ExecuteRe
     const response = await api.post('/requests/execute', request);
     return response.data;
   } catch (err: any) {
-    // If the backend request itself failed (network error, not HTTP error from
-    // the target), fall back to direct fetch as a last resort — but only when
-    // the target isn't a localhost address accessed from a remote origin.
-    if (!err.response && !isRemoteToLocal) {
+    // If the backend request itself failed (network error, not HTTP error
+    // from the target), fall back to direct fetch as a last resort.
+    if (!err.response) {
       console.info('[offline] Backend request failed — falling back to direct fetch');
       return executeRequestDirect(request);
     }
