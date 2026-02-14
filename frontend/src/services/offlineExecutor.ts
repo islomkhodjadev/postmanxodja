@@ -103,12 +103,31 @@ export async function executeRequestDirect(
   }
 
   try {
+    // Detect mixed content: HTTPS page trying to fetch HTTP target.
+    // Browsers block this. localhost is exempt in Chrome/Edge but not all browsers.
+    const pageIsHTTPS = window.location.protocol === 'https:';
+    const targetIsHTTP = urlObj.protocol === 'http:';
+    const targetHost = urlObj.hostname;
+    const isLoopback = targetHost === 'localhost' || targetHost === '127.0.0.1' || targetHost === '::1';
+
+    // If HTTPS → HTTP and not a loopback address, it will be blocked
+    if (pageIsHTTPS && targetIsHTTP && !isLoopback) {
+      return {
+        status: 0,
+        status_text: 'Mixed Content Blocked',
+        headers: {},
+        body: JSON.stringify({
+          error: 'Mixed content: cannot fetch HTTP from an HTTPS page. ' +
+            'Use HTTPS for the target URL, or open this app over HTTP.',
+        }),
+        time: Math.round(performance.now() - startTime),
+      };
+    }
+
     const resp = await fetch(urlObj.toString(), {
       method: request.method,
       headers,
       body,
-      // Mode 'cors' is the default — will work for localhost and CORS-enabled
-      // servers. For same-origin targets it is effectively 'same-origin'.
     });
 
     const elapsed = Math.round(performance.now() - startTime);

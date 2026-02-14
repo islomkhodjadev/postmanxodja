@@ -27,20 +27,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           authService.cacheUser(currentUser);
           setUser(currentUser);
         } catch (err: any) {
-          // Only clear tokens on actual auth errors (401/403), NOT network errors.
-          // Network errors mean the backend is unreachable — keep the session alive
-          // using the cached user so the app works offline.
-          const isNetworkError = !err?.message?.includes('Failed to get user') ||
-            err?.name === 'TypeError';
-          if (isNetworkError) {
-            // Backend unreachable — use cached user data
+          // Distinguish network errors from genuine auth failures.
+          // fetch() throws TypeError on network failure; our code throws
+          // Error('Failed to get user') on 401/403.
+          const isAuthError =
+            err instanceof Error &&
+            err.message === 'Failed to get user' &&
+            err.name !== 'TypeError';
+
+          if (isAuthError) {
+            // Token is invalid / expired – clear everything
+            authService.clearTokens();
+          } else {
+            // Network error – backend unreachable (offline).
+            // Keep session alive using cached user data.
             const cached = authService.getCachedUser();
             if (cached) {
               setUser(cached);
             }
-          } else {
-            // Genuine auth error (token expired/invalid)
-            authService.clearTokens();
+            // If no cached user exists, we still have a valid token – parse
+            // minimal user info from it so the session isn't lost.
+            if (!cached) {
+              const minimalUser = authService.parseUserFromToken(accessToken);
+              if (minimalUser) {
+                authService.cacheUser(minimalUser);
+                setUser(minimalUser);
+              }
+            }
           }
         }
       }
