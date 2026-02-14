@@ -68,7 +68,12 @@ export async function executeRequestDirect(
   const headers = new Headers();
   if (request.headers) {
     for (const [key, value] of Object.entries(request.headers)) {
-      if (key) headers.set(key, value);
+      if (!key || !key.trim()) continue;
+      try {
+        headers.set(key.trim(), value);
+      } catch {
+        // Skip invalid header names (e.g. containing spaces, colons, etc.)
+      }
     }
   }
 
