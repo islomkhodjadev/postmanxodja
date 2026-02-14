@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { Collection, ExecuteRequest, ExecuteResponse, Environment } from '../types';
+import { executeRequestDirect, isBackendReachable } from './offlineExecutor';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
@@ -87,42 +88,61 @@ export const exportCollection = async (teamId: number, id: number, collectionNam
 
 // Request execution
 export const executeRequest = async (request: ExecuteRequest): Promise<ExecuteResponse> => {
-  // For form-data with files, we need to use multipart/form-data
-  if (request.body_type === 'form-data' && request.form_data?.some(item => item.type === 'file' && item.file)) {
-    const formData = new FormData();
+  // Try the backend proxy first; fall back to direct browser fetch when
+  // the backend is unreachable (offline / local-only mode).
+  const backendAvailable = await isBackendReachable(API_BASE_URL);
 
-    // Add request metadata
-    formData.append('_request_meta', JSON.stringify({
-      method: request.method,
-      url: request.url,
-      headers: request.headers,
-      query_params: request.query_params,
-      environment_id: request.environment_id,
-      body_type: request.body_type,
-    }));
-
-    // Add form data items
-    request.form_data?.forEach((item, index) => {
-      if (item.type === 'file' && item.file) {
-        formData.append(`file_${index}`, item.file, item.file.name);
-        formData.append(`file_${index}_key`, item.key);
-      } else {
-        formData.append(`text_${index}_key`, item.key);
-        formData.append(`text_${index}_value`, item.value);
-      }
-    });
-
-    const response = await api.post('/requests/execute-multipart', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
+  if (!backendAvailable) {
+    console.info('[offline] Backend unreachable — executing request directly from browser');
+    return executeRequestDirect(request);
   }
 
-  // For regular requests
-  const response = await api.post('/requests/execute', request);
-  return response.data;
+  try {
+    // For form-data with files, we need to use multipart/form-data
+    if (request.body_type === 'form-data' && request.form_data?.some(item => item.type === 'file' && item.file)) {
+      const formData = new FormData();
+
+      // Add request metadata
+      formData.append('_request_meta', JSON.stringify({
+        method: request.method,
+        url: request.url,
+        headers: request.headers,
+        query_params: request.query_params,
+        environment_id: request.environment_id,
+        body_type: request.body_type,
+      }));
+
+      // Add form data items
+      request.form_data?.forEach((item, index) => {
+        if (item.type === 'file' && item.file) {
+          formData.append(`file_${index}`, item.file, item.file.name);
+          formData.append(`file_${index}_key`, item.key);
+        } else {
+          formData.append(`text_${index}_key`, item.key);
+          formData.append(`text_${index}_value`, item.value);
+        }
+      });
+
+      const response = await api.post('/requests/execute-multipart', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    }
+
+    // For regular requests
+    const response = await api.post('/requests/execute', request);
+    return response.data;
+  } catch (err: any) {
+    // If the backend request itself failed (network error, not HTTP error from
+    // the target), fall back to direct fetch as a last resort.
+    if (!err.response) {
+      console.info('[offline] Backend request failed — falling back to direct fetch');
+      return executeRequestDirect(request);
+    }
+    throw err;
+  }
 };
 
 // Environment APIs (team-scoped)

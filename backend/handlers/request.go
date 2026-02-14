@@ -112,6 +112,9 @@ func ExecuteMultipartRequest(c *gin.Context) {
 		targetURL = services.ReplaceVariables(targetURL, variables)
 	}
 
+	// Rewrite localhost URLs when running inside Docker
+	targetURL = services.RewriteLocalhostURL(targetURL)
+
 	// Build URL with query parameters
 	if len(meta.QueryParams) > 0 {
 		parsedURL, err := url.Parse(targetURL)
@@ -238,10 +241,8 @@ func ExecuteMultipartRequest(c *gin.Context) {
 		}
 	}
 
-	// Execute the request
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
+	// Execute the request (relaxed TLS for localhost)
+	client := services.HttpClientFor(targetURL)
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		log.Printf("Request execution failed: %v", err)

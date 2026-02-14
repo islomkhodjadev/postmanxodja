@@ -324,7 +324,14 @@ export default function VariableInput({
             fontSize: '0.875rem',
             lineHeight: '1.25rem',
             minHeight: `${minHeight}px`,
-            ...(!multiline ? { maxHeight: `${minHeight}px`, overflow: 'visible' } : {}),
+            ...(!multiline
+              ? {
+                  maxHeight: `${minHeight}px`,
+                  overflow: 'visible',
+                  width: 'max-content',
+                  minWidth: '100%',
+                }
+              : {}),
           }}
           textareaClassName="vi-textarea"
           preClassName="vi-pre"

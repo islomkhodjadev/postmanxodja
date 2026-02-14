@@ -94,36 +94,38 @@ body {
   resize: vertical;
 }
 
-/* Variable highlight spans */
+/* Variable highlight spans — use outline + box-shadow instead of
+   border + padding so highlighted spans don't add extra width
+   (which would desync <pre> and <textarea> widths). */
 .vi-var {
   border-radius: 3px;
-  padding: 0 2px;
-  border: 1px solid;
+  outline: 1px solid;
+  outline-offset: 1px;
   cursor: pointer;
 }
 
 .vi-var-found {
   background: rgba(255, 237, 213, 0.9);
   color: #c2410c;
-  border-color: #fdba74;
+  outline-color: #fdba74;
 }
 
 .vi-var-missing {
   background: rgba(254, 226, 226, 0.9);
   color: #b91c1c;
-  border-color: #fca5a5;
+  outline-color: #fca5a5;
 }
 
 .dark .vi-var-found {
   background: rgba(194, 65, 12, 0.25);
   color: #fb923c;
-  border-color: rgba(251, 146, 60, 0.4);
+  outline-color: rgba(251, 146, 60, 0.4);
 }
 
 .dark .vi-var-missing {
   background: rgba(185, 28, 28, 0.25);
   color: #f87171;
-  border-color: rgba(248, 113, 113, 0.4);
+  outline-color: rgba(248, 113, 113, 0.4);
 }
 
 /* ── JSON Syntax Highlighting ── */

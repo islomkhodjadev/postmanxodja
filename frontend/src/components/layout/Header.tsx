@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTeam } from '../../contexts/TeamContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getUserInvites, getTeamMembers } from '../../services/team';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import TeamSwitcher from '../team/TeamSwitcher';
 import CreateTeamModal from '../team/CreateTeamModal';
 import InviteModal from '../team/InviteModal';
@@ -23,6 +24,9 @@ export default function Header() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [pendingInvitesCount, setPendingInvitesCount] = useState(0);
   const [isTeamOwner, setIsTeamOwner] = useState(false);
+
+  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+  const networkMode = useNetworkStatus(apiBaseUrl);
 
   useEffect(() => {
     loadPendingInvites();
@@ -78,6 +82,31 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Network status indicator */}
+          {networkMode !== 'online' && (
+            <div
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                networkMode === 'offline'
+                  ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
+                  : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'
+              }`}
+              title={
+                networkMode === 'offline'
+                  ? 'No internet connection — requests to localhost still work via direct fetch'
+                  : 'Backend server unreachable — requests execute directly from your browser (CORS rules apply)'
+              }
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  networkMode === 'offline'
+                    ? 'bg-red-500 dark:bg-red-400'
+                    : 'bg-yellow-500 dark:bg-yellow-400'
+                }`}
+              />
+              {networkMode === 'offline' ? 'Offline' : 'Local Only'}
+            </div>
+          )}
+
           <TeamSwitcher
             teams={teams}
             currentTeam={currentTeam}
