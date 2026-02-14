@@ -20,7 +20,7 @@ export function useNetworkStatus(apiBaseUrl: string): NetworkMode {
     }
 
     try {
-      const healthURL = apiBaseUrl.replace(/\/api\/?$/, '') + '/health';
+      const healthURL = apiBaseUrl.replace(/\/?$/, '/health');
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 3000);
       const resp = await fetch(healthURL, {

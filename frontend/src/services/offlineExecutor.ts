@@ -15,6 +15,37 @@
  */
 import type { ExecuteRequest, ExecuteResponse } from '../types';
 
+/**
+ * Returns true when the target URL points to a loopback / private address.
+ */
+function isLocalhostTarget(rawURL: string): boolean {
+  try {
+    const url = new URL(rawURL.match(/^https?:\/\//i) ? rawURL : 'http://' + rawURL);
+    const host = url.hostname;
+    return (
+      host === 'localhost' ||
+      host === '127.0.0.1' ||
+      host === '::1' ||
+      host.startsWith('192.168.') ||
+      host.startsWith('10.') ||
+      host.startsWith('172.')
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Returns true when the browser is on a different origin from the target
+ * (e.g. app hosted at postbaby.uz trying to reach localhost).
+ */
+export function isCrossOriginLocalhost(rawURL: string): boolean {
+  if (!isLocalhostTarget(rawURL)) return false;
+  // If the page itself is running on localhost, direct fetch is fine
+  const pageHost = window.location.hostname;
+  return pageHost !== 'localhost' && pageHost !== '127.0.0.1' && pageHost !== '::1';
+}
+
 export async function executeRequestDirect(
   request: ExecuteRequest,
 ): Promise<ExecuteResponse> {
@@ -121,14 +152,18 @@ export async function executeRequestDirect(
 
 /**
  * Check whether the backend API server is reachable.
- * Returns true if the health endpoint responds within the timeout.
+ * Uses /api/health which goes through CORS middleware, avoiding
+ * cross-origin issues when the frontend is on a different domain.
  */
 export async function isBackendReachable(apiBaseUrl: string): Promise<boolean> {
   try {
-    const healthURL = apiBaseUrl.replace(/\/api\/?$/, '') + '/health';
+    const healthURL = apiBaseUrl.replace(/\/?$/, '/health');
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
-    const resp = await fetch(healthURL, { signal: controller.signal });
+    const resp = await fetch(healthURL, {
+      signal: controller.signal,
+      cache: 'no-store',
+    });
     clearTimeout(timeout);
     return resp.ok;
   } catch {
