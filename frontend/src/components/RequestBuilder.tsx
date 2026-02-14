@@ -160,8 +160,8 @@ export default function RequestBuilder({
     setLoading(true);
 
     try {
-      const headersObj = Object.fromEntries(headers.filter(h => h.key).map(h => [h.key, h.value]));
-      const queryParamsObj = Object.fromEntries(queryParams.filter(q => q.key).map(q => [q.key, q.value]));
+      const headersObj = Object.fromEntries(headers.filter(h => h.key).map(h => [h.key.trim(), h.value]));
+      const queryParamsObj = Object.fromEntries(queryParams.filter(q => q.key).map(q => [q.key.trim(), q.value]));
 
       const request: ExecuteRequest = {
         method,
