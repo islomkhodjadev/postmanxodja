@@ -126,6 +126,12 @@ func main() {
 			teamApi.GET("/api-keys", handlers.GetAPIKeys)
 			teamApi.POST("/api-keys", handlers.CreateAPIKey)
 			teamApi.DELETE("/api-keys/:key_id", handlers.DeleteAPIKey)
+
+			// Team AI settings
+			teamApi.GET("/ai-settings", handlers.GetAISettings)
+			teamApi.PUT("/ai-settings", handlers.UpdateAISettings)
+			teamApi.DELETE("/ai-settings", handlers.DeleteAISettings)
+			teamApi.POST("/ai-analyze", handlers.AIAnalyzeDBML)
 		}
 	}
 

@@ -43,6 +43,7 @@ export default function RequestBuilder({
   );
   const [selectedEnvId, setSelectedEnvId] = useState<number | undefined>();
   const [loading, setLoading] = useState(false);
+  const [activeSection, setActiveSection] = useState<'params' | 'headers' | 'body'>('params');
 
   console.log("body ==>", body, typeof body)
 
@@ -364,271 +365,342 @@ export default function RequestBuilder({
         </button>
       </div>
 
-      <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-        <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-3 text-sm">Query Parameters</h4>
-        {queryParams.map((param, index) => (
-          <div key={index} className="flex gap-3 mb-2">
-            <input
-              type="text"
-              value={param.key}
-              onChange={(e) => updateQueryParam(index, 'key', e.target.value)}
-              placeholder="Key"
-              className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
-            />
-            <div className="flex-1 min-w-0">
-              <VariableInput
-                value={param.value}
-                onChange={(value) => updateQueryParam(index, 'value', value)}
-                placeholder="Value"
-                environments={environments}
-                selectedEnvId={selectedEnvId}
-              />
-            </div>
-            <button
-              onClick={() => removeQueryParam(index)}
-              className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150"
-            >
-              Remove
-            </button>
-          </div>
-        ))}
-        <button
-          onClick={addQueryParam}
-          className="mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm shadow-sm transition-colors duration-150"
-        >
-          Add Param
-        </button>
-      </div>
-
-      <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-        <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-3 text-sm">Headers</h4>
-        {headers.map((header, index) => (
-          <div key={index} className="flex gap-3 mb-2">
-            <input
-              type="text"
-              value={header.key}
-              onChange={(e) => updateHeader(index, 'key', e.target.value)}
-              placeholder="Key"
-              className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
-            />
-            <div className="flex-1 min-w-0">
-              <VariableInput
-                value={header.value}
-                onChange={(value) => updateHeader(index, 'value', value)}
-                placeholder="Value"
-                environments={environments}
-                selectedEnvId={selectedEnvId}
-              />
-            </div>
-            <button
-              onClick={() => removeHeader(index)}
-              className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150"
-            >
-              Remove
-            </button>
-          </div>
-        ))}
-        <button
-          onClick={addHeader}
-          className="mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm shadow-sm transition-colors duration-150"
-        >
-          Add Header
-        </button>
-      </div>
-
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="font-semibold text-gray-800 dark:text-gray-200 text-sm">Body</h4>
-          <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-            <button
-              onClick={() => setBodyType('none')}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                bodyType === 'none' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              none
-            </button>
-            <button
-              onClick={() => setBodyType('raw')}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                bodyType === 'raw' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              raw
-            </button>
-            <button
-              onClick={() => setBodyType('form-data')}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                bodyType === 'form-data' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              form-data
-            </button>
-            <button
-              onClick={() => setBodyType('x-www-form-urlencoded')}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                bodyType === 'x-www-form-urlencoded' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              x-www-form-urlencoded
-            </button>
-          </div>
+      {/* Tab Bar */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="flex border-b border-gray-200 dark:border-gray-700">
+          <button
+            onClick={() => setActiveSection('params')}
+            className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
+              activeSection === 'params'
+                ? 'text-blue-600 dark:text-blue-400'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            <span className="flex items-center gap-1.5">
+              Params
+              {queryParams.filter(p => p.key).length > 0 && (
+                <span className="text-[10px] min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 font-semibold">
+                  {queryParams.filter(p => p.key).length}
+                </span>
+              )}
+            </span>
+            {activeSection === 'params' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveSection('headers')}
+            className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
+              activeSection === 'headers'
+                ? 'text-blue-600 dark:text-blue-400'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            <span className="flex items-center gap-1.5">
+              Headers
+              {headers.filter(h => h.key).length > 0 && (
+                <span className="text-[10px] min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 font-semibold">
+                  {headers.filter(h => h.key).length}
+                </span>
+              )}
+            </span>
+            {activeSection === 'headers' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveSection('body')}
+            className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
+              activeSection === 'body'
+                ? 'text-blue-600 dark:text-blue-400'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            <span className="flex items-center gap-1.5">
+              Body
+              {bodyType !== 'none' && (
+                <span className={`w-2 h-2 rounded-full ${
+                  bodyType === 'raw' && body ? 'bg-green-500' : 'bg-yellow-500'
+                }`} />
+              )}
+            </span>
+            {activeSection === 'body' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
+            )}
+          </button>
         </div>
 
-        {bodyType === 'none' && (
-          <p className="text-gray-500 dark:text-gray-400 text-sm italic">This request does not have a body</p>
-        )}
-
-        {bodyType === 'raw' && (
-          <div>
-            <div className="flex justify-end mb-2">
-              <button
-                onClick={() => {
-                  try {
-                    // Swap {{variables}} with unique placeholders so JSON.parse works
-                    const placeholders: string[] = [];
-                    const safeBody = body.replace(/\{\{([^}]+)\}\}/g, (m) => {
-                      const idx = placeholders.length;
-                      placeholders.push(m);
-                      return `"__VAR_${idx}__"`;
-                    });
-
-                    const parsed = JSON.parse(safeBody);
-                    let formatted = JSON.stringify(parsed, null, 2);
-
-                    // Restore the original {{variables}}
-                    placeholders.forEach((original, idx) => {
-                      formatted = formatted.replace(`"__VAR_${idx}__"`, original);
-                    });
-
-                    setBody(formatted);
-                    notifyUpdate({ body: formatted });
-                  } catch {
-                    // not valid JSON — ignore
-                  }
-                }}
-                className="px-3 py-1 text-xs font-medium rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              >
-                Beautify JSON
-              </button>
-            </div>
-            <VariableInput
-              value={body}
-              onChange={(value) => {
-                setBody(value);
-                notifyUpdate({ body: value });
-              }}
-              placeholder="Request body (JSON, text, etc.)"
-              environments={environments}
-              selectedEnvId={selectedEnvId}
-              multiline
-              jsonHighlight
-            />
-          </div>
-        )}
-
-        {bodyType === 'form-data' && (
-          <div>
-            {formData.map((item, index) => (
-              <div key={index} className="flex gap-3 mb-2 items-center">
-                <input
-                  type="text"
-                  value={item.key}
-                  onChange={(e) => updateFormDataItem(index, 'key', e.target.value)}
-                  placeholder="Key"
-                  className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
-                />
-                <select
-                  value={item.type}
-                  onChange={(e) => updateFormDataItem(index, 'type', e.target.value)}
-                  className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
-                >
-                  <option value="text">Text</option>
-                  <option value="file">File</option>
-                </select>
-                {item.type === 'text' ? (
+        {/* Tab Content */}
+        <div className="p-4">
+          {/* Params Tab */}
+          {activeSection === 'params' && (
+            <div>
+              {queryParams.map((param, index) => (
+                <div key={index} className="flex gap-3 mb-2">
+                  <input
+                    type="text"
+                    value={param.key}
+                    onChange={(e) => updateQueryParam(index, 'key', e.target.value)}
+                    placeholder="Key"
+                    className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
+                  />
                   <div className="flex-1 min-w-0">
                     <VariableInput
-                      value={item.value}
-                      onChange={(value) => updateFormDataItem(index, 'value', value)}
+                      value={param.value}
+                      onChange={(value) => updateQueryParam(index, 'value', value)}
                       placeholder="Value"
                       environments={environments}
                       selectedEnvId={selectedEnvId}
                     />
                   </div>
-                ) : (
+                  <button
+                    onClick={() => removeQueryParam(index)}
+                    className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={addQueryParam}
+                className="mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm shadow-sm transition-colors duration-150"
+              >
+                Add Param
+              </button>
+            </div>
+          )}
+
+          {/* Headers Tab */}
+          {activeSection === 'headers' && (
+            <div>
+              {headers.map((header, index) => (
+                <div key={index} className="flex gap-3 mb-2">
+                  <input
+                    type="text"
+                    value={header.key}
+                    onChange={(e) => updateHeader(index, 'key', e.target.value)}
+                    placeholder="Key"
+                    className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
+                  />
                   <div className="flex-1 min-w-0">
-                    <label className="flex items-center gap-2 cursor-pointer border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors dark:text-gray-200">
-                      <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <span className="text-gray-600 dark:text-gray-300 truncate">
-                        {item.file ? item.file.name : 'Choose file...'}
-                      </span>
-                      <input
-                        type="file"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) updateFormDataItem(index, 'file', file);
-                        }}
-                        className="hidden"
-                      />
-                    </label>
+                    <VariableInput
+                      value={header.value}
+                      onChange={(value) => updateHeader(index, 'value', value)}
+                      placeholder="Value"
+                      environments={environments}
+                      selectedEnvId={selectedEnvId}
+                    />
                   </div>
-                )}
+                  <button
+                    onClick={() => removeHeader(index)}
+                    className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={addHeader}
+                className="mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm shadow-sm transition-colors duration-150"
+              >
+                Add Header
+              </button>
+            </div>
+          )}
+
+          {/* Body Tab */}
+          {activeSection === 'body' && (
+            <div>
+              <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1 mb-3 w-fit">
                 <button
-                  onClick={() => removeFormDataItem(index)}
-                  className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150"
+                  onClick={() => setBodyType('none')}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                    bodyType === 'none' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  }`}
                 >
-                  Remove
+                  none
+                </button>
+                <button
+                  onClick={() => setBodyType('raw')}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                    bodyType === 'raw' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  }`}
+                >
+                  raw
+                </button>
+                <button
+                  onClick={() => setBodyType('form-data')}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                    bodyType === 'form-data' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  }`}
+                >
+                  form-data
+                </button>
+                <button
+                  onClick={() => setBodyType('x-www-form-urlencoded')}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                    bodyType === 'x-www-form-urlencoded' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  }`}
+                >
+                  x-www-form-urlencoded
                 </button>
               </div>
-            ))}
-            <button
-              onClick={addFormDataItem}
-              className="mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm shadow-sm transition-colors duration-150"
-            >
-              Add Field
-            </button>
-          </div>
-        )}
 
-        {bodyType === 'x-www-form-urlencoded' && (
-          <div>
-            {formData.map((item, index) => (
-              <div key={index} className="flex gap-3 mb-2">
-                <input
-                  type="text"
-                  value={item.key}
-                  onChange={(e) => updateFormDataItem(index, 'key', e.target.value)}
-                  placeholder="Key"
-                  className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
-                />
-                <div className="flex-1 min-w-0">
+              {bodyType === 'none' && (
+                <p className="text-gray-500 dark:text-gray-400 text-sm italic">This request does not have a body</p>
+              )}
+
+              {bodyType === 'raw' && (
+                <div>
+                  <div className="flex justify-end mb-2">
+                    <button
+                      onClick={() => {
+                        try {
+                          const placeholders: string[] = [];
+                          const safeBody = body.replace(/\{\{([^}]+)\}\}/g, (m) => {
+                            const idx = placeholders.length;
+                            placeholders.push(m);
+                            return `"__VAR_${idx}__"`;
+                          });
+
+                          const parsed = JSON.parse(safeBody);
+                          let formatted = JSON.stringify(parsed, null, 2);
+
+                          placeholders.forEach((original, idx) => {
+                            formatted = formatted.replace(`"__VAR_${idx}__"`, original);
+                          });
+
+                          setBody(formatted);
+                          notifyUpdate({ body: formatted });
+                        } catch {
+                          // not valid JSON — ignore
+                        }
+                      }}
+                      className="px-3 py-1 text-xs font-medium rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    >
+                      Beautify JSON
+                    </button>
+                  </div>
                   <VariableInput
-                    value={item.value}
-                    onChange={(value) => updateFormDataItem(index, 'value', value)}
-                    placeholder="Value"
+                    value={body}
+                    onChange={(value) => {
+                      setBody(value);
+                      notifyUpdate({ body: value });
+                    }}
+                    placeholder="Request body (JSON, text, etc.)"
                     environments={environments}
                     selectedEnvId={selectedEnvId}
+                    multiline
+                    jsonHighlight
                   />
                 </div>
-                <button
-                  onClick={() => removeFormDataItem(index)}
-                  className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150"
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-            <button
-              onClick={addFormDataItem}
-              className="mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm shadow-sm transition-colors duration-150"
-            >
-              Add Field
-            </button>
-          </div>
-        )}
+              )}
+
+              {bodyType === 'form-data' && (
+                <div>
+                  {formData.map((item, index) => (
+                    <div key={index} className="flex gap-3 mb-2 items-center">
+                      <input
+                        type="text"
+                        value={item.key}
+                        onChange={(e) => updateFormDataItem(index, 'key', e.target.value)}
+                        placeholder="Key"
+                        className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
+                      />
+                      <select
+                        value={item.type}
+                        onChange={(e) => updateFormDataItem(index, 'type', e.target.value)}
+                        className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
+                      >
+                        <option value="text">Text</option>
+                        <option value="file">File</option>
+                      </select>
+                      {item.type === 'text' ? (
+                        <div className="flex-1 min-w-0">
+                          <VariableInput
+                            value={item.value}
+                            onChange={(value) => updateFormDataItem(index, 'value', value)}
+                            placeholder="Value"
+                            environments={environments}
+                            selectedEnvId={selectedEnvId}
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex-1 min-w-0">
+                          <label className="flex items-center gap-2 cursor-pointer border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors dark:text-gray-200">
+                            <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span className="text-gray-600 dark:text-gray-300 truncate">
+                              {item.file ? item.file.name : 'Choose file...'}
+                            </span>
+                            <input
+                              type="file"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) updateFormDataItem(index, 'file', file);
+                              }}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                      )}
+                      <button
+                        onClick={() => removeFormDataItem(index)}
+                        className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={addFormDataItem}
+                    className="mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm shadow-sm transition-colors duration-150"
+                  >
+                    Add Field
+                  </button>
+                </div>
+              )}
+
+              {bodyType === 'x-www-form-urlencoded' && (
+                <div>
+                  {formData.map((item, index) => (
+                    <div key={index} className="flex gap-3 mb-2">
+                      <input
+                        type="text"
+                        value={item.key}
+                        onChange={(e) => updateFormDataItem(index, 'key', e.target.value)}
+                        placeholder="Key"
+                        className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <VariableInput
+                          value={item.value}
+                          onChange={(value) => updateFormDataItem(index, 'value', value)}
+                          placeholder="Value"
+                          environments={environments}
+                          selectedEnvId={selectedEnvId}
+                        />
+                      </div>
+                      <button
+                        onClick={() => removeFormDataItem(index)}
+                        className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={addFormDataItem}
+                    className="mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm shadow-sm transition-colors duration-150"
+                  >
+                    Add Field
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -5,9 +5,10 @@ import InputModal from './InputModal';
 
 interface Props {
   onImportSuccess: () => void;
+  onUCodeImport?: () => void;
 }
 
-export default function CollectionImporter({ onImportSuccess }: Props) {
+export default function CollectionImporter({ onImportSuccess, onUCodeImport }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -94,6 +95,26 @@ export default function CollectionImporter({ onImportSuccess }: Props) {
             </svg>
             Import
           </label>
+          {onUCodeImport && (
+            <button
+              onClick={onUCodeImport}
+              disabled={loading}
+              className={`
+                flex-1 px-3 py-2 rounded-lg shadow-sm font-medium text-sm
+                flex items-center justify-center gap-1
+                ${loading
+                  ? 'bg-gray-400 text-white cursor-not-allowed'
+                  : 'bg-purple-500 hover:bg-purple-600 text-white'
+                }
+              `}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+              </svg>
+              UCode
+            </button>
+          )}
           <input
             id="file-upload"
             type="file"

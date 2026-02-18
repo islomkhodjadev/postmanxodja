@@ -271,25 +271,25 @@ export default function APIKeysManager() {
       {showCreateModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="fixed inset-0 bg-black/50" onClick={() => setShowCreateModal(false)} />
-          <div className="relative bg-white rounded-lg p-6 w-full max-w-md mx-4 shadow-xl">
-            <h3 className="text-lg font-semibold mb-4">Create API Key</h3>
+          <div className="relative bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Create API Key</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="e.g., CI/CD Pipeline"
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Permissions</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Permissions</label>
                 <select
                   value={formData.permissions}
                   onChange={(e) => setFormData(prev => ({ ...prev, permissions: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="read">Read only</option>
                   <option value="write">Write only</option>
@@ -297,22 +297,22 @@ export default function APIKeysManager() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Expiration (days)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Expiration (days)</label>
                 <input
                   type="number"
                   value={formData.expires_in || ''}
                   onChange={(e) => setFormData(prev => ({ ...prev, expires_in: parseInt(e.target.value) || 0 }))}
                   placeholder="0 = never expires"
                   min="0"
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
-                <p className="text-xs text-gray-500 mt-1">Leave empty or 0 for no expiration</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave empty or 0 for no expiration</p>
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
               >
                 Cancel
               </button>

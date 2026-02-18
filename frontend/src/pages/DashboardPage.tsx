@@ -10,9 +10,10 @@ import TabsBar from '../components/TabsBar';
 import CurlImportModal from '../components/CurlImportModal';
 import ConfirmModal from '../components/ConfirmModal';
 import CollectionSelector from '../components/CollectionSelector';
+import UCodeImportModal from '../components/UCodeImportModal';
 import Header from '../components/layout/Header';
 import { useTeam } from '../contexts/TeamContext';
-import { getEnvironments, getSavedTabs, getCollection, updateCollection } from '../services/api';
+import { getEnvironments, getSavedTabs, getCollection, updateCollection, importCollection } from '../services/api';
 import type { ExecuteResponse, Environment, RequestTab, SentRequest } from '../types';
 
 // Helper to generate unique IDs
@@ -40,6 +41,7 @@ export default function DashboardPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [responseCollapsed, setResponseCollapsed] = useState(false);
   const [curlImportOpen, setCurlImportOpen] = useState(false);
+  const [ucodeImportOpen, setUcodeImportOpen] = useState(false);
   const [activeCollectionId, setActiveCollectionId] = useState<number | null>(null);
   const [collectionSelectorOpen, setCollectionSelectorOpen] = useState(false);
   const [tabToSave, setTabToSave] = useState<RequestTab | null>(null);
@@ -121,6 +123,16 @@ export default function DashboardPage() {
   const handleImportSuccess = () => {
     setRefreshTrigger(prev => prev + 1);
   };
+
+  const handleUCodeImport = useCallback(async (collectionJSON: string) => {
+    if (!currentTeam) return;
+    try {
+      await importCollection(currentTeam.id, collectionJSON);
+      setRefreshTrigger(prev => prev + 1);
+    } catch (err) {
+      console.error('Failed to import UCode collection:', err);
+    }
+  }, [currentTeam]);
 
   const handleRequestSelect = useCallback((request: any) => {
     // Track which collection is currently active
@@ -558,6 +570,13 @@ export default function DashboardPage() {
         onImport={handleCurlImport}
       />
 
+      {/* UCode Import Modal */}
+      <UCodeImportModal
+        isOpen={ucodeImportOpen}
+        onClose={() => setUcodeImportOpen(false)}
+        onImport={handleUCodeImport}
+      />
+
       {/* Confirm Modal */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
@@ -591,7 +610,7 @@ export default function DashboardPage() {
         collapsed={sidebarCollapsed}
         onCollapsedChange={setSidebarCollapsed}
       >
-        <CollectionImporter onImportSuccess={handleImportSuccess} />
+        <CollectionImporter onImportSuccess={handleImportSuccess} onUCodeImport={() => setUcodeImportOpen(true)} />
         <div className="flex-1 overflow-y-auto min-h-0">
           <CollectionList onRequestSelect={handleRequestSelect} refreshTrigger={refreshTrigger} />
         </div>
