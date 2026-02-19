@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { executeRequest } from '../services/api';
 import VariableInput from './VariableInput';
+import { parseCurl } from '../utils/curlParser';
 import type { ExecuteRequest, ExecuteResponse, Environment, RequestTab, BodyType, FormDataItem, SentRequest } from '../types';
 
 interface Props {
@@ -306,6 +307,36 @@ export default function RequestBuilder({
           <VariableInput
             value={url}
             onChange={(newUrl) => {
+              // Detect pasted cURL command
+              const trimmed = newUrl.trim();
+              if (/^curl\s/i.test(trimmed)) {
+                try {
+                  const parsed = parseCurl(trimmed);
+                  setUrl(parsed.url);
+                  setMethod(parsed.method);
+                  if (parsed.body) {
+                    setBody(parsed.body);
+                    setBodyType('raw');
+                  }
+                  const parsedHeaders = Object.entries(parsed.headers).map(([key, value]) => ({ key, value }));
+                  if (parsedHeaders.length > 0) {
+                    setHeaders(parsedHeaders);
+                  }
+                  const parsedParams = parseQueryParamsFromUrl(parsed.url);
+                  setQueryParams(parsedParams.length > 0 ? parsedParams : []);
+                  notifyUpdate({
+                    method: parsed.method,
+                    url: parsed.url,
+                    headers: parsedHeaders.length > 0 ? parsedHeaders : undefined,
+                    body: parsed.body || undefined,
+                    queryParams: parsedParams,
+                  });
+                  return;
+                } catch {
+                  // Not a valid curl — fall through to normal URL handling
+                }
+              }
+
               setUrl(newUrl);
               // Parse query params from URL and update params list
               if (!isUpdatingFromParams.current) {
@@ -320,7 +351,7 @@ export default function RequestBuilder({
                 notifyUpdate({ url: newUrl });
               }
             }}
-            placeholder="Enter request URL"
+            placeholder="Enter request URL or paste cURL"
             environments={environments}
             selectedEnvId={selectedEnvId}
             className="shadow-sm"

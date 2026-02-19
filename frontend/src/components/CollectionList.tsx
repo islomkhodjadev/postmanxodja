@@ -37,6 +37,7 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
   const [renameValue, setRenameValue] = useState('');
   const [renamingCollectionId, setRenamingCollectionId] = useState<number | null>(null);
   const [collectionRenameValue, setCollectionRenameValue] = useState('');
+  const [searchFilter, setSearchFilter] = useState('');
 
   useEffect(() => {
     if (currentTeam) {
@@ -512,9 +513,12 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
               </button>
             </div>
           </div>
-          {isExpanded && (
+          {(isExpanded || !!searchFilter) && (
             <div className="bg-white dark:bg-gray-800">
-              {item.item.map(subItem => renderItem(subItem, collectionId, depth + 1, itemPath))}
+              {(searchFilter
+                ? filterItems(item.item, searchFilter)
+                : item.item
+              ).map(subItem => renderItem(subItem, collectionId, depth + 1, itemPath))}
             </div>
           )}
         </div>
@@ -535,6 +539,40 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
     return colors[method] || '#6c757d';
   };
 
+  // Recursively filter items that match the search query
+  const filterItems = (items: PostmanItem[], query: string): PostmanItem[] => {
+    if (!query) return items;
+    const q = query.toLowerCase();
+    return items.reduce<PostmanItem[]>((acc, item) => {
+      const nameMatch = item.name.toLowerCase().includes(q);
+      const methodMatch = item.request?.method?.toLowerCase().includes(q);
+      const urlMatch = typeof item.request?.url === 'string'
+        ? item.request.url.toLowerCase().includes(q)
+        : item.request?.url?.raw?.toLowerCase().includes(q);
+      if (item.item) {
+        const filteredChildren = filterItems(item.item, query);
+        if (nameMatch || filteredChildren.length > 0) {
+          acc.push({ ...item, item: nameMatch ? item.item : filteredChildren });
+        }
+      } else if (nameMatch || methodMatch || urlMatch) {
+        acc.push(item);
+      }
+      return acc;
+    }, []);
+  };
+
+  // Check if a collection matches the search (by name or contents)
+  const collectionMatchesSearch = (collection: Collection, query: string): boolean => {
+    if (!query) return true;
+    const q = query.toLowerCase();
+    if (collection.name.toLowerCase().includes(q)) return true;
+    const data = collectionData.get(collection.id);
+    if (data) {
+      return filterItems(data.item, query).length > 0;
+    }
+    return true; // Show unexpanded collections so user can expand them
+  };
+
   if (!currentTeam) {
     return (
       <div className="h-full overflow-y-auto border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
@@ -544,14 +582,40 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
   }
 
   return (
-    <div className="h-full overflow-y-auto border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-      <h3 className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700">Collections</h3>
+    <div className="h-full flex flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <h3 className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 shrink-0">Collections</h3>
+      {/* Search */}
+      <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 shrink-0">
+        <div className="relative">
+          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Filter collections..."
+            value={searchFilter}
+            onChange={(e) => setSearchFilter(e.target.value)}
+            className="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-1 focus:ring-blue-400 focus:border-blue-400 outline-none"
+          />
+          {searchFilter && (
+            <button
+              onClick={() => setSearchFilter('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto">
       {collections.length === 0 ? (
         <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400 text-sm">
           No collections yet. Import one to get started.
         </div>
       ) : (
-        collections.map(collection => {
+        collections.filter(c => collectionMatchesSearch(c, searchFilter)).map(collection => {
           const isRenamingCollection = renamingCollectionId === collection.id;
           return (
           <div key={collection.id} className="mb-2">
@@ -636,13 +700,17 @@ export default function CollectionList({ onRequestSelect, refreshTrigger }: Prop
             </div>
             {expandedCollections.has(collection.id) && collectionData.get(collection.id) && (
               <div className="bg-white dark:bg-gray-800">
-                {collectionData.get(collection.id)!.item.map((item: PostmanItem) => renderItem(item, collection.id))}
+                {(searchFilter
+                  ? filterItems(collectionData.get(collection.id)!.item, searchFilter)
+                  : collectionData.get(collection.id)!.item
+                ).map((item: PostmanItem) => renderItem(item, collection.id))}
               </div>
             )}
           </div>
         );
         })
       )}
+      </div>
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal
