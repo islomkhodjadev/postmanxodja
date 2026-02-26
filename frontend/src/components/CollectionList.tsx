@@ -626,7 +626,7 @@ export default function CollectionList({ onRequestSelect, onLoadSavedResponse, r
                   {item.name}
                 </span>
               )}
-              <span className="text-xs text-gray-400 flex-shrink-0">{item.item.length}</span>
+              <span className="text-xs text-gray-400 flex-shrink-0">{item.item.filter(i => i.request || i.item).length}</span>
             </div>
             <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 ">
               <button
