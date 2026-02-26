@@ -86,3 +86,55 @@ export function parseCurl(curlCommand: string): ParsedCurl {
     body,
   };
 }
+
+function shellEscape(str: string): string {
+  if (/^[a-zA-Z0-9._\-/:@=&?%+,;~]+$/.test(str)) return str;
+  return "'" + str.replace(/'/g, "'\\''") + "'";
+}
+
+export function generateCurl(opts: {
+  method: string;
+  url: string;
+  headers?: Record<string, string>;
+  body?: string;
+  queryParams?: Record<string, string>;
+}): string {
+  const parts: string[] = ['curl'];
+
+  // Method (skip -X for GET since it's the default)
+  if (opts.method && opts.method !== 'GET') {
+    parts.push(`-X ${opts.method}`);
+  }
+
+  // Build full URL with query params
+  let fullUrl = opts.url;
+  if (opts.queryParams && Object.keys(opts.queryParams).length > 0) {
+    try {
+      const urlObj = new URL(fullUrl.startsWith('http') ? fullUrl : `http://${fullUrl}`);
+      for (const [key, value] of Object.entries(opts.queryParams)) {
+        if (key) urlObj.searchParams.append(key, value);
+      }
+      fullUrl = urlObj.toString();
+    } catch {
+      // fallback: append manually
+      const params = new URLSearchParams(opts.queryParams).toString();
+      fullUrl += (fullUrl.includes('?') ? '&' : '?') + params;
+    }
+  }
+  parts.push(shellEscape(fullUrl));
+
+  // Headers
+  if (opts.headers) {
+    for (const [key, value] of Object.entries(opts.headers)) {
+      if (!key.trim()) continue;
+      parts.push(`-H ${shellEscape(`${key}: ${value}`)}`);
+    }
+  }
+
+  // Body
+  if (opts.body) {
+    parts.push(`--data-raw ${shellEscape(opts.body)}`);
+  }
+
+  return parts.join(' \\\n  ');
+}

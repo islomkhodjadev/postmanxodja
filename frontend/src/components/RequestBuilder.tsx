@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { executeRequest } from '../services/api';
 import VariableInput from './VariableInput';
-import { parseCurl } from '../utils/curlParser';
+import { parseCurl, generateCurl } from '../utils/curlParser';
 import type { ExecuteRequest, ExecuteResponse, Environment, RequestTab, BodyType, FormDataItem, SentRequest } from '../types';
 
 interface Props {
@@ -45,6 +45,7 @@ export default function RequestBuilder({
   const [selectedEnvId, setSelectedEnvId] = useState<number | undefined>();
   const [loading, setLoading] = useState(false);
   const [activeSection, setActiveSection] = useState<'params' | 'headers' | 'body'>('params');
+  const [curlCopied, setCurlCopied] = useState(false);
 
   console.log("body ==>", body, typeof body)
 
@@ -381,6 +382,26 @@ export default function RequestBuilder({
           `}
         >
           {loading ? 'Sending...' : 'Send'}
+        </button>
+        <button
+          onClick={() => {
+            const headersObj = Object.fromEntries(headers.filter(h => h.key).map(h => [h.key.trim(), h.value]));
+            const queryParamsObj = Object.fromEntries(queryParams.filter(q => q.key).map(q => [q.key.trim(), q.value]));
+            const curl = generateCurl({
+              method,
+              url,
+              headers: headersObj,
+              body: bodyType === 'raw' ? body : undefined,
+              queryParams: queryParamsObj,
+            });
+            navigator.clipboard.writeText(curl);
+            setCurlCopied(true);
+            setTimeout(() => setCurlCopied(false), 2000);
+          }}
+          className="px-4 py-2 rounded-lg shadow-sm font-medium text-sm transition-colors duration-150 bg-gray-500 hover:bg-gray-600 text-white"
+          title="Copy as cURL"
+        >
+          {curlCopied ? 'Copied!' : 'cURL'}
         </button>
         <button
           onClick={() => {

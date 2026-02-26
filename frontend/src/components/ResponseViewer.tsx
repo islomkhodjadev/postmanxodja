@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import type { ExecuteResponse, SentRequest } from '../types';
+import { generateCurl } from '../utils/curlParser';
 
 interface Props {
   response: ExecuteResponse | null;
@@ -458,6 +459,32 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
         {/* Request Details Tab */}
         {activeTab === 'request' && request && (
           <div className="h-full w-full overflow-auto">
+            {/* Copy as cURL */}
+            <div className="mb-3 flex justify-end">
+              <button
+                onClick={() => {
+                  const curl = generateCurl({
+                    method: request.method,
+                    url: request.url,
+                    headers: request.headers,
+                    body: request.body || undefined,
+                    queryParams: request.queryParams,
+                  });
+                  navigator.clipboard.writeText(curl);
+                  const btn = document.activeElement as HTMLButtonElement;
+                  const orig = btn.textContent;
+                  btn.textContent = 'Copied!';
+                  setTimeout(() => { btn.textContent = orig; }, 2000);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Copy as cURL
+              </button>
+            </div>
+
             {/* Request URL Section */}
             <CollapsibleSection title="Request URL" defaultOpen={true}>
               <div className="flex items-center gap-3 mb-3">
