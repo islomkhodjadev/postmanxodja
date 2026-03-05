@@ -15,7 +15,7 @@ interface Props {
   initialName?: string;
   onUpdate?: (updates: Partial<RequestTab>) => void;
   hasCollectionSource?: boolean;
-  onSaveToCollection?: () => void;
+  onSaveToCollection?: (currentData: Partial<RequestTab>) => void;
 }
 
 export default function RequestBuilder({
@@ -402,9 +402,16 @@ export default function RequestBuilder({
         </button>
         <button
           onClick={() => {
+            const currentData: Partial<RequestTab> = {
+              method,
+              url,
+              headers: Object.fromEntries(headers.filter(h => h.key).map(h => [h.key, h.value])),
+              body,
+              queryParams: Object.fromEntries(queryParams.filter(q => q.key).map(q => [q.key, q.value])),
+            };
             notifyUpdate({});
             if (onSaveToCollection) {
-              onSaveToCollection();
+              onSaveToCollection(currentData);
             }
           }}
           className="px-4 py-2 rounded-lg shadow-sm font-medium text-sm transition-colors duration-150 bg-blue-500 hover:bg-blue-600 text-white"
