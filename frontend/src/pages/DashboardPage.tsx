@@ -438,13 +438,14 @@ export default function DashboardPage() {
     }
   }, [currentTeam]);
 
-  const handleSaveToCollection = useCallback(async () => {
-    // If tab has a collection source, save directly to it
-    if (activeTab.collectionId && activeTab.itemPath) {
-      await saveTabToCollection(activeTab);
+  const handleSaveToCollection = useCallback(async (currentData?: Partial<RequestTab>) => {
+    // Merge current data from RequestBuilder with activeTab to avoid stale state
+    const tabToSaveData = currentData ? { ...activeTab, ...currentData } : activeTab;
+    if (tabToSaveData.collectionId && tabToSaveData.itemPath) {
+      await saveTabToCollection(tabToSaveData);
     } else {
       // For new tabs without collection, show selector to choose where to save
-      setTabToSave(activeTab);
+      setTabToSave(tabToSaveData);
       setCollectionSelectorOpen(true);
     }
   }, [activeTab, saveTabToCollection]);
