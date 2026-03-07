@@ -266,19 +266,19 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
     <div className="h-full w-full flex flex-col p-3 md:p-6 overflow-hidden">
       {/* Status Bar */}
       {response && (
-        <div className="mb-4 flex flex-col md:flex-row gap-3 md:gap-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 md:p-4 shadow-sm md:items-center">
+        <div className="mb-3 md:mb-4 flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-2.5 sm:p-3 md:p-4 shadow-sm sm:items-center flex-wrap">
           {request && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <span className={`font-bold text-sm px-3 py-1 rounded ${getMethodColor(request.method)}`}>
                 {request.method}
               </span>
-              <span className="text-sm text-gray-600 dark:text-gray-400 max-w-[150px] md:max-w-[300px] truncate" title={request.url}>
+              <span className="text-sm text-gray-600 dark:text-gray-400 truncate min-w-0 flex-1" title={request.url}>
                 {request.url}
               </span>
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Status:</span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Status:</span>
             <span
               className="font-bold text-base px-3 py-1 rounded"
               style={{
@@ -290,9 +290,9 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
               {response.status_text || `${response.status} ${getStatusText(response.status)}`}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Time:</span>
-            <span className="font-semibold text-base text-gray-800 dark:text-gray-200">{response.time}ms</span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Time:</span>
+            <span className="font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-200">{response.time}ms</span>
           </div>
           {/* Save Response Button */}
           {canSaveResponse && onSaveResponse && (
@@ -314,7 +314,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
                       }
                     }}
                     placeholder="Response name..."
-                    className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100 w-48"
+                    className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100 w-full md:w-48"
                     autoFocus
                   />
                   <button
@@ -361,11 +361,11 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
       )}
 
       {/* Tabs */}
-      <div className="mb-4 flex gap-2 border-b border-gray-300 dark:border-gray-700 overflow-x-auto">
+      <div className="mb-3 md:mb-4 flex gap-1 sm:gap-2 border-b border-gray-300 dark:border-gray-700 overflow-x-auto">
         <button
           onClick={() => setActiveTab('body')}
           className={`
-            px-5 py-2.5 font-semibold text-sm transition-all duration-150 border-b-2 whitespace-nowrap
+            px-3 sm:px-5 py-2 sm:py-2.5 font-semibold text-xs sm:text-sm transition-all duration-150 border-b-2 whitespace-nowrap
             ${activeTab === 'body'
               ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30'
               : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -377,7 +377,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
         <button
           onClick={() => setActiveTab('headers')}
           className={`
-            px-5 py-2.5 font-semibold text-sm transition-all duration-150 border-b-2 whitespace-nowrap
+            px-3 sm:px-5 py-2 sm:py-2.5 font-semibold text-xs sm:text-sm transition-all duration-150 border-b-2 whitespace-nowrap
             ${activeTab === 'headers'
               ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30'
               : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -390,7 +390,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
           <button
             onClick={() => setActiveTab('request')}
             className={`
-              px-5 py-2.5 font-semibold text-sm transition-all duration-150 border-b-2 whitespace-nowrap
+              px-3 sm:px-5 py-2 sm:py-2.5 font-semibold text-xs sm:text-sm transition-all duration-150 border-b-2 whitespace-nowrap
               ${activeTab === 'request'
                 ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30'
                 : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -404,7 +404,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
           <button
             onClick={() => setActiveTab('schema')}
             className={`
-              px-5 py-2.5 font-semibold text-sm transition-all duration-150 border-b-2 whitespace-nowrap
+              px-3 sm:px-5 py-2 sm:py-2.5 font-semibold text-xs sm:text-sm transition-all duration-150 border-b-2 whitespace-nowrap
               ${activeTab === 'schema'
                 ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30'
                 : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'

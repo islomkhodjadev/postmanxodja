@@ -309,7 +309,7 @@ export default function VariableInput({
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         className={`vi-editor-wrapper ${multiline ? 'vi-multiline' : 'vi-singleline'} ${className}`}
-        style={multiline ? { maxHeight: '400px', overflow: 'auto' } : undefined}
+        style={multiline ? { maxHeight: 'min(400px, 40vh)', overflow: 'auto' } : undefined}
       >
         <Editor
           value={value}
@@ -343,11 +343,11 @@ export default function VariableInput({
         <div
           className="fixed z-[9999] bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-xl border border-gray-700"
           style={{
-            left: Math.min(popoverPosition.x + 12, window.innerWidth - 260),
-            top: popoverPosition.y - 10,
-            minWidth: 200,
-            maxWidth: 280,
-            transform: 'translateY(-100%)',
+            left: Math.max(8, Math.min(popoverPosition.x + 12, window.innerWidth - 260)),
+            top: Math.max(8, popoverPosition.y - 10),
+            minWidth: Math.min(200, window.innerWidth - 16),
+            maxWidth: Math.min(280, window.innerWidth - 16),
+            transform: popoverPosition.y > 150 ? 'translateY(-100%)' : 'translateY(8px)',
           }}
           onMouseEnter={handlePopoverEnter}
           onMouseLeave={handlePopoverLeave}

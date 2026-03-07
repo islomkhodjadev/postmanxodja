@@ -102,7 +102,7 @@ export default function ResizableSplitter({
         <div className="relative flex items-center">
           <div
             className={`
-              h-3 md:h-2 flex-1 cursor-row-resize
+              h-5 md:h-2 flex-1 cursor-row-resize
               flex items-center justify-center
               bg-gray-100 dark:bg-gray-700 border-y border-gray-200 dark:border-gray-600
               hover:bg-blue-100 dark:hover:bg-blue-900/30
