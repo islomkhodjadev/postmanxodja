@@ -289,7 +289,7 @@ export default function RequestBuilder({
           </p>
         </div>
       )}
-      <div className="mb-4 md:mb-6 space-y-2 md:space-y-0 md:flex md:gap-3 md:items-center">
+      <div className="mb-3 md:mb-6 space-y-2 md:space-y-0 md:flex md:gap-3 md:items-center">
         <div className="flex gap-2 items-center">
           <select
             value={method}
@@ -360,11 +360,11 @@ export default function RequestBuilder({
           </div>
         </div>
 
-        <div className="flex gap-2 items-center flex-wrap">
+        <div className="flex gap-2 items-center flex-wrap min-w-0">
           <select
             value={selectedEnvId || ''}
             onChange={(e) => setSelectedEnvId(e.target.value ? Number(e.target.value) : undefined)}
-            className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100 shadow-sm flex-1 md:flex-initial"
+            className="border border-gray-300 dark:border-gray-600 rounded-lg px-2 sm:px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100 shadow-sm flex-1 md:flex-initial min-w-0 max-w-[140px] sm:max-w-none"
           >
             <option value="">No Environment</option>
             {environments.map(env => (

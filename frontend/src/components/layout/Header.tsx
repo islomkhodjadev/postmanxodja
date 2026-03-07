@@ -81,27 +81,27 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
 
   return (
     <>
-      <header className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 border-b-2 border-blue-500 dark:border-blue-600 px-3 py-2 md:px-6 md:py-4 flex justify-between items-center flex-shrink-0">
-        <div className="flex items-center gap-2">
+      <header className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 border-b-2 border-blue-500 dark:border-blue-600 px-2 sm:px-3 py-2 md:px-6 md:py-3 flex justify-between items-center flex-shrink-0 min-w-0">
+        <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-shrink">
           {/* Hamburger menu - mobile only */}
           {onToggleSidebar && (
             <button
               onClick={onToggleSidebar}
-              className="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="md:hidden p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0"
               title="Toggle sidebar"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
           )}
-          <div>
-            <h1 className="text-lg md:text-2xl font-bold text-blue-600 dark:text-blue-400">PostmanXodja</h1>
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-lg md:text-2xl font-bold text-blue-600 dark:text-blue-400 truncate">PostmanXodja</h1>
             <p className="text-gray-600 dark:text-gray-400 text-sm hidden md:block">API Testing Tool - Postman Collection Compatible</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-1 md:gap-3">
+        <div className="flex items-center gap-0.5 sm:gap-1 md:gap-3 flex-shrink-0">
           {/* Network status indicator */}
           {networkMode !== 'online' && (
             <div
@@ -232,7 +232,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 px-3 py-2 hover:bg-white/50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="flex items-center gap-1 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 hover:bg-white/50 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
               <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
                 {user?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}

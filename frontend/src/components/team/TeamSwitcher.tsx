@@ -20,9 +20,9 @@ export default function TeamSwitcher({
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+        className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
       >
-        <span className="font-medium text-gray-700 dark:text-gray-200 truncate max-w-[100px] md:max-w-[150px]">
+        <span className="font-medium text-xs sm:text-sm text-gray-700 dark:text-gray-200 truncate max-w-[70px] sm:max-w-[100px] md:max-w-[150px]">
           {currentTeam?.name || 'Select Team'}
         </span>
         <svg

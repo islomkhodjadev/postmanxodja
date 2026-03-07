@@ -7,10 +7,33 @@ html {
   overflow-x: hidden;
 }
 
+/* Use dvh (dynamic viewport height) for mobile browsers to account for address bar */
+html, body, #root {
+  height: 100%;
+}
+
 /* Base dark mode styles for body */
 body {
   @apply bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100;
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Safe area padding for notched phones (iPhone X+, etc.) */
+@supports (padding: env(safe-area-inset-top)) {
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Touch-friendly sizing for interactive elements on mobile */
+@media (pointer: coarse) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
 /* Scrollbar styles for dark mode */
@@ -200,4 +223,17 @@ body {
 @keyframes slideInLeft {
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
+}
+
+/* Mobile-specific layout fixes */
+@media (max-width: 767px) {
+  /* Use dynamic viewport height to handle mobile browser chrome */
+  .h-screen {
+    height: 100dvh;
+  }
+
+  /* Ensure response body code doesn't overflow */
+  pre {
+    word-break: break-word;
+  }
 }
