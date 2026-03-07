@@ -39,6 +39,7 @@ export default function DashboardPage() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [responseCollapsed, setResponseCollapsed] = useState(false);
   const [curlImportOpen, setCurlImportOpen] = useState(false);
   const [ucodeImportOpen, setUcodeImportOpen] = useState(false);
@@ -134,7 +135,14 @@ export default function DashboardPage() {
     }
   }, [currentTeam]);
 
+  const toggleMobileSidebar = useCallback(() => {
+    setMobileSidebarOpen(prev => !prev);
+  }, []);
+
   const handleRequestSelect = useCallback((request: any) => {
+    // Close mobile sidebar when selecting a request
+    setMobileSidebarOpen(false);
+
     // Track which collection is currently active
     if (request.collectionId) {
       setActiveCollectionId(request.collectionId);
@@ -762,29 +770,60 @@ export default function DashboardPage() {
         }}
       />
 
-      {/* Resizable Sidebar */}
-      <HorizontalSplitter
-        initialWidth={320}
-        minWidth={200}
-        maxWidth={500}
-        collapsed={sidebarCollapsed}
-        onCollapsedChange={setSidebarCollapsed}
-      >
-        <CollectionImporter onImportSuccess={handleImportSuccess} onUCodeImport={() => setUcodeImportOpen(true)} />
-        <div className="flex-1 overflow-y-auto min-h-0">
-          <CollectionList
-            onRequestSelect={handleRequestSelect}
-            onLoadSavedResponse={handleLoadSavedResponse}
-            refreshTrigger={refreshTrigger}
-          />
+      {/* Mobile Sidebar Drawer */}
+      {mobileSidebarOpen && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <div className="mobile-sidebar-backdrop fixed inset-0" onClick={() => setMobileSidebarOpen(false)} />
+          <div className="mobile-sidebar-drawer relative z-10 flex flex-col h-full w-80 max-w-[85vw] bg-white dark:bg-gray-800 shadow-xl">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+              <span className="font-semibold text-gray-800 dark:text-gray-200">Collections</span>
+              <button
+                onClick={() => setMobileSidebarOpen(false)}
+                className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <CollectionImporter onImportSuccess={handleImportSuccess} onUCodeImport={() => setUcodeImportOpen(true)} />
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <CollectionList
+                onRequestSelect={handleRequestSelect}
+                onLoadSavedResponse={handleLoadSavedResponse}
+                refreshTrigger={refreshTrigger}
+              />
+            </div>
+            <EnvironmentPanel onUpdate={handleEnvironmentsUpdate} />
+          </div>
         </div>
-        <EnvironmentPanel onUpdate={handleEnvironmentsUpdate} />
-      </HorizontalSplitter>
+      )}
+
+      {/* Desktop Sidebar */}
+      <div className="hidden md:flex">
+        <HorizontalSplitter
+          initialWidth={320}
+          minWidth={200}
+          maxWidth={500}
+          collapsed={sidebarCollapsed}
+          onCollapsedChange={setSidebarCollapsed}
+        >
+          <CollectionImporter onImportSuccess={handleImportSuccess} onUCodeImport={() => setUcodeImportOpen(true)} />
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <CollectionList
+              onRequestSelect={handleRequestSelect}
+              onLoadSavedResponse={handleLoadSavedResponse}
+              refreshTrigger={refreshTrigger}
+            />
+          </div>
+          <EnvironmentPanel onUpdate={handleEnvironmentsUpdate} />
+        </HorizontalSplitter>
+      </div>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
         {/* Header */}
-        <Header />
+        <Header onToggleSidebar={toggleMobileSidebar} />
 
         {/* Tabs Bar */}
         <TabsBar

@@ -32,18 +32,35 @@ export default function ResizableSplitter({
     setIsDragging(true);
   }, []);
 
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const updateHeight = useCallback(
+    (clientY: number) => {
       if (!isDragging || !containerRef.current) return;
 
       const container = containerRef.current;
       const containerRect = container.getBoundingClientRect();
-      const newTopHeight = ((e.clientY - containerRect.top) / containerRect.height) * 100;
+      const newTopHeight = ((clientY - containerRect.top) / containerRect.height) * 100;
 
       const clampedHeight = Math.min(Math.max(newTopHeight, minTopHeight), maxTopHeight);
       setTopHeight(clampedHeight);
     },
     [isDragging, minTopHeight, maxTopHeight]
+  );
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => updateHeight(e.clientY),
+    [updateHeight]
+  );
+
+  const handleTouchMove = useCallback(
+    (e: TouchEvent) => {
+      if (e.touches.length > 0) updateHeight(e.touches[0].clientY);
+    },
+    [updateHeight]
   );
 
   const handleMouseUp = useCallback(() => {
@@ -54,6 +71,8 @@ export default function ResizableSplitter({
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleMouseUp);
       document.body.style.cursor = 'row-resize';
       document.body.style.userSelect = 'none';
     }
@@ -61,10 +80,12 @@ export default function ResizableSplitter({
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleMouseUp);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  }, [isDragging, handleMouseMove, handleTouchMove, handleMouseUp]);
 
   return (
     <div ref={containerRef} className="flex-1 flex flex-col min-h-0">
@@ -81,13 +102,14 @@ export default function ResizableSplitter({
         <div className="relative flex items-center">
           <div
             className={`
-              h-2 flex-1 cursor-row-resize
+              h-3 md:h-2 flex-1 cursor-row-resize
               flex items-center justify-center
               bg-gray-100 dark:bg-gray-700 border-y border-gray-200 dark:border-gray-600
               hover:bg-blue-100 dark:hover:bg-blue-900/30
               ${isDragging ? 'bg-blue-200 dark:bg-blue-800' : ''}
             `}
             onMouseDown={handleMouseDown}
+            onTouchStart={handleTouchStart}
             style={{ transition: 'none' }}
           >
             <div className="flex gap-1">
@@ -96,7 +118,7 @@ export default function ResizableSplitter({
           </div>
           <button
             onClick={toggleCollapse}
-            className="absolute left-1/2 -translate-x-1/2 z-10 h-6 w-12 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-center"
+            className="absolute left-1/2 -translate-x-1/2 z-10 h-8 w-14 md:h-6 md:w-12 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-center"
             style={{ top: -3, transition: 'none' }}
             title="Collapse response panel"
           >

@@ -72,7 +72,7 @@ export default function TeamMembersModal({
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-        <div className="relative bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col">
+        <div className="relative bg-white dark:bg-gray-800 shadow-xl w-full h-full md:h-auto md:rounded-lg md:max-w-lg md:mx-4 md:max-h-[80vh] flex flex-col">
           {/* Header */}
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900">Team Members</h2>

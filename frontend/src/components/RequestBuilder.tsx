@@ -281,7 +281,7 @@ export default function RequestBuilder({
   };
 
   return (
-    <div className="p-6 h-full overflow-auto">
+    <div className="p-3 md:p-6 h-full overflow-auto">
       {selectedEnvId && (
         <div className="p-3 mb-4 bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 rounded-r-lg">
           <p className="text-sm text-blue-800 dark:text-blue-200">
@@ -289,129 +289,133 @@ export default function RequestBuilder({
           </p>
         </div>
       )}
-      <div className="mb-6 flex gap-3 items-center">
-        <select
-          value={method}
-          onChange={(e) => {
-            setMethod(e.target.value);
-            notifyUpdate({ method: e.target.value });
-          }}
-          className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100 shadow-sm"
-        >
-          <option>GET</option>
-          <option>POST</option>
-          <option>PUT</option>
-          <option>DELETE</option>
-          <option>PATCH</option>
-        </select>
-
-        <div className="flex-1 min-w-0">
-          <VariableInput
-            value={url}
-            onChange={(newUrl) => {
-              // Detect pasted cURL command
-              const trimmed = newUrl.trim();
-              if (/^curl\s/i.test(trimmed)) {
-                try {
-                  const parsed = parseCurl(trimmed);
-                  setUrl(parsed.url);
-                  setMethod(parsed.method);
-                  // Always reset body/bodyType — if curl has no body, clear it
-                  setBody(parsed.body || '');
-                  setBodyType(parsed.body ? 'raw' : 'none');
-                  // Always reset headers — if curl has no headers, clear them
-                  const parsedHeaders = Object.entries(parsed.headers).map(([key, value]) => ({ key, value }));
-                  setHeaders(parsedHeaders);
-                  const parsedParams = parseQueryParamsFromUrl(parsed.url);
-                  setQueryParams(parsedParams.length > 0 ? parsedParams : []);
-                  notifyUpdate({
-                    method: parsed.method,
-                    url: parsed.url,
-                    headers: parsedHeaders,
-                    body: parsed.body || '',
-                    queryParams: parsedParams,
-                  });
-                  return;
-                } catch {
-                  // Not a valid curl — fall through to normal URL handling
-                }
-              }
-
-              setUrl(newUrl);
-              // Parse query params from URL and update params list
-              if (!isUpdatingFromParams.current) {
-                const parsedParams = parseQueryParamsFromUrl(newUrl);
-                // Merge with existing params that have keys not in URL
-                // This preserves params with empty keys being edited
-                const existingEmptyKeyParams = queryParams.filter(p => !p.key);
-                const newParams = [...parsedParams, ...existingEmptyKeyParams];
-                setQueryParams(newParams.length > 0 ? newParams : []);
-                notifyUpdate({ url: newUrl, queryParams: newParams });
-              } else {
-                notifyUpdate({ url: newUrl });
-              }
+      <div className="mb-4 md:mb-6 space-y-2 md:space-y-0 md:flex md:gap-3 md:items-center">
+        <div className="flex gap-2 items-center">
+          <select
+            value={method}
+            onChange={(e) => {
+              setMethod(e.target.value);
+              notifyUpdate({ method: e.target.value });
             }}
-            placeholder="Enter request URL or paste cURL"
-            environments={environments}
-            selectedEnvId={selectedEnvId}
-            className="shadow-sm"
-          />
+            className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100 shadow-sm flex-shrink-0"
+          >
+            <option>GET</option>
+            <option>POST</option>
+            <option>PUT</option>
+            <option>DELETE</option>
+            <option>PATCH</option>
+          </select>
+
+          <div className="flex-1 min-w-0">
+            <VariableInput
+              value={url}
+              onChange={(newUrl) => {
+                // Detect pasted cURL command
+                const trimmed = newUrl.trim();
+                if (/^curl\s/i.test(trimmed)) {
+                  try {
+                    const parsed = parseCurl(trimmed);
+                    setUrl(parsed.url);
+                    setMethod(parsed.method);
+                    // Always reset body/bodyType — if curl has no body, clear it
+                    setBody(parsed.body || '');
+                    setBodyType(parsed.body ? 'raw' : 'none');
+                    // Always reset headers — if curl has no headers, clear them
+                    const parsedHeaders = Object.entries(parsed.headers).map(([key, value]) => ({ key, value }));
+                    setHeaders(parsedHeaders);
+                    const parsedParams = parseQueryParamsFromUrl(parsed.url);
+                    setQueryParams(parsedParams.length > 0 ? parsedParams : []);
+                    notifyUpdate({
+                      method: parsed.method,
+                      url: parsed.url,
+                      headers: parsedHeaders,
+                      body: parsed.body || '',
+                      queryParams: parsedParams,
+                    });
+                    return;
+                  } catch {
+                    // Not a valid curl — fall through to normal URL handling
+                  }
+                }
+
+                setUrl(newUrl);
+                // Parse query params from URL and update params list
+                if (!isUpdatingFromParams.current) {
+                  const parsedParams = parseQueryParamsFromUrl(newUrl);
+                  // Merge with existing params that have keys not in URL
+                  // This preserves params with empty keys being edited
+                  const existingEmptyKeyParams = queryParams.filter(p => !p.key);
+                  const newParams = [...parsedParams, ...existingEmptyKeyParams];
+                  setQueryParams(newParams.length > 0 ? newParams : []);
+                  notifyUpdate({ url: newUrl, queryParams: newParams });
+                } else {
+                  notifyUpdate({ url: newUrl });
+                }
+              }}
+              placeholder="Enter request URL or paste cURL"
+              environments={environments}
+              selectedEnvId={selectedEnvId}
+              className="shadow-sm"
+            />
+          </div>
         </div>
 
-        <select
-          value={selectedEnvId || ''}
-          onChange={(e) => setSelectedEnvId(e.target.value ? Number(e.target.value) : undefined)}
-          className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100 shadow-sm"
-        >
-          <option value="">No Environment</option>
-          {environments.map(env => (
-            <option key={env.id} value={env.id}>{env.name}</option>
-          ))}
-        </select>
+        <div className="flex gap-2 items-center flex-wrap">
+          <select
+            value={selectedEnvId || ''}
+            onChange={(e) => setSelectedEnvId(e.target.value ? Number(e.target.value) : undefined)}
+            className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100 shadow-sm flex-1 md:flex-initial"
+          >
+            <option value="">No Environment</option>
+            {environments.map(env => (
+              <option key={env.id} value={env.id}>{env.name}</option>
+            ))}
+          </select>
 
-        <button
-          onClick={handleSend}
-          disabled={loading}
-          className={`
-            px-6 py-2 rounded-lg shadow-sm font-medium text-sm transition-colors duration-150
-            ${loading
-              ? 'bg-gray-400 text-white cursor-not-allowed'
-              : 'bg-green-500 hover:bg-green-600 text-white'
-            }
-          `}
-        >
-          {loading ? 'Sending...' : 'Send'}
-        </button>
-        <button
-          onClick={() => {
-            const headersObj = Object.fromEntries(headers.filter(h => h.key).map(h => [h.key.trim(), h.value]));
-            const curl = generateCurl({
-              method,
-              url,
-              headers: headersObj,
-              body: bodyType === 'raw' ? body : undefined,
-            });
-            navigator.clipboard.writeText(curl);
-            setCurlCopied(true);
-            setTimeout(() => setCurlCopied(false), 2000);
-          }}
-          className="px-4 py-2 rounded-lg shadow-sm font-medium text-sm transition-colors duration-150 bg-gray-500 hover:bg-gray-600 text-white"
-          title="Copy as cURL"
-        >
-          {curlCopied ? 'Copied!' : 'cURL'}
-        </button>
-        <button
-          onClick={() => {
-            notifyUpdate({});
-            if (onSaveToCollection) {
-              onSaveToCollection();
-            }
-          }}
-          className="px-4 py-2 rounded-lg shadow-sm font-medium text-sm transition-colors duration-150 bg-blue-500 hover:bg-blue-600 text-white"
-          title={hasCollectionSource ? "Save to collection" : "Save to collection"}
-        >
-          Save
-        </button>
+          <button
+            onClick={handleSend}
+            disabled={loading}
+            className={`
+              px-4 md:px-6 py-2 rounded-lg shadow-sm font-medium text-sm transition-colors duration-150
+              ${loading
+                ? 'bg-gray-400 text-white cursor-not-allowed'
+                : 'bg-green-500 hover:bg-green-600 text-white'
+              }
+            `}
+          >
+            {loading ? 'Sending...' : 'Send'}
+          </button>
+          <button
+            onClick={() => {
+              const headersObj = Object.fromEntries(headers.filter(h => h.key).map(h => [h.key.trim(), h.value]));
+              const curl = generateCurl({
+                method,
+                url,
+                headers: headersObj,
+                body: bodyType === 'raw' ? body : undefined,
+              });
+              navigator.clipboard.writeText(curl);
+              setCurlCopied(true);
+              setTimeout(() => setCurlCopied(false), 2000);
+            }}
+            className="px-3 md:px-4 py-2 rounded-lg shadow-sm font-medium text-sm transition-colors duration-150 bg-gray-500 hover:bg-gray-600 text-white"
+            title="Copy as cURL"
+          >
+            {curlCopied ? 'Copied!' : 'cURL'}
+          </button>
+          <button
+            onClick={() => {
+              notifyUpdate({});
+              if (onSaveToCollection) {
+                onSaveToCollection();
+              }
+            }}
+            className="px-3 md:px-4 py-2 rounded-lg shadow-sm font-medium text-sm transition-colors duration-150 bg-blue-500 hover:bg-blue-600 text-white"
+            title={hasCollectionSource ? "Save to collection" : "Save to collection"}
+          >
+            Save
+          </button>
+        </div>
       </div>
 
       {/* Tab Bar */}
@@ -560,7 +564,7 @@ export default function RequestBuilder({
           {/* Body Tab */}
           {activeSection === 'body' && (
             <div>
-              <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1 mb-3 w-fit">
+              <div className="flex flex-wrap gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1 mb-3 w-fit">
                 <button
                   onClick={() => setBodyType('none')}
                   className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${

@@ -58,7 +58,7 @@ export default function InputModal({
         className="fixed inset-0 bg-black/50"
         onClick={onCancel}
       />
-      <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+      <div className="relative bg-white dark:bg-gray-800 shadow-xl p-6 w-full md:rounded-lg md:max-w-md md:mx-4">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{title}</h3>
         <form onSubmit={handleSubmit}>
           <input
