@@ -272,7 +272,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
               <span className={`font-bold text-sm px-3 py-1 rounded ${getMethodColor(request.method)}`}>
                 {request.method}
               </span>
-              <span className="text-sm text-gray-600 dark:text-gray-400 max-w-[300px] truncate" title={request.url}>
+              <span className="text-sm text-gray-600 dark:text-gray-400 max-w-[150px] md:max-w-[300px] truncate" title={request.url}>
                 {request.url}
               </span>
             </div>
@@ -506,8 +506,8 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
               <CollapsibleSection title="Query Parameters" count={Object.keys(request.queryParams).length} defaultOpen={true}>
                 <div className="space-y-2">
                   {Object.entries(request.queryParams).map(([key, value]) => (
-                    <div key={key} className="flex items-start gap-2">
-                      <span className="font-medium text-sm text-purple-600 dark:text-purple-400 min-w-[120px]">{key}:</span>
+                    <div key={key} className="flex flex-col md:flex-row md:items-start gap-0.5 md:gap-2">
+                      <span className="font-medium text-sm text-purple-600 dark:text-purple-400 shrink-0">{key}:</span>
                       <span className="text-sm text-gray-700 dark:text-gray-300 font-mono break-all">{value}</span>
                     </div>
                   ))}
@@ -520,8 +520,8 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
               <CollapsibleSection title="Request Headers" count={Object.keys(request.headers).length}>
                 <div className="space-y-2">
                   {Object.entries(request.headers).map(([key, value]) => (
-                    <div key={key} className="flex items-start gap-2">
-                      <span className="font-medium text-sm text-blue-600 dark:text-blue-400 min-w-[150px]">{key}:</span>
+                    <div key={key} className="flex flex-col md:flex-row md:items-start gap-0.5 md:gap-2">
+                      <span className="font-medium text-sm text-blue-600 dark:text-blue-400 shrink-0">{key}:</span>
                       <span className="text-sm text-gray-700 dark:text-gray-300 font-mono break-all">{value}</span>
                     </div>
                   ))}
