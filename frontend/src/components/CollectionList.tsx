@@ -478,7 +478,7 @@ export default function CollectionList({ onRequestSelect, onLoadSavedResponse, r
                     }
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  className="text-sm px-2 py-1 border border-blue-500 rounded focus:outline-none bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 min-w-0 flex-1 max-w-[200px]"
+                  className="text-sm px-2 py-1 border border-blue-500 rounded focus:outline-none bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 min-w-0 flex-1"
                   autoFocus
                 />
               ) : (
@@ -618,7 +618,7 @@ export default function CollectionList({ onRequestSelect, onLoadSavedResponse, r
                     }
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  className="text-sm px-2 py-1 border border-blue-500 rounded focus:outline-none bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 min-w-0 flex-1 max-w-[150px]"
+                  className="text-sm px-2 py-1 border border-blue-500 rounded focus:outline-none bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 min-w-0 flex-1"
                   autoFocus
                 />
               ) : (
@@ -785,7 +785,7 @@ export default function CollectionList({ onRequestSelect, onLoadSavedResponse, r
                       }
                     }}
                     onClick={(e) => e.stopPropagation()}
-                    className="text-sm px-2 py-1 border border-blue-500 rounded focus:outline-none bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 min-w-0 flex-1 max-w-[180px]"
+                    className="text-sm px-2 py-1 border border-blue-500 rounded focus:outline-none bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 min-w-0 flex-1"
                     autoFocus
                   />
                 ) : (

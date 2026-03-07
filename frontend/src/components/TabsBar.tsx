@@ -139,7 +139,7 @@ export default function TabsBar({
             style={{ transition: 'none' }}
             className={`
               group flex items-center gap-2 px-3 md:px-4 py-3 md:py-2.5 cursor-pointer font-semibold text-sm border-b-2
-              min-w-[100px] md:min-w-[140px] max-w-[220px] flex-shrink-0
+              min-w-[80px] md:min-w-[140px] max-w-[160px] md:max-w-[220px] flex-shrink-0
               ${activeTabId === tab.id
                 ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30'
                 : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -164,7 +164,7 @@ export default function TabsBar({
                   }
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className="text-sm px-1 py-0.5 border border-blue-500 rounded focus:outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 min-w-0 w-[100px] max-w-[120px]"
+                className="text-sm px-1 py-0.5 border border-blue-500 rounded focus:outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 min-w-0 w-20 md:w-[100px] max-w-[100px] md:max-w-[120px]"
                 autoFocus
               />
             ) : (

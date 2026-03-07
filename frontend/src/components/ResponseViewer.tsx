@@ -314,7 +314,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
                       }
                     }}
                     placeholder="Response name..."
-                    className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100 w-48"
+                    className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100 w-full md:w-48"
                     autoFocus
                   />
                   <button

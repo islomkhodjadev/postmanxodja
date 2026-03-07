@@ -246,7 +246,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
             {showUserMenu && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)} />
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
+                <div className="absolute right-0 mt-2 w-48 max-w-[calc(100vw-1rem)] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
                   <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                     <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{user?.name}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
