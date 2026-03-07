@@ -96,8 +96,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
             </button>
           )}
           <div className="min-w-0">
-            <h1 className="text-base sm:text-lg md:text-2xl font-bold text-blue-600 dark:text-blue-400 truncate">PostmanXodja</h1>
-            <p className="text-gray-600 dark:text-gray-400 text-sm hidden md:block">API Testing Tool - Postman Collection Compatible</p>
+            <h1 className="text-base sm:text-lg md:text-2xl font-bold text-blue-600 dark:text-blue-400 truncate">Postbaby</h1>
           </div>
         </div>
 
