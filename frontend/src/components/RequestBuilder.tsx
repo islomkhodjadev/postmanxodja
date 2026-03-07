@@ -489,29 +489,34 @@ export default function RequestBuilder({
           {activeSection === 'params' && (
             <div>
               {queryParams.map((param, index) => (
-                <div key={index} className="flex gap-3 mb-2">
+                <div key={index} className="flex flex-col gap-1 mb-3 md:flex-row md:gap-3 md:mb-2">
                   <input
                     type="text"
                     value={param.key}
                     onChange={(e) => updateQueryParam(index, 'key', e.target.value)}
                     placeholder="Key"
-                    className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
+                    className="w-full md:flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
                   />
-                  <div className="flex-1 min-w-0">
-                    <VariableInput
-                      value={param.value}
-                      onChange={(value) => updateQueryParam(index, 'value', value)}
-                      placeholder="Value"
-                      environments={environments}
-                      selectedEnvId={selectedEnvId}
-                    />
+                  <div className="flex gap-2 md:flex-1 md:min-w-0">
+                    <div className="flex-1 min-w-0">
+                      <VariableInput
+                        value={param.value}
+                        onChange={(value) => updateQueryParam(index, 'value', value)}
+                        placeholder="Value"
+                        environments={environments}
+                        selectedEnvId={selectedEnvId}
+                      />
+                    </div>
+                    <button
+                      onClick={() => removeQueryParam(index)}
+                      className="p-2 md:px-3 md:py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150 shrink-0"
+                    >
+                      <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      <span className="hidden md:inline">Remove</span>
+                    </button>
                   </div>
-                  <button
-                    onClick={() => removeQueryParam(index)}
-                    className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150"
-                  >
-                    Remove
-                  </button>
                 </div>
               ))}
               <button
@@ -527,29 +532,34 @@ export default function RequestBuilder({
           {activeSection === 'headers' && (
             <div>
               {headers.map((header, index) => (
-                <div key={index} className="flex gap-3 mb-2">
+                <div key={index} className="flex flex-col gap-1 mb-3 md:flex-row md:gap-3 md:mb-2">
                   <input
                     type="text"
                     value={header.key}
                     onChange={(e) => updateHeader(index, 'key', e.target.value)}
                     placeholder="Key"
-                    className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
+                    className="w-full md:flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
                   />
-                  <div className="flex-1 min-w-0">
-                    <VariableInput
-                      value={header.value}
-                      onChange={(value) => updateHeader(index, 'value', value)}
-                      placeholder="Value"
-                      environments={environments}
-                      selectedEnvId={selectedEnvId}
-                    />
+                  <div className="flex gap-2 md:flex-1 md:min-w-0">
+                    <div className="flex-1 min-w-0">
+                      <VariableInput
+                        value={header.value}
+                        onChange={(value) => updateHeader(index, 'value', value)}
+                        placeholder="Value"
+                        environments={environments}
+                        selectedEnvId={selectedEnvId}
+                      />
+                    </div>
+                    <button
+                      onClick={() => removeHeader(index)}
+                      className="p-2 md:px-3 md:py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150 shrink-0"
+                    >
+                      <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      <span className="hidden md:inline">Remove</span>
+                    </button>
                   </div>
-                  <button
-                    onClick={() => removeHeader(index)}
-                    className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150"
-                  >
-                    Remove
-                  </button>
                 </div>
               ))}
               <button
@@ -686,58 +696,65 @@ export default function RequestBuilder({
               {bodyType === 'form-data' && (
                 <div>
                   {formData.map((item, index) => (
-                    <div key={index} className="flex gap-3 mb-2 items-center">
-                      <input
-                        type="text"
-                        value={item.key}
-                        onChange={(e) => updateFormDataItem(index, 'key', e.target.value)}
-                        placeholder="Key"
-                        className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
-                      />
-                      <select
-                        value={item.type}
-                        onChange={(e) => updateFormDataItem(index, 'type', e.target.value)}
-                        className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
-                      >
-                        <option value="text">Text</option>
-                        <option value="file">File</option>
-                      </select>
-                      {item.type === 'text' ? (
-                        <div className="flex-1 min-w-0">
-                          <VariableInput
-                            value={item.value}
-                            onChange={(value) => updateFormDataItem(index, 'value', value)}
-                            placeholder="Value"
-                            environments={environments}
-                            selectedEnvId={selectedEnvId}
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex-1 min-w-0">
-                          <label className="flex items-center gap-2 cursor-pointer border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors dark:text-gray-200">
-                            <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <span className="text-gray-600 dark:text-gray-300 truncate">
-                              {item.file ? item.file.name : 'Choose file...'}
-                            </span>
-                            <input
-                              type="file"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) updateFormDataItem(index, 'file', file);
-                              }}
-                              className="hidden"
+                    <div key={index} className="flex flex-col gap-1 mb-3 md:flex-row md:gap-3 md:mb-2 md:items-center">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={item.key}
+                          onChange={(e) => updateFormDataItem(index, 'key', e.target.value)}
+                          placeholder="Key"
+                          className="flex-1 md:w-auto border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
+                        />
+                        <select
+                          value={item.type}
+                          onChange={(e) => updateFormDataItem(index, 'type', e.target.value)}
+                          className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
+                        >
+                          <option value="text">Text</option>
+                          <option value="file">File</option>
+                        </select>
+                      </div>
+                      <div className="flex gap-2 md:flex-1 md:min-w-0">
+                        {item.type === 'text' ? (
+                          <div className="flex-1 min-w-0">
+                            <VariableInput
+                              value={item.value}
+                              onChange={(value) => updateFormDataItem(index, 'value', value)}
+                              placeholder="Value"
+                              environments={environments}
+                              selectedEnvId={selectedEnvId}
                             />
-                          </label>
-                        </div>
-                      )}
-                      <button
-                        onClick={() => removeFormDataItem(index)}
-                        className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150"
-                      >
-                        Remove
-                      </button>
+                          </div>
+                        ) : (
+                          <div className="flex-1 min-w-0">
+                            <label className="flex items-center gap-2 cursor-pointer border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors dark:text-gray-200">
+                              <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              <span className="text-gray-600 dark:text-gray-300 truncate">
+                                {item.file ? item.file.name : 'Choose file...'}
+                              </span>
+                              <input
+                                type="file"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) updateFormDataItem(index, 'file', file);
+                                }}
+                                className="hidden"
+                              />
+                            </label>
+                          </div>
+                        )}
+                        <button
+                          onClick={() => removeFormDataItem(index)}
+                          className="p-2 md:px-3 md:py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150 shrink-0"
+                        >
+                          <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          <span className="hidden md:inline">Remove</span>
+                        </button>
+                      </div>
                     </div>
                   ))}
                   <button
@@ -752,29 +769,34 @@ export default function RequestBuilder({
               {bodyType === 'x-www-form-urlencoded' && (
                 <div>
                   {formData.map((item, index) => (
-                    <div key={index} className="flex gap-3 mb-2">
+                    <div key={index} className="flex flex-col gap-1 mb-3 md:flex-row md:gap-3 md:mb-2">
                       <input
                         type="text"
                         value={item.key}
                         onChange={(e) => updateFormDataItem(index, 'key', e.target.value)}
                         placeholder="Key"
-                        className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
+                        className="w-full md:flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
                       />
-                      <div className="flex-1 min-w-0">
-                        <VariableInput
-                          value={item.value}
-                          onChange={(value) => updateFormDataItem(index, 'value', value)}
-                          placeholder="Value"
-                          environments={environments}
-                          selectedEnvId={selectedEnvId}
-                        />
+                      <div className="flex gap-2 md:flex-1 md:min-w-0">
+                        <div className="flex-1 min-w-0">
+                          <VariableInput
+                            value={item.value}
+                            onChange={(value) => updateFormDataItem(index, 'value', value)}
+                            placeholder="Value"
+                            environments={environments}
+                            selectedEnvId={selectedEnvId}
+                          />
+                        </div>
+                        <button
+                          onClick={() => removeFormDataItem(index)}
+                          className="p-2 md:px-3 md:py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150 shrink-0"
+                        >
+                          <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          <span className="hidden md:inline">Remove</span>
+                        </button>
                       </div>
-                      <button
-                        onClick={() => removeFormDataItem(index)}
-                        className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150"
-                      >
-                        Remove
-                      </button>
                     </div>
                   ))}
                   <button
