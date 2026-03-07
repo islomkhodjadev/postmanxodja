@@ -175,3 +175,24 @@ body {
 .dark .vi-json-null {
   color: #9ca3af;
 }
+
+/* ── Mobile Sidebar Drawer ── */
+
+.mobile-sidebar-backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.mobile-sidebar-drawer {
+  animation: slideInLeft 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}

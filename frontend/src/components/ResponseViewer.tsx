@@ -263,10 +263,10 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
   const hasRequestBody = request && (request.body !== undefined && request.body !== null);
 
   return (
-    <div className="h-full w-full flex flex-col p-6 overflow-hidden">
+    <div className="h-full w-full flex flex-col p-3 md:p-6 overflow-hidden">
       {/* Status Bar */}
       {response && (
-        <div className="mb-4 flex gap-6 items-center bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm flex-wrap">
+        <div className="mb-4 flex flex-col md:flex-row gap-3 md:gap-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 md:p-4 shadow-sm md:items-center">
           {request && (
             <div className="flex items-center gap-2">
               <span className={`font-bold text-sm px-3 py-1 rounded ${getMethodColor(request.method)}`}>
@@ -296,7 +296,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
           </div>
           {/* Save Response Button */}
           {canSaveResponse && onSaveResponse && (
-            <div className="flex items-center gap-2 ml-auto">
+            <div className="flex items-center gap-2 w-full md:w-auto md:ml-auto">
               {showSaveInput ? (
                 <div className="flex items-center gap-2">
                   <input
@@ -562,7 +562,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
                   </svg>
                   Response Schema
                 </h3>
-                <div className="flex gap-2 text-xs">
+                <div className="hidden md:flex gap-2 text-xs">
                   <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">string</span>
                   <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">integer</span>
                   <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded">boolean</span>

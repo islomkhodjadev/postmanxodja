@@ -275,7 +275,7 @@ export default function UCodeImportModal({ isOpen, onClose, onImport }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 shadow-2xl w-full h-full md:h-auto md:rounded-xl md:max-w-2xl md:mx-4 md:max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className={`px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between ${
           aiEnabled
