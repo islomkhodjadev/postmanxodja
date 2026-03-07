@@ -328,8 +328,7 @@ export default function VariableInput({
               ? {
                   maxHeight: `${minHeight}px`,
                   overflow: 'visible',
-                  width: 'max-content',
-                  minWidth: '100%',
+                  width: '100%',
                 }
               : {}),
           }}
