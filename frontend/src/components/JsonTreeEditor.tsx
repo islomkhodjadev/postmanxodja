@@ -46,25 +46,25 @@ function JsonNode({ keyName, value, path, collapsed, onToggle, onValueChange, is
 
   // Primitive values
   if (value === null || typeof value !== 'object') {
-    let displayClass = 'text-gray-800 dark:text-gray-200';
+    let displayClass = 'text-foreground';
     let displayValue = String(value);
 
     if (value === null) {
-      displayClass = 'text-gray-400 dark:text-gray-500 italic';
+      displayClass = 'text-muted-foreground italic';
       displayValue = 'null';
     } else if (typeof value === 'boolean') {
-      displayClass = 'text-purple-600 dark:text-purple-400';
+      displayClass = 'text-chart-5';
     } else if (typeof value === 'number') {
-      displayClass = 'text-blue-600 dark:text-blue-400';
+      displayClass = 'text-primary';
     } else if (typeof value === 'string') {
-      displayClass = 'text-green-600 dark:text-green-400';
+      displayClass = 'text-chart-2';
       displayValue = `"${value}"`;
     }
 
     return (
-      <div className="flex items-center py-0.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 group/node" style={{ paddingLeft: indent }}>
+      <div className="flex items-center py-0.5 hover:bg-accent/50 group/node" style={{ paddingLeft: indent }}>
         {keyName !== undefined && (
-          <span className="text-red-600 dark:text-red-400 mr-1">"{keyName}"<span className="text-gray-500 dark:text-gray-400">: </span></span>
+          <span className="text-chart-1 mr-1">"{keyName}"<span className="text-muted-foreground">: </span></span>
         )}
         {editing ? (
           <input
@@ -76,7 +76,7 @@ function JsonNode({ keyName, value, path, collapsed, onToggle, onValueChange, is
               if (e.key === 'Enter') commitEdit();
               if (e.key === 'Escape') setEditing(false);
             }}
-            className="text-sm px-1 py-0 border border-blue-500 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none min-w-[60px]"
+            className="text-sm px-1 py-0 border border-ring rounded bg-card text-foreground outline-none min-w-[60px]"
             autoFocus
           />
         ) : (
@@ -88,7 +88,7 @@ function JsonNode({ keyName, value, path, collapsed, onToggle, onValueChange, is
             {displayValue}
           </span>
         )}
-        <span className="text-gray-500 dark:text-gray-400">{comma}</span>
+        <span className="text-muted-foreground">{comma}</span>
       </div>
     );
   }
@@ -105,23 +105,23 @@ function JsonNode({ keyName, value, path, collapsed, onToggle, onValueChange, is
   return (
     <div>
       <div
-        className="flex items-center py-0.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"
+        className="flex items-center py-0.5 cursor-pointer hover:bg-accent/50"
         style={{ paddingLeft: indent }}
         onClick={() => onToggle(pathKey)}
       >
-        <span className="w-4 h-4 flex items-center justify-center text-gray-400 dark:text-gray-500 mr-1 flex-shrink-0 text-xs select-none">
+        <span className="w-4 h-4 flex items-center justify-center text-muted-foreground mr-1 flex-shrink-0 text-xs select-none">
           {isCollapsed ? '▶' : '▼'}
         </span>
         {keyName !== undefined && (
-          <span className="text-red-600 dark:text-red-400 mr-1">"{keyName}"<span className="text-gray-500 dark:text-gray-400">: </span></span>
+          <span className="text-chart-1 mr-1">"{keyName}"<span className="text-muted-foreground">: </span></span>
         )}
-        <span className="text-gray-700 dark:text-gray-300">{openBrace}</span>
+        <span className="text-foreground">{openBrace}</span>
         {isCollapsed && (
           <>
-            <span className="text-gray-400 dark:text-gray-500 mx-1 text-xs">
+            <span className="text-muted-foreground mx-1 text-xs">
               {entries.length} {entries.length === 1 ? (isArray ? 'item' : 'key') : (isArray ? 'items' : 'keys')}
             </span>
-            <span className="text-gray-700 dark:text-gray-300">{closeBrace}{comma}</span>
+            <span className="text-foreground">{closeBrace}{comma}</span>
           </>
         )}
       </div>
@@ -141,7 +141,7 @@ function JsonNode({ keyName, value, path, collapsed, onToggle, onValueChange, is
             />
           ))}
           <div className="py-0.5" style={{ paddingLeft: indent }}>
-            <span className="text-gray-700 dark:text-gray-300 ml-5">{closeBrace}{comma}</span>
+            <span className="text-foreground ml-5">{closeBrace}{comma}</span>
           </div>
         </>
       )}
@@ -185,14 +185,14 @@ export default function JsonTreeEditor({ value, onChange }: JsonTreeEditorProps)
 
   if (!parsed.valid) {
     return (
-      <div className="p-3 text-sm text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+      <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg border border-destructive/20">
         Invalid JSON - switch to Raw mode to fix syntax errors
       </div>
     );
   }
 
   return (
-    <div className="font-mono text-sm overflow-auto max-h-[400px] border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 p-2">
+    <div className="font-mono text-sm overflow-auto max-h-[400px] border border-border rounded-lg bg-card p-2">
       <JsonNode
         value={parsed.data}
         path={[]}
