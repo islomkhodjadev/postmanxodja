@@ -378,8 +378,8 @@ export default function RequestBuilder({
             className={`
               px-4 md:px-6 py-2 rounded-lg shadow-sm font-medium text-sm transition-colors duration-150
               ${loading
-                ? 'bg-gray-400 text-white cursor-not-allowed'
-                : 'bg-green-500 hover:bg-green-600 text-white'
+                ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                : 'bg-primary hover:bg-primary/90 text-primary-foreground'
               }
             `}
           >
@@ -398,7 +398,7 @@ export default function RequestBuilder({
               setCurlCopied(true);
               setTimeout(() => setCurlCopied(false), 2000);
             }}
-            className="px-3 md:px-4 py-2 rounded-lg shadow-sm font-medium text-sm transition-colors duration-150 bg-muted-foreground hover:bg-muted-foreground/80 text-white"
+            className="px-3 md:px-4 py-2 rounded-lg shadow-sm font-medium text-sm transition-colors duration-150 bg-muted-foreground hover:bg-muted-foreground/80 text-background"
             title="Copy as cURL"
           >
             {curlCopied ? 'Copied!' : 'cURL'}
@@ -470,7 +470,7 @@ export default function RequestBuilder({
               Body
               {bodyType !== 'none' && (
                 <span className={`w-2 h-2 rounded-full ${
-                  bodyType === 'raw' && body ? 'bg-green-500' : 'bg-yellow-500'
+                  bodyType === 'raw' && body ? 'bg-primary' : 'bg-muted-foreground'
                 }`} />
               )}
             </span>
@@ -506,7 +506,7 @@ export default function RequestBuilder({
                     </div>
                     <button
                       onClick={() => removeQueryParam(index)}
-                      className="p-2 md:px-3 md:py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150 shrink-0"
+                      className="p-2 md:px-3 md:py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-sm transition-colors duration-150 shrink-0"
                     >
                       <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -549,7 +549,7 @@ export default function RequestBuilder({
                     </div>
                     <button
                       onClick={() => removeHeader(index)}
-                      className="p-2 md:px-3 md:py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150 shrink-0"
+                      className="p-2 md:px-3 md:py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-sm transition-colors duration-150 shrink-0"
                     >
                       <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -744,7 +744,7 @@ export default function RequestBuilder({
                         )}
                         <button
                           onClick={() => removeFormDataItem(index)}
-                          className="p-2 md:px-3 md:py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150 shrink-0"
+                          className="p-2 md:px-3 md:py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-sm transition-colors duration-150 shrink-0"
                         >
                           <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -786,7 +786,7 @@ export default function RequestBuilder({
                         </div>
                         <button
                           onClick={() => removeFormDataItem(index)}
-                          className="p-2 md:px-3 md:py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150 shrink-0"
+                          className="p-2 md:px-3 md:py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-sm transition-colors duration-150 shrink-0"
                         >
                           <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

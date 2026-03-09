@@ -53,18 +53,18 @@ function JsonNode({ keyName, value, path, collapsed, onToggle, onValueChange, is
       displayClass = 'text-muted-foreground italic';
       displayValue = 'null';
     } else if (typeof value === 'boolean') {
-      displayClass = 'text-purple-600 dark:text-purple-400';
+      displayClass = 'text-chart-5';
     } else if (typeof value === 'number') {
-      displayClass = 'text-blue-600 dark:text-blue-400';
+      displayClass = 'text-primary';
     } else if (typeof value === 'string') {
-      displayClass = 'text-green-600 dark:text-green-400';
+      displayClass = 'text-chart-2';
       displayValue = `"${value}"`;
     }
 
     return (
       <div className="flex items-center py-0.5 hover:bg-accent/50 group/node" style={{ paddingLeft: indent }}>
         {keyName !== undefined && (
-          <span className="text-red-600 dark:text-red-400 mr-1">"{keyName}"<span className="text-muted-foreground">: </span></span>
+          <span className="text-chart-1 mr-1">"{keyName}"<span className="text-muted-foreground">: </span></span>
         )}
         {editing ? (
           <input
@@ -113,7 +113,7 @@ function JsonNode({ keyName, value, path, collapsed, onToggle, onValueChange, is
           {isCollapsed ? '▶' : '▼'}
         </span>
         {keyName !== undefined && (
-          <span className="text-red-600 dark:text-red-400 mr-1">"{keyName}"<span className="text-muted-foreground">: </span></span>
+          <span className="text-chart-1 mr-1">"{keyName}"<span className="text-muted-foreground">: </span></span>
         )}
         <span className="text-foreground">{openBrace}</span>
         {isCollapsed && (
@@ -185,7 +185,7 @@ export default function JsonTreeEditor({ value, onChange }: JsonTreeEditorProps)
 
   if (!parsed.valid) {
     return (
-      <div className="p-3 text-sm text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+      <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg border border-destructive/20">
         Invalid JSON - switch to Raw mode to fix syntax errors
       </div>
     );

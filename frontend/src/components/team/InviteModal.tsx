@@ -49,13 +49,13 @@ export default function InviteModal({ isOpen, onClose, teamId, teamName }: Invit
         </p>
 
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg mb-4 text-sm">
+          <div className="bg-destructive/10 text-destructive p-3 rounded-lg mb-4 text-sm">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 p-3 rounded-lg mb-4 text-sm">
+          <div className="bg-primary/10 text-primary p-3 rounded-lg mb-4 text-sm">
             Invite sent successfully!
           </div>
         )}

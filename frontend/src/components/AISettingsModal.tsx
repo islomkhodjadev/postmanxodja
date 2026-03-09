@@ -92,10 +92,10 @@ export default function AISettingsModal({ isOpen, onClose }: Props) {
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-card w-full h-full md:h-auto md:rounded-xl md:max-w-lg md:mx-4 shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 dark:from-emerald-500/20 dark:to-cyan-500/20">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-primary/5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-500 flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+              <svg className="w-5 h-5 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 00.659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M19 14.5l-2.47 2.47a2.25 2.25 0 01-1.59.659H9.06a2.25 2.25 0 01-1.591-.659L5 14.5m14 0V17a2 2 0 01-2 2H7a2 2 0 01-2-2v-2.5" />
               </svg>
@@ -121,16 +121,16 @@ export default function AISettingsModal({ isOpen, onClose }: Props) {
         <div className="p-6 space-y-5">
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </div>
           ) : (
             <>
               {/* Status indicator */}
               {settings?.has_api_key && (
-                <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-sm text-emerald-700 dark:text-emerald-300">
-                    AI enabled &middot; Key: <code className="text-xs bg-emerald-100 dark:bg-emerald-900/40 px-1 rounded">{settings.key_preview}</code>
+                <div className="flex items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  <span className="text-sm text-primary">
+                    AI enabled &middot; Key: <code className="text-xs bg-primary/10 px-1 rounded">{settings.key_preview}</code>
                   </span>
                 </div>
               )}
@@ -138,14 +138,14 @@ export default function AISettingsModal({ isOpen, onClose }: Props) {
               {/* API Key */}
               <div>
                 <label className="block text-sm font-medium text-muted-foreground mb-1.5">
-                  OpenAI API Key {!settings?.has_api_key && <span className="text-red-500">*</span>}
+                  OpenAI API Key {!settings?.has_api_key && <span className="text-destructive">*</span>}
                 </label>
                 <input
                   type="password"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder={settings?.has_api_key ? 'Enter new key to update (leave empty to keep current)' : 'sk-...'}
-                  className="w-full px-3 py-2.5 border border-border rounded-lg bg-card text-foreground text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none font-mono"
+                  className="w-full px-3 py-2.5 border border-border rounded-lg bg-card text-foreground text-sm focus:ring-2 focus:ring-ring focus:border-transparent outline-none font-mono"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
                   Your key is stored encrypted and never shared. Get one at{' '}
@@ -153,7 +153,7 @@ export default function AISettingsModal({ isOpen, onClose }: Props) {
                     href="https://platform.openai.com/api-keys"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-emerald-500 hover:text-emerald-600 underline"
+                    className="text-primary hover:text-primary/80 underline"
                   >
                     platform.openai.com
                   </a>
@@ -172,12 +172,12 @@ export default function AISettingsModal({ isOpen, onClose }: Props) {
                       onClick={() => setModel(m.value)}
                       className={`p-2.5 rounded-lg border text-left transition-all ${
                         model === m.value
-                          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 ring-2 ring-emerald-500/20'
-                          : 'border-border hover:border-gray-300 dark:hover:border-gray-500'
+                          ? 'border-primary bg-primary/10 ring-2 ring-primary/20'
+                          : 'border-border hover:border-muted-foreground'
                       }`}
                     >
                       <div className={`text-sm font-medium ${
-                        model === m.value ? 'text-emerald-700 dark:text-emerald-300' : 'text-muted-foreground'
+                        model === m.value ? 'text-primary' : 'text-muted-foreground'
                       }`}>
                         {m.label}
                       </div>
@@ -188,7 +188,7 @@ export default function AISettingsModal({ isOpen, onClose }: Props) {
               </div>
 
               {/* Info */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm text-blue-700 dark:text-blue-300">
+              <div className="bg-accent border border-border rounded-lg p-3 text-sm text-accent-foreground">
                 <strong>How it works:</strong> When importing UCode tables with AI enabled, the model analyzes your database schema to intelligently group tables, identify auth flows, skip unnecessary tables, and generate meaningful request bodies.
               </div>
             </>
@@ -196,12 +196,12 @@ export default function AISettingsModal({ isOpen, onClose }: Props) {
 
           {/* Messages */}
           {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg text-sm">
+            <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg text-sm">
               {error}
             </div>
           )}
           {success && (
-            <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 rounded-lg text-sm">
+            <div className="p-3 bg-primary/10 border border-primary/20 text-primary rounded-lg text-sm">
               {success}
             </div>
           )}
@@ -214,7 +214,7 @@ export default function AISettingsModal({ isOpen, onClose }: Props) {
               <button
                 onClick={handleDelete}
                 disabled={saving}
-                className="px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                className="px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
               >
                 Remove AI
               </button>
@@ -230,10 +230,10 @@ export default function AISettingsModal({ isOpen, onClose }: Props) {
             <button
               onClick={handleSave}
               disabled={saving || (!apiKey && !settings?.has_api_key)}
-              className={`px-6 py-2 rounded-lg font-medium text-sm text-white flex items-center gap-2 ${
+              className={`px-6 py-2 rounded-lg font-medium text-sm text-primary-foreground flex items-center gap-2 ${
                 saving || (!apiKey && !settings?.has_api_key)
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-emerald-500 hover:bg-emerald-600'
+                  ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                  : 'bg-primary hover:bg-primary/90'
               }`}
             >
               {saving ? (

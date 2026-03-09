@@ -50,8 +50,8 @@ export default function ConfirmModal({
   if (!isOpen) return null;
 
   const variantStyles = {
-    danger: 'bg-red-500 hover:bg-red-600',
-    warning: 'bg-yellow-500 hover:bg-yellow-600',
+    danger: 'bg-destructive hover:bg-destructive/90',
+    warning: 'bg-muted-foreground hover:bg-muted-foreground/90',
     info: 'bg-primary hover:bg-primary/90',
   };
 
@@ -80,14 +80,14 @@ export default function ConfirmModal({
           {thirdActionText && onThirdAction && (
             <button
               onClick={onThirdAction}
-              className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${variantStyles[thirdActionVariant]}`}
+              className={`px-4 py-2 text-sm font-medium text-destructive-foreground rounded-lg transition-colors ${variantStyles[thirdActionVariant]}`}
             >
               {thirdActionText}
             </button>
           )}
           <button
             onClick={onConfirm}
-            className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${variantStyles[variant]}`}
+            className={`px-4 py-2 text-sm font-medium text-destructive-foreground rounded-lg transition-colors ${variantStyles[variant]}`}
           >
             {confirmText}
           </button>

@@ -69,7 +69,7 @@ export default function CollectionImporter({ onImportSuccess, onUCodeImport }: P
               flex-1 px-3 py-2 rounded-lg shadow-sm font-medium text-sm
                flex items-center justify-center gap-1
               ${loading
-                ? 'bg-gray-400 text-white cursor-not-allowed'
+                ? 'bg-muted text-muted-foreground cursor-not-allowed'
                 : 'bg-primary hover:bg-primary/90 text-primary-foreground'
               }
             `}
@@ -85,7 +85,7 @@ export default function CollectionImporter({ onImportSuccess, onUCodeImport }: P
               flex-1 px-3 py-2 rounded-lg shadow-sm font-medium text-sm
                flex items-center justify-center gap-1 cursor-pointer
               ${loading
-                ? 'bg-gray-400 text-white cursor-not-allowed'
+                ? 'bg-muted text-muted-foreground cursor-not-allowed'
                 : 'bg-accent hover:bg-accent/80 text-foreground border border-border'
               }
             `}
@@ -103,8 +103,8 @@ export default function CollectionImporter({ onImportSuccess, onUCodeImport }: P
                 flex-1 px-3 py-2 rounded-lg shadow-sm font-medium text-sm
                 flex items-center justify-center gap-1
                 ${loading
-                  ? 'bg-gray-400 text-white cursor-not-allowed'
-                  : 'bg-purple-500 hover:bg-purple-600 text-white'
+                  ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                  : 'bg-primary hover:bg-primary/90 text-primary-foreground'
                 }
               `}
             >
@@ -125,7 +125,7 @@ export default function CollectionImporter({ onImportSuccess, onUCodeImport }: P
           />
         </div>
         {error && (
-          <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg text-sm">
+          <div className="mt-3 p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg text-sm">
             {error}
           </div>
         )}

@@ -82,14 +82,14 @@ export default function TeamMembersModal({
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-6">
             {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
                 {error}
               </div>
             )}
 
             {loading ? (
               <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
                 <p className="text-muted-foreground">Loading members...</p>
               </div>
             ) : (
@@ -105,7 +105,7 @@ export default function TeamMembersModal({
                       className="flex items-center justify-between p-3 bg-accent/50 rounded-lg"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
+                        <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-medium">
                           {member.user?.name?.charAt(0).toUpperCase() ||
                             member.user?.email?.charAt(0).toUpperCase() ||
                             '?'}
@@ -124,7 +124,7 @@ export default function TeamMembersModal({
                         <span
                           className={`px-2 py-1 text-xs rounded-full ${
                             member.role === 'owner'
-                              ? 'bg-purple-100 text-purple-700'
+                              ? 'bg-primary/10 text-primary'
                               : 'bg-accent text-muted-foreground'
                           }`}
                         >
@@ -133,7 +133,7 @@ export default function TeamMembersModal({
                         {isOwner && member.role !== 'owner' && member.user_id !== user?.id && (
                           <button
                             onClick={() => setMemberToRemove(member)}
-                            className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
+                            className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors"
                             title="Remove member"
                           >
                             <svg
@@ -166,10 +166,10 @@ export default function TeamMembersModal({
                       {pendingInvites.map((invite) => (
                         <div
                           key={invite.id}
-                          className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-100"
+                          className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center text-white font-medium">
+                            <div className="w-10 h-10 bg-muted-foreground rounded-full flex items-center justify-center text-background font-medium">
                               <svg
                                 className="w-5 h-5"
                                 fill="none"
@@ -186,7 +186,7 @@ export default function TeamMembersModal({
                             </div>
                             <div>
                               <p className="font-medium text-foreground">{invite.invitee_email}</p>
-                              <p className="text-sm text-yellow-600">Invite pending</p>
+                              <p className="text-sm text-muted-foreground">Invite pending</p>
                             </div>
                           </div>
                         </div>

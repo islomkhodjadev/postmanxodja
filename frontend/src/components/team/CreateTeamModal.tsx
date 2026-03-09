@@ -38,7 +38,7 @@ export default function CreateTeamModal({ isOpen, onClose, onSubmit }: CreateTea
         <h2 className="text-xl font-semibold text-foreground mb-4">Create New Team</h2>
 
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg mb-4 text-sm">
+          <div className="bg-destructive/10 text-destructive p-3 rounded-lg mb-4 text-sm">
             {error}
           </div>
         )}

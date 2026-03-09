@@ -80,12 +80,12 @@ export default function CurlImportModal({ isOpen, onClose, onImport }: CurlImpor
                 autoFocus
               />
               {error && (
-                <p className="mt-2 text-sm text-red-600">{error}</p>
+                <p className="mt-2 text-sm text-destructive">{error}</p>
               )}
             </div>
 
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-3">
-              <p className="text-sm text-blue-800 dark:text-blue-300">
+            <div className="bg-accent border border-border rounded-md p-3">
+              <p className="text-sm text-accent-foreground">
                 <strong>Tip:</strong> Right-click on a network request in browser DevTools →
                 Copy → Copy as cURL, then paste it here!
               </p>

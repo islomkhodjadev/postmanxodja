@@ -112,12 +112,12 @@ function SchemaTree({ schema, name, depth = 0 }: { schema: JsonSchemaType; name?
   const indent = depth * 16;
 
   const typeColors: Record<string, string> = {
-    string: 'text-green-600 dark:text-green-400',
-    integer: 'text-blue-600 dark:text-blue-400',
-    number: 'text-blue-600 dark:text-blue-400',
-    boolean: 'text-orange-600 dark:text-orange-400',
-    array: 'text-purple-600 dark:text-purple-400',
-    object: 'text-yellow-600 dark:text-yellow-400',
+    string: 'text-chart-2',
+    integer: 'text-primary',
+    number: 'text-primary',
+    boolean: 'text-chart-5',
+    array: 'text-chart-1',
+    object: 'text-foreground',
     null: 'text-muted-foreground',
   };
 
@@ -186,15 +186,8 @@ function SchemaTree({ schema, name, depth = 0 }: { schema: JsonSchemaType; name?
 }
 
 // Method color helper
-function getMethodColor(method: string): string {
-  const colors: Record<string, string> = {
-    GET: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-    POST: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    PUT: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-    PATCH: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-    DELETE: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  };
-  return colors[method.toUpperCase()] || 'bg-muted text-foreground';
+function getMethodColor(_method: string): string {
+  return 'bg-primary/10 text-primary';
 }
 
 export default function ResponseViewer({ response, request, onSaveResponse, canSaveResponse }: Props) {
@@ -262,10 +255,8 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
     );
   }
 
-  const getStatusColor = (status: number) => {
-    if (status >= 200 && status < 300) return '#28a745';
-    if (status >= 300 && status < 400) return '#ffc107';
-    return '#dc3545';
+  const getStatusColor = (_status: number) => {
+    return 'var(--primary)';
   };
 
   const getStatusText = (status: number) => {
@@ -316,8 +307,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
               className="font-bold text-base px-3 py-1 rounded"
               style={{
                 color: getStatusColor(response.status),
-                backgroundColor: response.status >= 200 && response.status < 300 ? '#d4edda' :
-                                 response.status >= 400 ? '#f8d7da' : '#fff3cd'
+                backgroundColor: 'var(--accent)'
               }}
             >
               {response.status_text || `${response.status} ${getStatusText(response.status)}`}
@@ -358,7 +348,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
                         setShowSaveInput(false);
                       }
                     }}
-                    className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm rounded-lg font-medium transition-colors"
+                    className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm rounded-lg font-medium transition-colors"
                   >
                     Save
                   </button>
@@ -379,7 +369,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
                     setSaveResponseName(defaultName);
                     setShowSaveInput(true);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white text-sm rounded-lg font-medium transition-colors shadow-sm"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm rounded-lg font-medium transition-colors shadow-sm"
                   title="Save this response as an example"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -549,7 +539,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
                   >
                     {copied ? (
                       <>
-                        <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                         Copied
@@ -573,7 +563,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
                     <iframe
                       srcDoc={response.body}
                       sandbox="allow-same-origin"
-                      className="w-full h-full border-0 bg-white"
+                      className="w-full h-full border-0 bg-background"
                       title="Response Preview"
                     />
                   ) : (
@@ -662,7 +652,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
                 <div className="space-y-2">
                   {Object.entries(request.queryParams).map(([key, value]) => (
                     <div key={key} className="flex flex-col md:flex-row md:items-start gap-0.5 md:gap-2">
-                      <span className="font-medium text-sm text-purple-600 dark:text-purple-400 shrink-0">{key}:</span>
+                      <span className="font-medium text-sm text-primary shrink-0">{key}:</span>
                       <span className="text-sm text-foreground font-mono break-all">{value}</span>
                     </div>
                   ))}
@@ -712,17 +702,17 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-foreground flex items-center gap-2">
-                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   Response Schema
                 </h3>
                 <div className="hidden md:flex gap-2 text-xs">
-                  <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">string</span>
-                  <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">integer</span>
-                  <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded">boolean</span>
-                  <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded">array</span>
-                  <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded">object</span>
+                  <span className="px-2 py-1 bg-chart-2/20 text-chart-2 rounded">string</span>
+                  <span className="px-2 py-1 bg-primary/10 text-primary rounded">integer</span>
+                  <span className="px-2 py-1 bg-chart-5/20 text-chart-5 rounded">boolean</span>
+                  <span className="px-2 py-1 bg-chart-1/20 text-chart-1 rounded">array</span>
+                  <span className="px-2 py-1 bg-accent text-foreground rounded">object</span>
                 </div>
               </div>
 
@@ -745,7 +735,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
                   Copy
                 </button>
               </div>
-              <pre className="text-xs font-mono bg-gray-900 dark:bg-gray-950 text-gray-300 p-3 rounded-lg overflow-auto max-h-[200px]">
+              <pre className="text-xs font-mono bg-foreground text-background p-3 rounded-lg overflow-auto max-h-[200px]">
                 {JSON.stringify(jsonSchema, null, 2)}
               </pre>
             </div>

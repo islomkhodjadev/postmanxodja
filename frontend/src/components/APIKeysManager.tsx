@@ -75,13 +75,8 @@ export default function APIKeysManager() {
     return new Date(dateStr).toLocaleDateString();
   };
 
-  const getPermissionBadgeColor = (permissions: string) => {
-    switch (permissions) {
-      case 'read': return 'bg-green-100 text-green-800';
-      case 'write': return 'bg-yellow-100 text-yellow-800';
-      case 'read_write': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-muted text-foreground';
-    }
+  const getPermissionBadgeColor = (_permissions: string) => {
+    return 'bg-primary/10 text-primary';
   };
 
   if (!currentTeam) {
@@ -110,8 +105,8 @@ export default function APIKeysManager() {
 
       {/* New Key Display */}
       {newKey?.key && (
-        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-sm text-green-800 font-medium mb-2">
+        <div className="mb-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+          <p className="text-sm text-primary font-medium mb-2">
             API Key created successfully! Copy it now - you won't be able to see it again.
           </p>
           <div className="flex items-center gap-2">
@@ -120,14 +115,14 @@ export default function APIKeysManager() {
             </code>
             <button
               onClick={() => copyToClipboard(newKey.key!)}
-              className="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+              className="px-3 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 text-sm"
             >
               Copy
             </button>
           </div>
           <button
             onClick={() => setNewKey(null)}
-            className="mt-2 text-sm text-green-700 hover:underline"
+            className="mt-2 text-sm text-primary hover:underline"
           >
             Dismiss
           </button>
@@ -163,7 +158,7 @@ export default function APIKeysManager() {
                 </div>
                 <button
                   onClick={() => setDeleteTarget(key)}
-                  className="px-3 py-1 text-red-500 hover:bg-red-50 rounded text-sm"
+                  className="px-3 py-1 text-destructive hover:bg-destructive/10 rounded text-sm"
                 >
                   Delete
                 </button>
@@ -176,7 +171,7 @@ export default function APIKeysManager() {
       {/* API Usage Info */}
       <div className="mt-6 border border-border rounded-xl overflow-hidden">
         <div className="bg-primary px-4 py-3">
-          <h3 className="font-semibold text-white flex items-center gap-2">
+          <h3 className="font-semibold text-primary-foreground flex items-center gap-2">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
             </svg>
@@ -189,7 +184,7 @@ export default function APIKeysManager() {
           <div>
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Base URL</label>
             <div className="mt-1 flex items-center gap-2">
-              <code className="flex-1 px-3 py-2 bg-gray-900 text-green-400 rounded-lg text-sm font-mono">
+              <code className="flex-1 px-3 py-2 bg-foreground text-background rounded-lg text-sm font-mono">
                 https://postbaby.uz/api/v1
               </code>
               <button
@@ -209,12 +204,12 @@ export default function APIKeysManager() {
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Authentication</label>
             <div className="mt-1 bg-background rounded-lg p-3 space-y-2">
               <div className="flex items-center gap-2 text-sm">
-                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">Header</span>
+                <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-medium">Header</span>
                 <code className="text-muted-foreground font-mono">X-API-Key: your_api_key</code>
               </div>
               <div className="text-xs text-muted-foreground">or</div>
               <div className="flex items-center gap-2 text-sm">
-                <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">Bearer</span>
+                <span className="px-2 py-0.5 bg-chart-2/20 text-chart-2 rounded text-xs font-medium">Bearer</span>
                 <code className="text-muted-foreground font-mono">Authorization: ApiKey your_api_key</code>
               </div>
             </div>
@@ -225,34 +220,34 @@ export default function APIKeysManager() {
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Endpoints</label>
             <div className="mt-1 space-y-1">
               <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center p-2 bg-background rounded-lg hover:bg-accent transition-colors">
-                <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-bold w-16 text-center">GET</span>
+                <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-bold w-16 text-center">GET</span>
                 <code className="text-sm text-muted-foreground font-mono">/collections</code>
                 <span className="text-xs text-muted-foreground">List all</span>
               </div>
               <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center p-2 bg-background rounded-lg hover:bg-accent transition-colors">
-                <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-bold w-16 text-center">GET</span>
+                <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-bold w-16 text-center">GET</span>
                 <code className="text-sm text-muted-foreground font-mono">/collections/:id</code>
                 <span className="text-xs text-muted-foreground">Get details</span>
               </div>
               <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center p-2 bg-background rounded-lg hover:bg-accent transition-colors">
-                <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-bold w-16 text-center">GET</span>
+                <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-bold w-16 text-center">GET</span>
                 <code className="text-sm text-muted-foreground font-mono">/collections/:id/raw</code>
                 <span className="text-xs text-muted-foreground">Raw JSON</span>
               </div>
-              <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center p-2 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors">
-                <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-bold w-16 text-center">POST</span>
+              <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center p-2 bg-accent rounded-lg hover:bg-muted transition-colors">
+                <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-bold w-16 text-center">POST</span>
                 <code className="text-sm text-muted-foreground font-mono">/collections</code>
-                <span className="text-xs text-yellow-600 font-medium">write</span>
+                <span className="text-xs text-primary font-medium">write</span>
               </div>
-              <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center p-2 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-bold w-16 text-center">PUT</span>
+              <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center p-2 bg-accent rounded-lg hover:bg-muted transition-colors">
+                <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-bold w-16 text-center">PUT</span>
                 <code className="text-sm text-muted-foreground font-mono">/collections/:id</code>
-                <span className="text-xs text-blue-600 font-medium">write</span>
+                <span className="text-xs text-primary font-medium">write</span>
               </div>
-              <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center p-2 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
-                <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-bold w-16 text-center">DELETE</span>
+              <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center p-2 bg-accent rounded-lg hover:bg-muted transition-colors">
+                <span className="px-2 py-0.5 bg-destructive/10 text-destructive rounded text-xs font-bold w-16 text-center">DELETE</span>
                 <code className="text-sm text-muted-foreground font-mono">/collections/:id</code>
-                <span className="text-xs text-red-600 font-medium">write</span>
+                <span className="text-xs text-destructive font-medium">write</span>
               </div>
             </div>
           </div>
@@ -260,8 +255,8 @@ export default function APIKeysManager() {
           {/* Example */}
           <div>
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Example Request</label>
-            <pre className="mt-1 bg-gray-900 text-gray-100 p-3 rounded-lg text-xs font-mono overflow-x-auto">
-<span className="text-green-400">curl</span> -X GET <span className="text-yellow-300">"https://postbaby.uz/api/v1/collections"</span> \{'\n'}  -H <span className="text-yellow-300">"X-API-Key: pmx_your_api_key"</span>
+            <pre className="mt-1 bg-foreground text-background p-3 rounded-lg text-xs font-mono overflow-x-auto">
+<span className="text-primary">curl</span> -X GET <span className="text-chart-2">"https://postbaby.uz/api/v1/collections"</span> \{'\n'}  -H <span className="text-chart-2">"X-API-Key: pmx_your_api_key"</span>
             </pre>
           </div>
         </div>

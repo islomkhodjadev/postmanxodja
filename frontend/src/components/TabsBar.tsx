@@ -72,15 +72,8 @@ export default function TabsBar({
     }
   };
 
-  const getMethodColor = (method: string) => {
-    const colors: Record<string, string> = {
-      GET: 'text-green-600',
-      POST: 'text-blue-600',
-      PUT: 'text-yellow-600',
-      DELETE: 'text-red-600',
-      PATCH: 'text-teal-600',
-    };
-    return colors[method] || 'text-muted-foreground';
+  const getMethodColor = (_method: string) => {
+    return 'text-primary';
   };
 
   const handleStartRename = (tabId: string, currentName: string) => {

@@ -105,15 +105,15 @@ export default function ResizableSplitter({
               h-5 md:h-2 flex-1 cursor-row-resize
               flex items-center justify-center
               bg-muted border-y border-border
-              hover:bg-blue-100 dark:hover:bg-blue-900/30
-              ${isDragging ? 'bg-blue-200 dark:bg-blue-800' : ''}
+              hover:bg-primary/20
+              ${isDragging ? 'bg-primary/30' : ''}
             `}
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
             style={{ transition: 'none' }}
           >
             <div className="flex gap-1">
-              <div className="w-8 h-0.5 bg-gray-400 dark:bg-gray-500 rounded-full" />
+              <div className="w-8 h-0.5 bg-muted-foreground rounded-full" />
             </div>
           </div>
           <button
