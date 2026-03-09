@@ -36,7 +36,7 @@ export function SaveButton({
         particleCount: 60,
         spread: 55,
         origin: { y: 0.7 },
-        colors: ["#c96442", "#d97757", "#b05730", "#e9a589", "#9c87f5"],
+        colors: ["#2563eb", "#3b82f6", "#06b6d4", "#60a5fa", "#93c5fd"],
         shapes: ["circle"],
       })
       setTimeout(() => {
