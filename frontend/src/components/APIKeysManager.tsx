@@ -77,11 +77,26 @@ export default function APIKeysManager() {
 
   const getPermissionBadgeColor = (permissions: string) => {
     switch (permissions) {
-      case 'read': return 'bg-green-100 text-green-800';
-      case 'write': return 'bg-yellow-100 text-yellow-800';
-      case 'read_write': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'read': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+      case 'write': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+      case 'read_write': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
     }
+  };
+
+  const getKeyStatus = (key: APIKey): { label: string; className: string } => {
+    if (key.expires_at) {
+      const expiresAt = new Date(key.expires_at);
+      const now = new Date();
+      if (expiresAt < now) {
+        return { label: 'Expired', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' };
+      }
+      const daysUntilExpiry = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysUntilExpiry <= 7) {
+        return { label: `Expires in ${daysUntilExpiry}d`, className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' };
+      }
+    }
+    return { label: 'Active', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' };
   };
 
   if (!currentTeam) {
@@ -143,14 +158,26 @@ export default function APIKeysManager() {
       ) : (
         <div className="space-y-2">
           {apiKeys.map(key => (
-            <div key={key.id} className="p-4 border rounded-lg bg-white hover:bg-gray-50">
+            <div key={key.id} className="p-4 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-650">
               <div className="flex justify-between items-start">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-800">{key.name}</span>
-                    <span className={`px-2 py-0.5 rounded text-xs ${getPermissionBadgeColor(key.permissions)}`}>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-gray-800 dark:text-gray-200">{key.name}</span>
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${getPermissionBadgeColor(key.permissions)}`}>
                       {key.permissions}
                     </span>
+                    {(() => {
+                      const status = getKeyStatus(key);
+                      return (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${status.className}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            status.label === 'Active' ? 'bg-green-500' :
+                            status.label === 'Expired' ? 'bg-red-500' : 'bg-yellow-500'
+                          }`}></span>
+                          {status.label}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div className="mt-1 text-sm text-gray-500">
                     <code className="bg-gray-100 px-1 rounded">{key.key_prefix}...</code>
