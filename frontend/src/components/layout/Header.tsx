@@ -336,7 +336,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           {/* API Keys Modal */}
           {showAPIKeys && (
             <div className="fixed inset-0 flex items-center justify-center z-50">
-              <div className="fixed inset-0 bg-black/50" onClick={() => setShowAPIKeys(false)} />
+              <div className="fixed inset-0 bg-slate-900/30" onClick={() => setShowAPIKeys(false)} />
               <div className="relative bg-white dark:bg-gray-800 w-full h-full md:h-auto md:rounded-lg md:max-w-2xl md:max-h-[80vh] overflow-y-auto md:mx-4 shadow-xl">
                 <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex justify-between items-center">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">API Keys - {currentTeam.name}</h2>

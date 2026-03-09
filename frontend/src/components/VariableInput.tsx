@@ -353,7 +353,7 @@ export default function VariableInput({
         >
           {/* Variable name header */}
           <div className="px-3 py-2 border-b border-gray-700 flex items-center justify-between">
-            <span className="font-semibold text-orange-400 text-sm">
+            <span className="font-semibold text-sky-400 text-sm">
               {activeVariable.name}
             </span>
             <span className="text-[10px] text-gray-500 ml-2">

@@ -114,7 +114,7 @@ function SchemaTree({ schema, name, depth = 0 }: { schema: JsonSchemaType; name?
     string: 'text-green-600 dark:text-green-400',
     integer: 'text-blue-600 dark:text-blue-400',
     number: 'text-blue-600 dark:text-blue-400',
-    boolean: 'text-orange-600 dark:text-orange-400',
+    boolean: 'text-teal-600 dark:text-teal-400',
     array: 'text-purple-600 dark:text-purple-400',
     object: 'text-yellow-600 dark:text-yellow-400',
     null: 'text-gray-500 dark:text-gray-400',
@@ -190,7 +190,7 @@ function getMethodColor(method: string): string {
     GET: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
     POST: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
     PUT: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-    PATCH: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+    PATCH: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
     DELETE: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   };
   return colors[method.toUpperCase()] || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
@@ -565,7 +565,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
                 <div className="hidden md:flex gap-2 text-xs">
                   <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">string</span>
                   <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">integer</span>
-                  <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded">boolean</span>
+                  <span className="px-2 py-1 bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 rounded">boolean</span>
                   <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded">array</span>
                   <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded">object</span>
                 </div>

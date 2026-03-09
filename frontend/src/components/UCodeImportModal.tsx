@@ -274,7 +274,7 @@ export default function UCodeImportModal({ isOpen, onClose, onImport }: Props) {
   const isAIProcessing = loading || aiLoading;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-sm">
       <div className="bg-white dark:bg-gray-800 shadow-2xl w-full h-full md:h-auto md:rounded-xl md:max-w-2xl md:mx-4 md:max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className={`px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between ${
@@ -556,7 +556,7 @@ export default function UCodeImportModal({ isOpen, onClose, onImport }: Props) {
                     Update
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span className="inline-block w-11 text-center py-0.5 rounded text-white bg-orange-500 font-bold">PATCH</span>
+                    <span className="inline-block w-11 text-center py-0.5 rounded text-white bg-teal-500 font-bold">PATCH</span>
                     Update multi
                   </span>
                   <span className="flex items-center gap-1.5">

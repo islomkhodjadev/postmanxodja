@@ -563,7 +563,7 @@ export default function CollectionList({ onRequestSelect, onLoadSavedResponse, r
                     </span>
                     <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{resp.name}</span>
                     {hasBody && (
-                      <svg className="w-3 h-3 text-orange-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-label="Has request body">
+                      <svg className="w-3 h-3 text-sky-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-label="Has request body">
                         <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
                       </svg>
                     )}
@@ -679,7 +679,7 @@ export default function CollectionList({ onRequestSelect, onLoadSavedResponse, r
       POST: '#007bff',
       PUT: '#ffc107',
       DELETE: '#dc3545',
-      PATCH: '#17a2b8'
+      PATCH: '#14b8a6'
     };
     return colors[method] || '#6c757d';
   };
