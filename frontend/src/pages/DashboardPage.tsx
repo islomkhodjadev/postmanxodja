@@ -13,8 +13,8 @@ import CollectionSelector from '../components/CollectionSelector';
 import UCodeImportModal from '../components/UCodeImportModal';
 import Header from '../components/layout/Header';
 import { useTeam } from '../contexts/TeamContext';
-import { getEnvironments, getSavedTabs, getCollection, updateCollection, importCollection } from '../services/api';
-import type { ExecuteResponse, Environment, RequestTab, SentRequest, PostmanResponse } from '../types';
+import { getEnvironments, getSavedTabs, getCollection, updateCollection, importCollection, getCollections, setCollectionEnvironment } from '../services/api';
+import type { ExecuteResponse, Environment, RequestTab, SentRequest, PostmanResponse, PostmanCollection } from '../types';
 
 // Helper to generate unique IDs
 const generateId = () => Math.random().toString(36).substring(2, 11);
@@ -37,6 +37,7 @@ export default function DashboardPage() {
   const [responses, setResponses] = useState<Map<string, ExecuteResponse>>(new Map());
   const [sentRequests, setSentRequests] = useState<Map<string, SentRequest>>(new Map());
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [collectionDataUpdate, setCollectionDataUpdate] = useState<{ collectionId: number; data: PostmanCollection; trigger: number } | null>(null);
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -65,6 +66,8 @@ export default function DashboardPage() {
     message: '',
     onConfirm: () => {},
   });
+  // Map of collectionId -> environmentId (persisted per-collection env selection)
+  const [collectionEnvMap, setCollectionEnvMap] = useState<Map<number, number | null>>(new Map());
   const { currentTeam, isLoading } = useTeam();
 
   // Get current active tab
@@ -121,8 +124,57 @@ export default function DashboardPage() {
     }
   };
 
+  // Load collection-environment mappings when team changes
+  const loadCollectionEnvMap = useCallback(async () => {
+    if (!currentTeam) return;
+    try {
+      const collections = await getCollections(currentTeam.id);
+      const map = new Map<number, number | null>();
+      for (const col of collections) {
+        if (col.environment_id !== undefined) {
+          map.set(col.id, col.environment_id ?? null);
+        }
+      }
+      setCollectionEnvMap(map);
+    } catch (err) {
+      console.error('Failed to load collection env map:', err);
+    }
+  }, [currentTeam]);
+
+  useEffect(() => {
+    if (currentTeam) {
+      loadCollectionEnvMap();
+    } else {
+      setCollectionEnvMap(new Map());
+    }
+  }, [currentTeam?.id]);
+
+  // Compute initialEnvId for the active tab based on its collection
+  const initialEnvId = activeTab?.collectionId
+    ? collectionEnvMap.get(activeTab.collectionId) ?? undefined
+    : undefined;
+
+  // Handle environment change for a collection
+  const handleCollectionEnvChange = useCallback(async (envId: number | undefined) => {
+    if (!currentTeam || !activeTab?.collectionId) return;
+    const environmentId = envId ?? null;
+    try {
+      await setCollectionEnvironment(currentTeam.id, activeTab.collectionId, environmentId);
+      setCollectionEnvMap(prev => {
+        const next = new Map(prev);
+        next.set(activeTab.collectionId!, environmentId);
+        return next;
+      });
+    } catch (err) {
+      console.error('Failed to save collection environment:', err);
+    }
+  }, [currentTeam, activeTab?.collectionId]);
+
   const handleImportSuccess = () => {
     setRefreshTrigger(prev => prev + 1);
+    // Reload environments and collection-env map in case import created a new environment
+    loadEnvironments();
+    loadCollectionEnvMap();
   };
 
   const handleUCodeImport = useCallback(async (collectionJSON: string) => {
@@ -130,10 +182,12 @@ export default function DashboardPage() {
     try {
       await importCollection(currentTeam.id, collectionJSON);
       setRefreshTrigger(prev => prev + 1);
+      loadEnvironments();
+      loadCollectionEnvMap();
     } catch (err) {
       console.error('Failed to import UCode collection:', err);
     }
-  }, [currentTeam]);
+  }, [currentTeam, loadCollectionEnvMap]);
 
   const toggleMobileSidebar = useCallback(() => {
     setMobileSidebarOpen(prev => !prev);
@@ -436,8 +490,8 @@ export default function DashboardPage() {
         } : t
       ));
 
-      // Refresh collections
-      setRefreshTrigger(prev => prev + 1);
+      // Update only the affected collection in sidebar (no full refresh)
+      setCollectionDataUpdate({ collectionId, data: updatedCollection, trigger: Date.now() });
 
       return true;
     } catch (err) {
@@ -530,7 +584,8 @@ export default function DashboardPage() {
         raw_json: JSON.stringify(updatedCollection),
       });
 
-      setRefreshTrigger(prev => prev + 1);
+      // Update only the affected collection in sidebar (no full refresh)
+      setCollectionDataUpdate({ collectionId: activeTab.collectionId, data: updatedCollection, trigger: Date.now() });
     } catch (err) {
       console.error('Failed to save response:', err);
       alert('Failed to save response to collection');
@@ -720,17 +775,17 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-dvh bg-gray-50 dark:bg-gray-900">
+      <div className="flex items-center justify-center h-dvh bg-background">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-dvh bg-gray-50 dark:bg-gray-900 overflow-hidden">
+    <div className="flex h-dvh bg-background overflow-hidden">
       {/* cURL Import Modal */}
       <CurlImportModal
         isOpen={curlImportOpen}
@@ -774,12 +829,12 @@ export default function DashboardPage() {
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
           <div className="mobile-sidebar-backdrop fixed inset-0" onClick={() => setMobileSidebarOpen(false)} />
-          <div className="mobile-sidebar-drawer relative z-10 flex flex-col h-full w-[85vw] max-w-80 bg-white dark:bg-gray-800 shadow-xl">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-              <span className="font-semibold text-gray-800 dark:text-gray-200">Collections</span>
+          <div className="mobile-sidebar-drawer relative z-10 flex flex-col h-full w-[85vw] max-w-80 bg-card shadow-xl">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <span className="font-semibold text-foreground">Collections</span>
               <button
                 onClick={() => setMobileSidebarOpen(false)}
-                className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                className="p-2 text-muted-foreground hover:bg-accent rounded-lg"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -792,6 +847,7 @@ export default function DashboardPage() {
                 onRequestSelect={handleRequestSelect}
                 onLoadSavedResponse={handleLoadSavedResponse}
                 refreshTrigger={refreshTrigger}
+                collectionDataUpdate={collectionDataUpdate}
               />
             </div>
             <EnvironmentPanel onUpdate={handleEnvironmentsUpdate} />
@@ -814,6 +870,7 @@ export default function DashboardPage() {
               onRequestSelect={handleRequestSelect}
               onLoadSavedResponse={handleLoadSavedResponse}
               refreshTrigger={refreshTrigger}
+              collectionDataUpdate={collectionDataUpdate}
             />
           </div>
           <EnvironmentPanel onUpdate={handleEnvironmentsUpdate} />
@@ -838,19 +895,19 @@ export default function DashboardPage() {
 
         {/* Content Area */}
         {tabs.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+          <div className="flex-1 flex items-center justify-center bg-background p-4">
             <div className="text-center max-w-md">
-              <svg className="w-16 h-16 md:w-24 md:h-24 mx-auto mb-4 md:mb-6 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-16 h-16 md:w-24 md:h-24 mx-auto mb-4 md:mb-6 text-border" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <h2 className="text-xl md:text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-2 md:mb-3">No Tabs Open</h2>
-              <p className="text-sm md:text-base text-gray-500 dark:text-gray-400 mb-4 md:mb-6">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-2 md:mb-3">No Tabs Open</h2>
+              <p className="text-sm md:text-base text-muted-foreground mb-4 md:mb-6">
                 Start by creating a new request or importing from cURL
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <button
                   onClick={handleNewTab}
-                  className="px-5 py-2.5 md:px-6 md:py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium flex items-center justify-center gap-2"
+                  className="px-5 py-2.5 md:px-6 md:py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium flex items-center justify-center gap-2"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -859,7 +916,7 @@ export default function DashboardPage() {
                 </button>
                 <button
                   onClick={handleImportCurl}
-                  className="px-5 py-2.5 md:px-6 md:py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg font-medium flex items-center justify-center gap-2 border border-gray-300 dark:border-gray-600"
+                  className="px-5 py-2.5 md:px-6 md:py-3 bg-muted hover:bg-accent text-foreground rounded-lg font-medium flex items-center justify-center gap-2 border border-border"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
@@ -886,6 +943,8 @@ export default function DashboardPage() {
                 initialQueryParams={activeTab?.queryParams || {}}
                 initialName={activeTab?.name || 'Untitled'}
                 environments={environments}
+                initialEnvId={initialEnvId}
+                onEnvironmentChange={activeTab?.collectionId ? handleCollectionEnvChange : undefined}
                 onResponse={handleResponse}
                 onUpdate={handleTabUpdate}
                 hasCollectionSource={!!activeTab?.collectionId}

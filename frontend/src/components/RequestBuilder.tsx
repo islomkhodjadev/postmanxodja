@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { executeRequest } from '../services/api';
 import VariableInput from './VariableInput';
 import JsonTreeEditor from './JsonTreeEditor';
+import { SaveButton } from './ui/save-button';
 import { parseCurl, generateCurl } from '../utils/curlParser';
 import type { ExecuteRequest, ExecuteResponse, Environment, RequestTab, BodyType, FormDataItem, SentRequest } from '../types';
 
@@ -14,9 +15,11 @@ interface Props {
   initialBody?: string;
   initialQueryParams?: Record<string, string>;
   initialName?: string;
+  initialEnvId?: number;
   onUpdate?: (updates: Partial<RequestTab>) => void;
+  onEnvironmentChange?: (envId: number | undefined) => void;
   hasCollectionSource?: boolean;
-  onSaveToCollection?: () => void;
+  onSaveToCollection?: () => Promise<void> | void;
 }
 
 export default function RequestBuilder({
@@ -28,8 +31,9 @@ export default function RequestBuilder({
   initialBody = '',
   initialQueryParams = {},
   initialName = 'Untitled',
+  initialEnvId,
   onUpdate,
-  hasCollectionSource = false,
+  onEnvironmentChange,
   onSaveToCollection,
 }: Props) {
   const [method, setMethod] = useState(initialMethod);
@@ -43,7 +47,7 @@ export default function RequestBuilder({
   const [queryParams, setQueryParams] = useState<Array<{ key: string; value: string }>>(() =>
     Object.entries(initialQueryParams).map(([key, value]) => ({ key, value }))
   );
-  const [selectedEnvId, setSelectedEnvId] = useState<number | undefined>();
+  const [selectedEnvId, setSelectedEnvId] = useState<number | undefined>(initialEnvId);
   const [loading, setLoading] = useState(false);
   const [activeSection, setActiveSection] = useState<'params' | 'headers' | 'body'>('params');
   const [curlCopied, setCurlCopied] = useState(false);
@@ -281,23 +285,23 @@ export default function RequestBuilder({
   };
 
   return (
-    <div className="p-3 md:p-6 h-full overflow-auto">
+    <div className="p-2 md:p-3 h-full overflow-auto">
       {selectedEnvId && (
-        <div className="p-3 mb-4 bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 rounded-r-lg">
-          <p className="text-sm text-blue-800 dark:text-blue-200">
-            Use <code className="bg-white dark:bg-gray-700 px-2 py-0.5 rounded text-xs font-mono">{'{{variableName}}'}</code> to insert environment variables in URL, headers, params, or body
+        <div className="p-3 mb-4 bg-primary/10 border-l-4 border-primary rounded-r-lg">
+          <p className="text-sm text-primary">
+            Use <code className="bg-card px-2 py-0.5 rounded text-xs font-mono">{'{{variableName}}'}</code> to insert environment variables in URL, headers, params, or body
           </p>
         </div>
       )}
-      <div className="mb-3 md:mb-6 space-y-2 md:space-y-0 md:flex md:gap-3 md:items-center">
-        <div className="flex gap-2 items-center">
+      <div className="mb-2 md:mb-3 space-y-2 md:space-y-0 md:flex md:gap-2 md:items-center">
+        <div className="flex gap-2 items-center md:flex-1 md:min-w-0">
           <select
             value={method}
             onChange={(e) => {
               setMethod(e.target.value);
               notifyUpdate({ method: e.target.value });
             }}
-            className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100 shadow-sm flex-shrink-0"
+            className="border border-border rounded px-2 py-1.5 text-sm font-medium focus:ring-2 focus:ring-ring focus:border-ring outline-none bg-card text-foreground shadow-sm flex-shrink-0"
           >
             <option>GET</option>
             <option>POST</option>
@@ -363,8 +367,12 @@ export default function RequestBuilder({
         <div className="flex gap-2 items-center flex-wrap min-w-0">
           <select
             value={selectedEnvId || ''}
-            onChange={(e) => setSelectedEnvId(e.target.value ? Number(e.target.value) : undefined)}
-            className="border border-gray-300 dark:border-gray-600 rounded-lg px-2 sm:px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100 shadow-sm flex-1 md:flex-initial min-w-0 max-w-[140px] sm:max-w-none"
+            onChange={(e) => {
+              const newEnvId = e.target.value ? Number(e.target.value) : undefined;
+              setSelectedEnvId(newEnvId);
+              onEnvironmentChange?.(newEnvId);
+            }}
+            className="border border-border rounded-lg px-2 sm:px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:border-ring outline-none bg-card text-foreground shadow-sm flex-1 md:flex-initial min-w-0 max-w-[140px] sm:max-w-none"
           >
             <option value="">No Environment</option>
             {environments.map(env => (
@@ -378,8 +386,8 @@ export default function RequestBuilder({
             className={`
               px-4 md:px-6 py-2 rounded-lg shadow-sm font-medium text-sm transition-colors duration-150
               ${loading
-                ? 'bg-gray-400 text-white cursor-not-allowed'
-                : 'bg-green-500 hover:bg-green-600 text-white'
+                ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                : 'bg-primary hover:bg-primary/90 text-primary-foreground'
               }
             `}
           >
@@ -398,93 +406,90 @@ export default function RequestBuilder({
               setCurlCopied(true);
               setTimeout(() => setCurlCopied(false), 2000);
             }}
-            className="px-3 md:px-4 py-2 rounded-lg shadow-sm font-medium text-sm transition-colors duration-150 bg-gray-500 hover:bg-gray-600 text-white"
+            className="px-3 md:px-4 py-2 rounded-lg shadow-sm font-medium text-sm transition-colors duration-150 bg-muted-foreground hover:bg-muted-foreground/80 text-background"
             title="Copy as cURL"
           >
             {curlCopied ? 'Copied!' : 'cURL'}
           </button>
-          <button
-            onClick={() => {
+          <SaveButton
+            text={{ idle: "Save", saving: "Saving...", saved: "Saved!" }}
+            onSave={async () => {
               notifyUpdate({});
               if (onSaveToCollection) {
-                onSaveToCollection();
+                await onSaveToCollection();
               }
             }}
-            className="px-3 md:px-4 py-2 rounded-lg shadow-sm font-medium text-sm transition-colors duration-150 bg-blue-500 hover:bg-blue-600 text-white"
-            title={hasCollectionSource ? "Save to collection" : "Save to collection"}
-          >
-            Save
-          </button>
+          />
         </div>
       </div>
 
       {/* Tab Bar */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-        <div className="flex border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+        <div className="flex border-b border-border">
           <button
             onClick={() => setActiveSection('params')}
-            className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
+            className={`relative px-3 py-1.5 text-xs font-medium transition-colors ${
               activeSection === 'params'
-                ? 'text-blue-600 dark:text-blue-400'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                ? 'text-primary'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <span className="flex items-center gap-1.5">
               Params
               {queryParams.filter(p => p.key).length > 0 && (
-                <span className="text-[10px] min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 font-semibold">
+                <span className="text-[10px] min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
                   {queryParams.filter(p => p.key).length}
                 </span>
               )}
             </span>
             {activeSection === 'params' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
             )}
           </button>
           <button
             onClick={() => setActiveSection('headers')}
-            className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
+            className={`relative px-3 py-1.5 text-xs font-medium transition-colors ${
               activeSection === 'headers'
-                ? 'text-blue-600 dark:text-blue-400'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                ? 'text-primary'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <span className="flex items-center gap-1.5">
               Headers
               {headers.filter(h => h.key).length > 0 && (
-                <span className="text-[10px] min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 font-semibold">
+                <span className="text-[10px] min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
                   {headers.filter(h => h.key).length}
                 </span>
               )}
             </span>
             {activeSection === 'headers' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
             )}
           </button>
           <button
             onClick={() => setActiveSection('body')}
-            className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
+            className={`relative px-3 py-1.5 text-xs font-medium transition-colors ${
               activeSection === 'body'
-                ? 'text-blue-600 dark:text-blue-400'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                ? 'text-primary'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <span className="flex items-center gap-1.5">
               Body
               {bodyType !== 'none' && (
                 <span className={`w-2 h-2 rounded-full ${
-                  bodyType === 'raw' && body ? 'bg-green-500' : 'bg-yellow-500'
+                  bodyType === 'raw' && body ? 'bg-primary' : 'bg-muted-foreground'
                 }`} />
               )}
             </span>
             {activeSection === 'body' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
             )}
           </button>
         </div>
 
         {/* Tab Content */}
-        <div className="p-4">
+        <div className="p-2.5">
           {/* Params Tab */}
           {activeSection === 'params' && (
             <div>
@@ -495,7 +500,7 @@ export default function RequestBuilder({
                     value={param.key}
                     onChange={(e) => updateQueryParam(index, 'key', e.target.value)}
                     placeholder="Key"
-                    className="w-full md:flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
+                    className="w-full md:flex-1 border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:border-ring outline-none bg-card text-foreground"
                   />
                   <div className="flex gap-2 md:flex-1 md:min-w-0">
                     <div className="flex-1 min-w-0">
@@ -509,7 +514,7 @@ export default function RequestBuilder({
                     </div>
                     <button
                       onClick={() => removeQueryParam(index)}
-                      className="p-2 md:px-3 md:py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150 shrink-0"
+                      className="p-2 md:px-3 md:py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-sm transition-colors duration-150 shrink-0"
                     >
                       <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -521,7 +526,7 @@ export default function RequestBuilder({
               ))}
               <button
                 onClick={addQueryParam}
-                className="mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm shadow-sm transition-colors duration-150"
+                className="mt-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm shadow-sm transition-colors duration-150"
               >
                 Add Param
               </button>
@@ -538,7 +543,7 @@ export default function RequestBuilder({
                     value={header.key}
                     onChange={(e) => updateHeader(index, 'key', e.target.value)}
                     placeholder="Key"
-                    className="w-full md:flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
+                    className="w-full md:flex-1 border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:border-ring outline-none bg-card text-foreground"
                   />
                   <div className="flex gap-2 md:flex-1 md:min-w-0">
                     <div className="flex-1 min-w-0">
@@ -552,7 +557,7 @@ export default function RequestBuilder({
                     </div>
                     <button
                       onClick={() => removeHeader(index)}
-                      className="p-2 md:px-3 md:py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150 shrink-0"
+                      className="p-2 md:px-3 md:py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-sm transition-colors duration-150 shrink-0"
                     >
                       <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -564,7 +569,7 @@ export default function RequestBuilder({
               ))}
               <button
                 onClick={addHeader}
-                className="mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm shadow-sm transition-colors duration-150"
+                className="mt-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm shadow-sm transition-colors duration-150"
               >
                 Add Header
               </button>
@@ -574,11 +579,11 @@ export default function RequestBuilder({
           {/* Body Tab */}
           {activeSection === 'body' && (
             <div>
-              <div className="flex flex-wrap gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1 mb-3 w-fit">
+              <div className="flex flex-wrap gap-1 bg-muted rounded-lg p-1 mb-3 w-fit">
                 <button
                   onClick={() => setBodyType('none')}
                   className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                    bodyType === 'none' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    bodyType === 'none' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   none
@@ -586,7 +591,7 @@ export default function RequestBuilder({
                 <button
                   onClick={() => setBodyType('raw')}
                   className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                    bodyType === 'raw' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    bodyType === 'raw' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   raw
@@ -594,7 +599,7 @@ export default function RequestBuilder({
                 <button
                   onClick={() => setBodyType('form-data')}
                   className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                    bodyType === 'form-data' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    bodyType === 'form-data' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   form-data
@@ -602,7 +607,7 @@ export default function RequestBuilder({
                 <button
                   onClick={() => setBodyType('x-www-form-urlencoded')}
                   className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                    bodyType === 'x-www-form-urlencoded' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    bodyType === 'x-www-form-urlencoded' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   x-www-form-urlencoded
@@ -610,19 +615,19 @@ export default function RequestBuilder({
               </div>
 
               {bodyType === 'none' && (
-                <p className="text-gray-500 dark:text-gray-400 text-sm italic">This request does not have a body</p>
+                <p className="text-muted-foreground text-sm italic">This request does not have a body</p>
               )}
 
               {bodyType === 'raw' && (
                 <div>
                   <div className="flex justify-end mb-2 gap-2">
-                    <div className="flex bg-gray-100 dark:bg-gray-700 rounded-md p-0.5">
+                    <div className="flex bg-muted rounded-md p-0.5">
                       <button
                         onClick={() => setBodyViewMode('raw')}
                         className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
                           bodyViewMode === 'raw'
-                            ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
-                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                            ? 'bg-card text-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
                         }`}
                       >
                         Raw
@@ -631,8 +636,8 @@ export default function RequestBuilder({
                         onClick={() => setBodyViewMode('tree')}
                         className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
                           bodyViewMode === 'tree'
-                            ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
-                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                            ? 'bg-card text-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
                         }`}
                       >
                         Tree
@@ -662,7 +667,7 @@ export default function RequestBuilder({
                             // not valid JSON — ignore
                           }
                         }}
-                        className="px-3 py-1 text-xs font-medium rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                        className="px-3 py-1 text-xs font-medium rounded-md bg-muted text-foreground hover:bg-accent transition-colors"
                       >
                         Beautify JSON
                       </button>
@@ -703,12 +708,12 @@ export default function RequestBuilder({
                           value={item.key}
                           onChange={(e) => updateFormDataItem(index, 'key', e.target.value)}
                           placeholder="Key"
-                          className="flex-1 md:w-auto border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
+                          className="flex-1 md:w-auto border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:border-ring outline-none bg-card text-foreground"
                         />
                         <select
                           value={item.type}
                           onChange={(e) => updateFormDataItem(index, 'type', e.target.value)}
-                          className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
+                          className="border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:border-ring outline-none bg-card text-foreground"
                         >
                           <option value="text">Text</option>
                           <option value="file">File</option>
@@ -727,11 +732,11 @@ export default function RequestBuilder({
                           </div>
                         ) : (
                           <div className="flex-1 min-w-0">
-                            <label className="flex items-center gap-2 cursor-pointer border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors dark:text-gray-200">
-                              <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <label className="flex items-center gap-2 cursor-pointer border border-border rounded-lg px-3 py-2 text-sm hover:bg-accent transition-colors text-foreground">
+                              <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                               </svg>
-                              <span className="text-gray-600 dark:text-gray-300 truncate">
+                              <span className="text-muted-foreground truncate">
                                 {item.file ? item.file.name : 'Choose file...'}
                               </span>
                               <input
@@ -747,7 +752,7 @@ export default function RequestBuilder({
                         )}
                         <button
                           onClick={() => removeFormDataItem(index)}
-                          className="p-2 md:px-3 md:py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150 shrink-0"
+                          className="p-2 md:px-3 md:py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-sm transition-colors duration-150 shrink-0"
                         >
                           <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -759,7 +764,7 @@ export default function RequestBuilder({
                   ))}
                   <button
                     onClick={addFormDataItem}
-                    className="mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm shadow-sm transition-colors duration-150"
+                    className="mt-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm shadow-sm transition-colors duration-150"
                   >
                     Add Field
                   </button>
@@ -775,7 +780,7 @@ export default function RequestBuilder({
                         value={item.key}
                         onChange={(e) => updateFormDataItem(index, 'key', e.target.value)}
                         placeholder="Key"
-                        className="w-full md:flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
+                        className="w-full md:flex-1 border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:border-ring outline-none bg-card text-foreground"
                       />
                       <div className="flex gap-2 md:flex-1 md:min-w-0">
                         <div className="flex-1 min-w-0">
@@ -789,7 +794,7 @@ export default function RequestBuilder({
                         </div>
                         <button
                           onClick={() => removeFormDataItem(index)}
-                          className="p-2 md:px-3 md:py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-150 shrink-0"
+                          className="p-2 md:px-3 md:py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-sm transition-colors duration-150 shrink-0"
                         >
                           <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -801,7 +806,7 @@ export default function RequestBuilder({
                   ))}
                   <button
                     onClick={addFormDataItem}
-                    className="mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm shadow-sm transition-colors duration-150"
+                    className="mt-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm shadow-sm transition-colors duration-150"
                   >
                     Add Field
                   </button>

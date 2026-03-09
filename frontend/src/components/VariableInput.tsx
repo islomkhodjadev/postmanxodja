@@ -340,7 +340,7 @@ export default function VariableInput({
       {/* Interactive hover popover */}
       {activeVariable && (
         <div
-          className="fixed z-[9999] bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-xl border border-gray-700"
+          className="fixed z-[9999] bg-foreground text-background text-xs rounded-lg shadow-xl border border-border"
           style={{
             left: Math.max(8, Math.min(popoverPosition.x + 12, window.innerWidth - 260)),
             top: Math.max(8, popoverPosition.y - 10),
@@ -352,25 +352,25 @@ export default function VariableInput({
           onMouseLeave={handlePopoverLeave}
         >
           {/* Variable name header */}
-          <div className="px-3 py-2 border-b border-gray-700 flex items-center justify-between">
-            <span className="font-semibold text-sky-400 text-sm">
+          <div className="px-3 py-2 border-b border-border flex items-center justify-between">
+            <span className="font-semibold text-chart-5 text-sm">
               {activeVariable.name}
             </span>
-            <span className="text-[10px] text-gray-500 ml-2">
+            <span className="text-[10px] text-muted-foreground ml-2">
               {activeVariable.value !== undefined ? 'resolved' : 'unresolved'}
             </span>
           </div>
 
           {/* Variable value display */}
-          <div className="px-3 py-2 border-b border-gray-700">
+          <div className="px-3 py-2 border-b border-border">
             {activeVariable.value !== undefined ? (
-              <div className="font-mono text-green-400 break-all text-xs">
+              <div className="font-mono text-chart-2 break-all text-xs">
                 {activeVariable.value || (
-                  <span className="italic text-gray-500">empty string</span>
+                  <span className="italic text-muted-foreground">empty string</span>
                 )}
               </div>
             ) : (
-              <div className="text-red-400 text-xs">
+              <div className="text-destructive text-xs">
                 Not found in environment
               </div>
             )}
@@ -381,14 +381,14 @@ export default function VariableInput({
             {activeVariable.value !== undefined && (
               <button
                 onClick={handleCopyValue}
-                className="flex-1 px-2 py-1.5 text-xs rounded hover:bg-gray-700 dark:hover:bg-gray-700 transition-colors text-gray-300 hover:text-white"
+                className="flex-1 px-2 py-1.5 text-xs rounded hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
               >
                 {copySuccess === 'value' ? 'Copied!' : 'Copy Value'}
               </button>
             )}
             <button
               onClick={handleCopyName}
-              className="flex-1 px-2 py-1.5 text-xs rounded hover:bg-gray-700 dark:hover:bg-gray-700 transition-colors text-gray-300 hover:text-white"
+              className="flex-1 px-2 py-1.5 text-xs rounded hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
             >
               {copySuccess === 'name' ? 'Copied!' : 'Copy Key'}
             </button>
