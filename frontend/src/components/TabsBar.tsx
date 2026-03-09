@@ -80,7 +80,7 @@ export default function TabsBar({
       DELETE: 'text-red-600',
       PATCH: 'text-teal-600',
     };
-    return colors[method] || 'text-gray-600';
+    return colors[method] || 'text-muted-foreground';
   };
 
   const handleStartRename = (tabId: string, currentName: string) => {

@@ -147,14 +147,14 @@ function SchemaTree({ schema, name, depth = 0 }: { schema: JsonSchemaType; name?
         {name && (
           <>
             <span className="font-mono text-sm text-foreground">{name}</span>
-            <span className="text-gray-400">:</span>
+            <span className="text-muted-foreground">:</span>
           </>
         )}
 
-        <span className={`font-mono text-sm font-medium ${typeColors[schema.type] || 'text-gray-600'}`}>
+        <span className={`font-mono text-sm font-medium ${typeColors[schema.type] || 'text-muted-foreground'}`}>
           {schema.type}
           {schema.type === 'array' && schema.items && (
-            <span className="text-gray-500">[{schema.items.type}]</span>
+            <span className="text-muted-foreground">[{schema.items.type}]</span>
           )}
         </span>
 
@@ -194,7 +194,7 @@ function getMethodColor(method: string): string {
     PATCH: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
     DELETE: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   };
-  return colors[method.toUpperCase()] || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+  return colors[method.toUpperCase()] || 'bg-muted text-foreground';
 }
 
 export default function ResponseViewer({ response, request, onSaveResponse, canSaveResponse }: Props) {

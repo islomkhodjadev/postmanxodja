@@ -114,6 +114,7 @@
 /* Prevent horizontal overflow on mobile */
 html {
   overflow-x: hidden;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 /* Use dvh (dynamic viewport height) for mobile browsers to account for address bar */

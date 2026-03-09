@@ -149,10 +149,10 @@ export default function CollectionSelector({
     if (isARequest) {
       return (
         <div key={pathKey} style={{ paddingLeft }}>
-          <div className="py-1 px-3 flex items-center gap-2 text-gray-400">
+          <div className="py-1 px-3 flex items-center gap-2 text-muted-foreground">
             <span className="text-xs">📄</span>
             <span className="text-sm truncate">{itemName}</span>
-            <span className="text-xs text-gray-400 ml-2">(request)</span>
+            <span className="text-xs text-muted-foreground ml-2">(request)</span>
           </div>
         </div>
       );
@@ -176,7 +176,7 @@ export default function CollectionSelector({
             }}
           >
             {isAFolder && (
-              <span className="text-gray-400 text-xs w-4">
+              <span className="text-muted-foreground text-xs w-4">
                 {isExpanded ? '▼' : '▶'}
               </span>
             )}
@@ -195,7 +195,7 @@ export default function CollectionSelector({
               {itemName}
             </span>
             {isAFolder && (
-              <span className="text-xs text-gray-400 ml-1">
+              <span className="text-xs text-muted-foreground ml-1">
                 ({item.item?.length || 0} items)
               </span>
             )}
@@ -244,7 +244,7 @@ export default function CollectionSelector({
             className="flex items-center gap-2"
             onClick={() => toggleNode(pathKey)}
           >
-            <span className="text-gray-400 text-xs w-4">
+            <span className="text-muted-foreground text-xs w-4">
               {isExpanded ? '▼' : '▶'}
             </span>
             <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
@@ -254,7 +254,7 @@ export default function CollectionSelector({
               <span className="font-semibold text-foreground">
                 {collectionName}
               </span>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-muted-foreground">
                 Collection • {collectionItems.length} items
               </span>
             </div>
@@ -274,7 +274,7 @@ export default function CollectionSelector({
         {isExpanded && (
           <div className="bg-accent/50 border-t border-border">
             {collectionItems.length === 0 ? (
-              <div className="py-3 px-4 text-sm text-gray-500 text-center italic">
+              <div className="py-3 px-4 text-sm text-muted-foreground text-center italic">
                 Empty collection
               </div>
             ) : (
@@ -307,7 +307,7 @@ export default function CollectionSelector({
           {loading ? (
             <div className="p-8 text-center">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              <p className="mt-2 text-gray-500">Loading collections...</p>
+              <p className="mt-2 text-muted-foreground">Loading collections...</p>
             </div>
           ) : error ? (
             <div className="p-8 text-center">
@@ -315,13 +315,13 @@ export default function CollectionSelector({
               <p className="text-red-600">{error}</p>
               <button
                 onClick={loadCollections}
-                className="mt-3 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                className="mt-3 px-4 py-2 text-sm bg-muted hover:bg-accent rounded-lg transition-colors"
               >
                 Retry
               </button>
             </div>
           ) : collections.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-8 text-center text-muted-foreground">
               <p>No collections available. Create a collection first.</p>
             </div>
           ) : (
@@ -359,7 +359,7 @@ export default function CollectionSelector({
               className={`px-4 py-2 text-sm font-medium text-primary-foreground rounded-lg transition-colors ${
                 selectedNode
                   ? 'bg-primary hover:bg-primary/90'
-                  : 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-muted-foreground cursor-not-allowed'
               }`}
             >
               {selectedNode?.isCollection ? 'Save to Collection' : 'Save to Folder'}

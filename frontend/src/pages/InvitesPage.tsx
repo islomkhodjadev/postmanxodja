@@ -86,7 +86,7 @@ export default function InvitesPage() {
         ) : invites.length === 0 ? (
           <div className="bg-card rounded-lg shadow p-8 text-center">
             <svg
-              className="w-16 h-16 text-gray-300 mx-auto mb-4"
+              className="w-16 h-16 text-border mx-auto mb-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

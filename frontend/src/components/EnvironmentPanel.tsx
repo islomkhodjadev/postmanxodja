@@ -101,9 +101,9 @@ export default function EnvironmentPanel({ onUpdate }: Props) {
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <h3 className="font-semibold text-foreground flex items-center gap-2">
-          <span className="text-gray-400 text-xs">{isExpanded ? '▼' : '▶'}</span>
+          <span className="text-muted-foreground text-xs">{isExpanded ? '▼' : '▶'}</span>
           Environments
-          <span className="text-xs text-gray-400 font-normal">({environments.length})</span>
+          <span className="text-xs text-muted-foreground font-normal">({environments.length})</span>
         </h3>
         {!showForm && isExpanded && (
           <button

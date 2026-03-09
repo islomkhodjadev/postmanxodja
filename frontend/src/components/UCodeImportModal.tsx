@@ -676,7 +676,7 @@ export default function UCodeImportModal({ isOpen, onClose, onImport }: Props) {
                             {t.essential ? (
                               <span className="text-emerald-500" title="Essential">⭐</span>
                             ) : (
-                              <span className="text-gray-400" title="Non-essential">○</span>
+                              <span className="text-muted-foreground" title="Non-essential">○</span>
                             )}
                             {t.name}
                             <span className="text-muted-foreground font-sans ml-auto">{t.purpose}</span>
@@ -731,7 +731,7 @@ export default function UCodeImportModal({ isOpen, onClose, onImport }: Props) {
                     </div>
                     {/* Search */}
                     <div className="relative">
-                      <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
                       <input
