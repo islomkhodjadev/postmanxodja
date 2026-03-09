@@ -81,7 +81,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
 
   return (
     <>
-      <header className="bg-background border-b-2 border-primary px-2 sm:px-3 py-2 md:px-6 md:py-3 flex justify-between items-center flex-shrink-0 min-w-0">
+      <header className="bg-background border-b-2 border-primary px-2 sm:px-3 py-1.5 md:px-4 md:py-2 flex justify-between items-center flex-shrink-0 min-w-0">
         <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-shrink">
           {/* Hamburger menu - mobile only */}
           {onToggleSidebar && (
@@ -100,7 +100,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-0.5 sm:gap-1 md:gap-3 flex-shrink-0">
+        <div className="flex items-center gap-0.5 sm:gap-1 md:gap-1.5 flex-shrink-0">
           {/* Network status indicator */}
           {networkMode !== 'online' && (
             <div
@@ -150,7 +150,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
             <div className="hidden md:flex items-center gap-1">
               <button
                 onClick={() => setShowMembers(true)}
-                className="px-3 py-2 text-sm text-muted-foreground hover:bg-accent rounded-lg transition-colors flex items-center gap-1"
+                className="px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent rounded transition-colors flex items-center gap-1"
                 title="View team members"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,16 +162,16 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                 <>
                   <button
                     onClick={() => setShowInvite(true)}
-                    className="px-3 py-2 text-sm text-primary hover:bg-primary/10 rounded-lg transition-colors flex items-center gap-1"
+                    className="px-2 py-1.5 text-xs text-primary hover:bg-primary/10 rounded transition-colors flex items-center gap-1"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                     </svg>
                     <span>Invite</span>
                   </button>
                   <button
                     onClick={() => setShowAPIKeys(true)}
-                    className="px-3 py-2 text-sm text-muted-foreground hover:bg-accent rounded-lg transition-colors flex items-center gap-1"
+                    className="px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent rounded transition-colors flex items-center gap-1"
                     title="Manage API Keys"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -181,7 +181,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                   </button>
                   <button
                     onClick={() => setShowAISettings(true)}
-                    className="px-3 py-2 text-sm text-primary hover:bg-primary/10 rounded-lg transition-colors flex items-center gap-1"
+                    className="px-2 py-1.5 text-xs text-primary hover:bg-primary/10 rounded transition-colors flex items-center gap-1"
                     title="AI Settings"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -198,7 +198,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2 text-muted-foreground hover:bg-accent rounded-lg transition-colors"
+            className="p-1.5 text-muted-foreground hover:bg-accent rounded transition-colors"
             title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
           >
             {theme === 'light' ? (
@@ -215,7 +215,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           {/* Invites notification bell */}
           <button
             onClick={() => navigate('/invites')}
-            className="relative p-2 text-muted-foreground hover:bg-accent rounded-lg transition-colors"
+            className="relative p-1.5 text-muted-foreground hover:bg-accent rounded transition-colors"
             title="Team Invites"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -231,9 +231,9 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-1 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 hover:bg-accent rounded-lg transition-colors"
+              className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-1 sm:py-1.5 hover:bg-accent rounded transition-colors"
             >
-              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-medium">
+              <div className="w-7 h-7 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-xs font-medium">
                 {user?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
               </div>
               <span className="text-sm text-foreground hidden sm:block">{user?.name || user?.email}</span>

@@ -289,10 +289,10 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
   const hasRequestBody = request && (request.body !== undefined && request.body !== null);
 
   return (
-    <div className="h-full w-full flex flex-col p-3 md:p-6 overflow-hidden">
+    <div className="h-full w-full flex flex-col p-2 md:p-3 overflow-hidden">
       {/* Status Bar */}
       {response && (
-        <div className="mb-3 md:mb-4 flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-6 bg-card rounded-lg border border-border p-2.5 sm:p-3 md:p-4 shadow-sm sm:items-center flex-wrap">
+        <div className="mb-2 md:mb-3 flex flex-col sm:flex-row gap-1.5 sm:gap-2 md:gap-4 bg-card rounded border border-border p-2 sm:p-2.5 shadow-sm sm:items-center flex-wrap">
           {request && (
             <div className="flex items-center gap-2 min-w-0">
               <span className={`font-bold text-sm px-3 py-1 rounded ${getMethodColor(request.method)}`}>
@@ -306,7 +306,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-xs sm:text-sm font-medium text-muted-foreground">Status:</span>
             <span
-              className="font-bold text-base px-3 py-1 rounded"
+              className="font-bold text-sm px-2 py-0.5 rounded"
               style={{
                 color: getStatusColor(response.status),
                 backgroundColor: response.status >= 200 && response.status < 300
@@ -400,11 +400,11 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
       )}
 
       {/* Tabs */}
-      <div className="mb-3 md:mb-4 flex gap-1 sm:gap-2 border-b border-border overflow-x-auto">
+      <div className="mb-2 md:mb-3 flex gap-0.5 sm:gap-1 border-b border-border overflow-x-auto">
         <button
           onClick={() => setActiveTab('body')}
           className={`
-            px-3 sm:px-5 py-2 sm:py-2.5 font-semibold text-xs sm:text-sm transition-all duration-150 border-b-2 whitespace-nowrap
+            px-2.5 sm:px-3 py-1.5 sm:py-2 font-semibold text-xs transition-all duration-150 border-b-2 whitespace-nowrap
             ${activeTab === 'body'
               ? 'border-primary text-primary bg-primary/10'
               : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-accent'
@@ -416,7 +416,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
         <button
           onClick={() => setActiveTab('headers')}
           className={`
-            px-3 sm:px-5 py-2 sm:py-2.5 font-semibold text-xs sm:text-sm transition-all duration-150 border-b-2 whitespace-nowrap
+            px-2.5 sm:px-3 py-1.5 sm:py-2 font-semibold text-xs transition-all duration-150 border-b-2 whitespace-nowrap
             ${activeTab === 'headers'
               ? 'border-primary text-primary bg-primary/10'
               : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-accent'
@@ -429,7 +429,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
           <button
             onClick={() => setActiveTab('request')}
             className={`
-              px-3 sm:px-5 py-2 sm:py-2.5 font-semibold text-xs sm:text-sm transition-all duration-150 border-b-2 whitespace-nowrap
+              px-2.5 sm:px-3 py-1.5 sm:py-2 font-semibold text-xs transition-all duration-150 border-b-2 whitespace-nowrap
               ${activeTab === 'request'
                 ? 'border-primary text-primary bg-primary/10'
                 : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-accent'
@@ -443,7 +443,7 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
           <button
             onClick={() => setActiveTab('schema')}
             className={`
-              px-3 sm:px-5 py-2 sm:py-2.5 font-semibold text-xs sm:text-sm transition-all duration-150 border-b-2 whitespace-nowrap
+              px-2.5 sm:px-3 py-1.5 sm:py-2 font-semibold text-xs transition-all duration-150 border-b-2 whitespace-nowrap
               ${activeTab === 'schema'
                 ? 'border-primary text-primary bg-primary/10'
                 : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-accent'
@@ -601,10 +601,10 @@ export default function ResponseViewer({ response, request, onSaveResponse, canS
 
         {/* Response Headers Tab */}
         {activeTab === 'headers' && response && (
-          <div className="h-full w-full bg-card border-2 border-border rounded-lg shadow-md p-5 overflow-auto">
+          <div className="h-full w-full bg-card border-2 border-border rounded-lg shadow-md p-3 overflow-auto">
             {Object.keys(response.headers).length > 0 ? (
               Object.entries(response.headers).map(([key, value]) => (
-                <div key={key} className="mb-4 pb-4 border-b border-border last:border-b-0 last:pb-0 last:mb-0">
+                <div key={key} className="mb-2 pb-2 border-b border-border last:border-b-0 last:pb-0 last:mb-0">
                   <div className="font-bold text-sm text-primary mb-2">{key}</div>
                   <div className="text-sm text-foreground break-all font-mono bg-muted p-2 rounded">{value}</div>
                 </div>

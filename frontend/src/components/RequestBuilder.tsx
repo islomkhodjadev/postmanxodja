@@ -281,7 +281,7 @@ export default function RequestBuilder({
   };
 
   return (
-    <div className="p-3 md:p-6 h-full overflow-auto">
+    <div className="p-2 md:p-3 h-full overflow-auto">
       {selectedEnvId && (
         <div className="p-3 mb-4 bg-primary/10 border-l-4 border-primary rounded-r-lg">
           <p className="text-sm text-primary">
@@ -289,7 +289,7 @@ export default function RequestBuilder({
           </p>
         </div>
       )}
-      <div className="mb-3 md:mb-6 space-y-2 md:space-y-0 md:flex md:gap-3 md:items-center">
+      <div className="mb-2 md:mb-3 space-y-2 md:space-y-0 md:flex md:gap-2 md:items-center">
         <div className="flex gap-2 items-center md:flex-1 md:min-w-0">
           <select
             value={method}
@@ -297,7 +297,7 @@ export default function RequestBuilder({
               setMethod(e.target.value);
               notifyUpdate({ method: e.target.value });
             }}
-            className="border border-border rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-ring focus:border-ring outline-none bg-card text-foreground shadow-sm flex-shrink-0"
+            className="border border-border rounded px-2 py-1.5 text-sm font-medium focus:ring-2 focus:ring-ring focus:border-ring outline-none bg-card text-foreground shadow-sm flex-shrink-0"
           >
             <option>GET</option>
             <option>POST</option>
@@ -420,7 +420,7 @@ export default function RequestBuilder({
         <div className="flex border-b border-border">
           <button
             onClick={() => setActiveSection('params')}
-            className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
+            className={`relative px-3 py-1.5 text-xs font-medium transition-colors ${
               activeSection === 'params'
                 ? 'text-primary'
                 : 'text-muted-foreground hover:text-foreground'
@@ -440,7 +440,7 @@ export default function RequestBuilder({
           </button>
           <button
             onClick={() => setActiveSection('headers')}
-            className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
+            className={`relative px-3 py-1.5 text-xs font-medium transition-colors ${
               activeSection === 'headers'
                 ? 'text-primary'
                 : 'text-muted-foreground hover:text-foreground'
@@ -460,7 +460,7 @@ export default function RequestBuilder({
           </button>
           <button
             onClick={() => setActiveSection('body')}
-            className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
+            className={`relative px-3 py-1.5 text-xs font-medium transition-colors ${
               activeSection === 'body'
                 ? 'text-primary'
                 : 'text-muted-foreground hover:text-foreground'
@@ -481,7 +481,7 @@ export default function RequestBuilder({
         </div>
 
         {/* Tab Content */}
-        <div className="p-4">
+        <div className="p-2.5">
           {/* Params Tab */}
           {activeSection === 'params' && (
             <div>
