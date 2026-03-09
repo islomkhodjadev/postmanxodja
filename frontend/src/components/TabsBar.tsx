@@ -138,8 +138,8 @@ export default function TabsBar({
             onClick={() => onTabSelect(tab.id)}
             style={{ transition: 'none' }}
             className={`
-              group flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 md:px-4 py-3 md:py-2.5 cursor-pointer font-semibold text-sm border-b-2
-              min-w-[100px] sm:min-w-[120px] md:min-w-[140px] max-w-[180px] md:max-w-[220px] flex-shrink-0
+              group flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 md:px-3 py-2 md:py-1.5 cursor-pointer font-semibold text-xs border-b-2
+              min-w-[80px] sm:min-w-[100px] md:min-w-[120px] max-w-[160px] md:max-w-[200px] flex-shrink-0
               ${activeTabId === tab.id
                 ? 'border-primary text-primary bg-primary/10'
                 : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-accent'
