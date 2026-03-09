@@ -106,8 +106,8 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
             <div
               className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
                 networkMode === 'offline'
-                  ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
-                  : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'
+                  ? 'bg-destructive/10 text-destructive'
+                  : 'bg-muted text-muted-foreground'
               }`}
               title={
                 networkMode === 'offline'
@@ -118,8 +118,8 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
               <span
                 className={`w-2 h-2 rounded-full ${
                   networkMode === 'offline'
-                    ? 'bg-red-500 dark:bg-red-400'
-                    : 'bg-yellow-500 dark:bg-yellow-400'
+                    ? 'bg-destructive'
+                    : 'bg-muted-foreground'
                 }`}
               />
               {networkMode === 'offline' ? 'Offline' : 'Local Only'}
@@ -131,8 +131,8 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
             <div
               className={`md:hidden w-2.5 h-2.5 rounded-full ${
                 networkMode === 'offline'
-                  ? 'bg-red-500'
-                  : 'bg-yellow-500'
+                  ? 'bg-destructive'
+                  : 'bg-muted-foreground'
               }`}
               title={networkMode === 'offline' ? 'Offline' : 'Local Only'}
             />
@@ -181,7 +181,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                   </button>
                   <button
                     onClick={() => setShowAISettings(true)}
-                    className="px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors flex items-center gap-1"
+                    className="px-3 py-2 text-sm text-primary hover:bg-primary/10 rounded-lg transition-colors flex items-center gap-1"
                     title="AI Settings"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -222,7 +222,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
             {pendingInvitesCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+              <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
                 {pendingInvitesCount > 9 ? '9+' : pendingInvitesCount}
               </span>
             )}
@@ -233,7 +233,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-1 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 hover:bg-accent rounded-lg transition-colors"
             >
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-medium">
                 {user?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
               </div>
               <span className="text-sm text-foreground hidden sm:block">{user?.name || user?.email}</span>
@@ -260,7 +260,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                     >
                       <span>My Invites</span>
                       {pendingInvitesCount > 0 && (
-                        <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                        <span className="bg-destructive text-destructive-foreground text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center">
                           {pendingInvitesCount}
                         </span>
                       )}
@@ -300,7 +300,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                     )}
                     <button
                       onClick={handleLogout}
-                      className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      className="w-full px-4 py-2 text-left text-sm text-destructive hover:bg-destructive/10"
                     >
                       Sign out
                     </button>

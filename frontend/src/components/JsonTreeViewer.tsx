@@ -31,12 +31,12 @@ function JsonNode({ keyName, value, path, collapsed, onToggle, isLast, depth }: 
       displayClass = 'text-muted-foreground italic';
       displayValue = 'null';
     } else if (typeof value === 'boolean') {
-      displayClass = 'text-purple-600 dark:text-purple-400';
+      displayClass = 'text-chart-5';
       displayValue = String(value);
     } else if (typeof value === 'number') {
-      displayClass = 'text-blue-600 dark:text-blue-400';
+      displayClass = 'text-primary';
     } else if (typeof value === 'string') {
-      displayClass = 'text-green-600 dark:text-green-400';
+      displayClass = 'text-chart-2';
       displayValue = `"${value}"`;
     }
 
@@ -44,7 +44,7 @@ function JsonNode({ keyName, value, path, collapsed, onToggle, isLast, depth }: 
       <div className="flex items-start py-0.5 hover:bg-accent/50" style={{ paddingLeft: indent }}>
         <span className="w-4 flex-shrink-0" />
         {keyName !== undefined && (
-          <span className="text-red-600 dark:text-red-400 mr-1 flex-shrink-0">"{keyName}"<span className="text-muted-foreground">: </span></span>
+          <span className="text-chart-1 mr-1 flex-shrink-0">"{keyName}"<span className="text-muted-foreground">: </span></span>
         )}
         <span className={`${displayClass} break-all`}>{displayValue}</span>
         <span className="text-muted-foreground">{comma}</span>
@@ -72,7 +72,7 @@ function JsonNode({ keyName, value, path, collapsed, onToggle, isLast, depth }: 
           {isCollapsed ? '▶' : '▼'}
         </span>
         {keyName !== undefined && (
-          <span className="text-red-600 dark:text-red-400 mr-1">"{keyName}"<span className="text-muted-foreground">: </span></span>
+          <span className="text-chart-1 mr-1">"{keyName}"<span className="text-muted-foreground">: </span></span>
         )}
         <span className="text-foreground">{openBrace}</span>
         {isCollapsed && (
@@ -162,9 +162,9 @@ const JsonTreeViewer = forwardRef<JsonTreeViewerHandle, { data: unknown }>(funct
     let displayClass = 'text-foreground';
     let displayValue = JSON.stringify(data);
     if (data === null) displayClass = 'text-muted-foreground italic';
-    else if (typeof data === 'boolean') displayClass = 'text-purple-600 dark:text-purple-400';
-    else if (typeof data === 'number') displayClass = 'text-blue-600 dark:text-blue-400';
-    else if (typeof data === 'string') displayClass = 'text-green-600 dark:text-green-400';
+    else if (typeof data === 'boolean') displayClass = 'text-chart-5';
+    else if (typeof data === 'number') displayClass = 'text-primary';
+    else if (typeof data === 'string') displayClass = 'text-chart-2';
 
     return (
       <div className="font-mono text-sm p-3">

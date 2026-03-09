@@ -108,7 +108,7 @@ export default function EnvironmentPanel({ onUpdate }: Props) {
         {!showForm && isExpanded && (
           <button
             onClick={(e) => { e.stopPropagation(); setShowForm(true); }}
-            className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg shadow-sm "
+            className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs rounded-lg shadow-sm "
           >
             New
           </button>
@@ -117,9 +117,9 @@ export default function EnvironmentPanel({ onUpdate }: Props) {
 
       {isExpanded && showForm && (
         <div className="mx-4 mb-4 p-4 bg-muted rounded-lg border border-border">
-          <div className="p-3 mb-4 bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 rounded-r-lg">
-            <p className="text-xs text-yellow-800 dark:text-yellow-200">
-              Define variables here, then use them in requests with <code className="bg-white dark:bg-gray-600 px-1.5 py-0.5 rounded text-xs font-mono">{'{{variableName}}'}</code>
+          <div className="p-3 mb-4 bg-primary/10 border-l-4 border-primary rounded-r-lg">
+            <p className="text-xs text-primary">
+              Define variables here, then use them in requests with <code className="bg-card px-1.5 py-0.5 rounded text-xs font-mono">{'{{variableName}}'}</code>
             </p>
           </div>
           <input
@@ -151,7 +151,7 @@ export default function EnvironmentPanel({ onUpdate }: Props) {
                 />
                 <button
                   onClick={() => removeVariable(index)}
-                  className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm  flex-shrink-0"
+                  className="px-3 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-sm  flex-shrink-0"
                 >
                   ×
                 </button>
@@ -174,7 +174,7 @@ export default function EnvironmentPanel({ onUpdate }: Props) {
             </button>
             <button
               onClick={resetForm}
-              className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm shadow-sm "
+              className="px-4 py-2 bg-muted hover:bg-accent text-foreground rounded-lg text-sm shadow-sm "
             >
               Cancel
             </button>
@@ -204,7 +204,7 @@ export default function EnvironmentPanel({ onUpdate }: Props) {
                 </button>
                 <button
                   onClick={() => env.id && handleDelete(env.id)}
-                  className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded "
+                  className="px-2 py-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground text-xs rounded "
                 >
                   Del
                 </button>

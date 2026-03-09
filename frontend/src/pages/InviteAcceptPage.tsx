@@ -83,8 +83,8 @@ export default function InviteAcceptPage() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="max-w-md w-full mx-4">
           <div className="bg-card rounded-xl shadow-lg p-8 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
@@ -130,14 +130,14 @@ export default function InviteAcceptPage() {
           </div>
 
           {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
+            <div className="bg-destructive/10 text-destructive p-3 rounded-lg mb-4 text-sm">
               {error}
             </div>
           )}
 
           {emailMismatch ? (
             <div className="space-y-4">
-              <div className="bg-yellow-50 text-yellow-800 p-4 rounded-lg text-sm">
+              <div className="bg-muted text-muted-foreground p-4 rounded-lg text-sm">
                 <p className="font-medium mb-1">Email mismatch</p>
                 <p>This invite was sent to <strong>{invite?.invitee_email}</strong>, but you're logged in as <strong>{user?.email}</strong>.</p>
               </div>

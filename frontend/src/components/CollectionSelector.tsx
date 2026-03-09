@@ -162,8 +162,8 @@ export default function CollectionSelector({
     return (
       <div key={pathKey}>
         <div
-          className={`py-2 px-3 flex items-center justify-between hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer transition-colors ${
-            isSelected ? 'bg-blue-100 dark:bg-blue-900/40 border-l-4 border-blue-500' : ''
+          className={`py-2 px-3 flex items-center justify-between hover:bg-accent cursor-pointer transition-colors ${
+            isSelected ? 'bg-primary/10 border-l-4 border-primary' : ''
           }`}
           style={{ paddingLeft }}
         >
@@ -180,7 +180,7 @@ export default function CollectionSelector({
                 {isExpanded ? '▼' : '▶'}
               </span>
             )}
-            <span className={`${isAFolder ? 'text-yellow-500' : 'text-blue-500'}`}>
+            <span className={`${isAFolder ? 'text-primary' : 'text-primary'}`}>
               {isAFolder ? (
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
@@ -236,8 +236,8 @@ export default function CollectionSelector({
       <div key={collection.id} className="border-b border-border last:border-b-0">
         {/* Collection header */}
         <div
-          className={`py-3 px-4 flex items-center justify-between hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer ${
-            isSelected ? 'bg-blue-100 dark:bg-blue-900/40 border-l-4 border-blue-500' : ''
+          className={`py-3 px-4 flex items-center justify-between hover:bg-accent cursor-pointer ${
+            isSelected ? 'bg-primary/10 border-l-4 border-primary' : ''
           }`}
         >
           <div 
@@ -247,7 +247,7 @@ export default function CollectionSelector({
             <span className="text-muted-foreground text-xs w-4">
               {isExpanded ? '▼' : '▶'}
             </span>
-            <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
               <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
             </svg>
             <div className="flex flex-col">
@@ -306,13 +306,13 @@ export default function CollectionSelector({
         <div className="flex-1 overflow-y-auto min-h-0">
           {loading ? (
             <div className="p-8 text-center">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               <p className="mt-2 text-muted-foreground">Loading collections...</p>
             </div>
           ) : error ? (
             <div className="p-8 text-center">
-              <div className="text-red-500 mb-2">⚠️</div>
-              <p className="text-red-600">{error}</p>
+              <div className="text-destructive mb-2">⚠️</div>
+              <p className="text-destructive">{error}</p>
               <button
                 onClick={loadCollections}
                 className="mt-3 px-4 py-2 text-sm bg-muted hover:bg-accent rounded-lg transition-colors"
@@ -333,10 +333,10 @@ export default function CollectionSelector({
 
         <div className="p-4 border-t border-border bg-accent/50">
           {selectedNode && (
-            <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+            <div className="mb-3 p-3 bg-primary/10 rounded-lg">
               <div className="text-sm text-muted-foreground">
                 <span className="font-medium">Selected: </span>
-                <span className="text-blue-600">
+                <span className="text-primary">
                   {selectedNode.isCollection ? '📁 ' : '📂 '}
                   {selectedNode.nodePath.length > 0 
                     ? selectedNode.nodePath.join(' → ') 

@@ -65,7 +65,7 @@ export function SaveButton({
           ? "bg-primary hover:bg-primary/90 text-primary-foreground"
           : status === "saving"
             ? "bg-primary/80 text-primary-foreground cursor-not-allowed"
-            : "bg-green-500 text-white",
+            : "bg-primary text-primary-foreground",
         className,
       ].filter(Boolean).join(" ")}
     >

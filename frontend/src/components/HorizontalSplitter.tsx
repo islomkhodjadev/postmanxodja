@@ -78,7 +78,7 @@ export default function HorizontalSplitter({
         {!collapsed && (
           <div
             className={`
-              w-1 h-full cursor-col-resize hover:bg-blue-400               ${isDragging ? 'bg-blue-500' : 'bg-muted'}
+              w-1 h-full cursor-col-resize hover:bg-primary               ${isDragging ? 'bg-primary' : 'bg-muted'}
             `}
             onMouseDown={handleMouseDown}
           />
