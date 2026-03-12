@@ -45,11 +45,13 @@ func CreateCollection(c *gin.Context) {
 }
 
 // ImportCollection imports a Postman collection
+// Supports mode: "replace" (update existing), "duplicate" (create copy), or "" (detect conflict)
 func ImportCollection(c *gin.Context) {
 	teamID := c.GetUint("team_id")
 
 	var req struct {
 		CollectionJSON string `json:"collection_json" binding:"required"`
+		Mode           string `json:"mode"` // "replace", "duplicate", or "" (default: detect conflict)
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -67,7 +69,60 @@ func ImportCollection(c *gin.Context) {
 	// Extract info
 	name, description := services.ExtractCollectionInfo(collection)
 
-	// Save to database
+	// Check for existing collection with same name
+	var existing models.Collection
+	hasExisting := database.GetDB().Where("name = ? AND team_id = ?", name, teamID).First(&existing).Error == nil
+
+	if hasExisting && req.Mode == "" {
+		// Return conflict so frontend can ask user what to do
+		c.JSON(http.StatusConflict, gin.H{
+			"error":       "Collection with this name already exists",
+			"existing_id": existing.ID,
+			"name":        name,
+		})
+		return
+	}
+
+	if hasExisting && req.Mode == "replace" {
+		// Replace existing collection
+		existing.Name = name
+		existing.Description = description
+		existing.RawJSON = req.CollectionJSON
+
+		// Handle variables — update or create environment
+		if len(collection.Variable) > 0 {
+			variables := make(models.Variables)
+			for _, v := range collection.Variable {
+				variables[v.Key] = v.Value
+			}
+
+			if existing.EnvironmentID != nil {
+				// Update existing linked environment
+				database.GetDB().Model(&models.Environment{}).Where("id = ?", *existing.EnvironmentID).Updates(map[string]interface{}{
+					"variables": variables,
+				})
+			} else {
+				env := models.Environment{
+					Name:      name + " Environment",
+					Variables: variables,
+					TeamID:    &teamID,
+				}
+				if err := database.GetDB().Create(&env).Error; err == nil {
+					existing.EnvironmentID = &env.ID
+				}
+			}
+		}
+
+		if err := database.GetDB().Save(&existing).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update collection"})
+			return
+		}
+
+		c.JSON(http.StatusOK, existing)
+		return
+	}
+
+	// Mode is "duplicate" or no existing collection — create new
 	dbCollection := models.Collection{
 		Name:        name,
 		Description: description,
