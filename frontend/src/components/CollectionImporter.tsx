@@ -8,10 +8,16 @@ interface Props {
   onUCodeImport?: () => void;
 }
 
+interface DuplicateInfo {
+  name: string;
+  collectionJSON: string;
+}
+
 export default function CollectionImporter({ onImportSuccess, onUCodeImport }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [duplicateInfo, setDuplicateInfo] = useState<DuplicateInfo | null>(null);
   const { currentTeam } = useTeam();
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -21,15 +27,40 @@ export default function CollectionImporter({ onImportSuccess, onUCodeImport }: P
     setLoading(true);
     setError(null);
 
+    const text = await file.text();
+    e.target.value = '';
+
     try {
-      const text = await file.text();
       await importCollection(currentTeam.id, text);
       onImportSuccess();
-      e.target.value = '';
+    } catch (err: any) {
+      if (err.response?.status === 409) {
+        setDuplicateInfo({
+          name: err.response.data.name,
+          collectionJSON: text,
+        });
+      } else {
+        setError(err.response?.data?.error || 'Failed to import collection');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDuplicateChoice = async (mode: 'replace' | 'duplicate') => {
+    if (!duplicateInfo || !currentTeam) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      await importCollection(currentTeam.id, duplicateInfo.collectionJSON, mode);
+      onImportSuccess();
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to import collection');
     } finally {
       setLoading(false);
+      setDuplicateInfo(null);
     }
   };
 
@@ -139,6 +170,41 @@ export default function CollectionImporter({ onImportSuccess, onUCodeImport }: P
         placeholder="My Collection"
         confirmText="Create"
       />
+
+      {/* Duplicate Collection Dialog */}
+      {duplicateInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-card border border-border rounded-xl shadow-lg p-6 max-w-sm w-full mx-4">
+            <h3 className="text-lg font-semibold text-foreground mb-2">Collection Already Exists</h3>
+            <p className="text-sm text-muted-foreground mb-5">
+              A collection named <span className="font-medium text-foreground">"{duplicateInfo.name}"</span> already exists. What would you like to do?
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => handleDuplicateChoice('replace')}
+                disabled={loading}
+                className="w-full px-4 py-2.5 rounded-lg font-medium text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                Replace Existing
+              </button>
+              <button
+                onClick={() => handleDuplicateChoice('duplicate')}
+                disabled={loading}
+                className="w-full px-4 py-2.5 rounded-lg font-medium text-sm bg-accent text-accent-foreground hover:bg-accent/70 transition-colors disabled:opacity-50"
+              >
+                Keep Both
+              </button>
+              <button
+                onClick={() => setDuplicateInfo(null)}
+                disabled={loading}
+                className="w-full px-4 py-2.5 rounded-lg font-medium text-sm text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

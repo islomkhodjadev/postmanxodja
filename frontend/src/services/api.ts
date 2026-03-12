@@ -43,8 +43,8 @@ export const createCollection = async (teamId: number, name: string, description
   return response.data;
 };
 
-export const importCollection = async (teamId: number, collectionJSON: string): Promise<Collection> => {
-  const response = await api.post(`/teams/${teamId}/collections/import`, { collection_json: collectionJSON });
+export const importCollection = async (teamId: number, collectionJSON: string, mode?: 'replace' | 'duplicate'): Promise<Collection> => {
+  const response = await api.post(`/teams/${teamId}/collections/import`, { collection_json: collectionJSON, mode: mode || '' });
   return response.data;
 };
 
