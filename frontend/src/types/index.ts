@@ -149,6 +149,119 @@ export interface PostmanVariable {
 
 export type BodyType = 'none' | 'raw' | 'form-data' | 'x-www-form-urlencoded';
 
+export type AuthType =
+  | 'inherit'
+  | 'noauth'
+  | 'basic'
+  | 'bearer'
+  | 'jwt'
+  | 'digest'
+  | 'oauth1'
+  | 'oauth2'
+  | 'hawk'
+  | 'awssig'
+  | 'ntlm'
+  | 'apikey'
+  | 'akamai'
+  | 'asap';
+
+export interface Authorization {
+  type: AuthType;
+  // Basic Auth
+  basic?: {
+    username?: string;
+    password?: string;
+  };
+  // Bearer Token
+  bearer?: {
+    token?: string;
+  };
+  // JWT
+  jwt?: {
+    token?: string;
+    payload?: string;
+    secret?: string;
+  };
+  // Digest Auth
+  digest?: {
+    username?: string;
+    password?: string;
+    realm?: string;
+    nonce?: string;
+    uri?: string;
+    qop?: string;
+    nc?: string;
+    cnonce?: string;
+    opaque?: string;
+    algorithm?: string;
+  };
+  // OAuth 1.0
+  oauth1?: {
+    consumerKey?: string;
+    consumerSecret?: string;
+    accessToken?: string;
+    accessTokenSecret?: string;
+    signatureMethod?: string;
+    timestamp?: string;
+    nonce?: string;
+  };
+  // OAuth 2.0
+  oauth2?: {
+    accessToken?: string;
+    tokenType?: string;
+    grantType?: string;
+    clientId?: string;
+    clientSecret?: string;
+  };
+  // Hawk
+  hawk?: {
+    authId?: string;
+    authKey?: string;
+    algorithm?: string;
+    user?: string;
+    nonce?: string;
+    ext?: string;
+    app?: string;
+    dlg?: string;
+  };
+  // AWS Signature
+  awssig?: {
+    accessKey?: string;
+    secretKey?: string;
+    region?: string;
+    service?: string;
+    sessionToken?: string;
+  };
+  // NTLM
+  ntlm?: {
+    username?: string;
+    password?: string;
+    domain?: string;
+    workstation?: string;
+  };
+  // API Key
+  apikey?: {
+    key?: string;
+    value?: string;
+    addTo?: 'header' | 'query';
+  };
+  // Akamai EdgeGrid
+  akamai?: {
+    clientToken?: string;
+    clientSecret?: string;
+    accessToken?: string;
+    baseUri?: string;
+  };
+  // ASAP (Atlassian)
+  asap?: {
+    issuer?: string;
+    subject?: string;
+    keyId?: string;
+    privateKey?: string;
+    algorithm?: string;
+  };
+}
+
 export interface FormDataItem {
   key: string;
   value: string;
@@ -211,6 +324,7 @@ export interface RequestTab {
   bodyType?: BodyType;
   formData?: FormDataItem[];
   queryParams: Record<string, string>;
+  auth?: Authorization;
   request?: PostmanRequest;
   isDirty?: boolean;
   // Collection source info for syncing changes back

@@ -2,9 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { executeRequest } from '../services/api';
 import VariableInput from './VariableInput';
 import JsonTreeEditor from './JsonTreeEditor';
+import AuthorizationPanel from './AuthorizationPanel';
 import { SaveButton } from './ui/save-button';
 import { parseCurl, generateCurl } from '../utils/curlParser';
-import type { ExecuteRequest, ExecuteResponse, Environment, RequestTab, BodyType, FormDataItem, SentRequest } from '../types';
+import type { ExecuteRequest, ExecuteResponse, Environment, RequestTab, BodyType, FormDataItem, SentRequest, Authorization } from '../types';
 
 interface Props {
   environments: Environment[];
@@ -49,9 +50,10 @@ export default function RequestBuilder({
   );
   const [selectedEnvId, setSelectedEnvId] = useState<number | undefined>(initialEnvId);
   const [loading, setLoading] = useState(false);
-  const [activeSection, setActiveSection] = useState<'params' | 'headers' | 'body'>('params');
+  const [activeSection, setActiveSection] = useState<'params' | 'headers' | 'body' | 'auth'>('params');
   const [curlCopied, setCurlCopied] = useState(false);
   const [bodyViewMode, setBodyViewMode] = useState<'raw' | 'tree'>('raw');
+  const [auth, setAuth] = useState<Authorization | undefined>();
 
   // Track if this is the first render to skip initial onUpdate call
   const isInitialMount = useRef(true);
@@ -60,6 +62,121 @@ export default function RequestBuilder({
 
   // Ref to prevent infinite loops when syncing URL and query params
   const isUpdatingFromParams = useRef(false);
+
+  // Ref to prevent infinite loops when syncing auth and headers
+  const isSyncingAuth = useRef(false);
+
+  // Helper to generate auth from headers
+  const getAuthFromHeaders = (currentHeaders: Array<{ key: string; value: string }>): Authorization | undefined => {
+    const authHeader = currentHeaders.find(h => h.key.toLowerCase() === 'authorization')?.value;
+    if (!authHeader) {
+      // Check for other types of auth headers
+      const digestHeader = currentHeaders.find(h => h.key.toLowerCase() === 'x-digest-auth')?.value;
+      if (digestHeader) {
+        try {
+          return { type: 'digest', digest: JSON.parse(digestHeader) };
+        } catch { /* ignore */ }
+      }
+
+      const apiKeyHeader = currentHeaders.find(h => h.key.toLowerCase() === 'x-api-key')?.value;
+      if (apiKeyHeader) {
+        return { type: 'apikey', apikey: { key: 'X-API-Key', value: apiKeyHeader, addTo: 'header' } };
+      }
+
+      return undefined;
+    }
+
+    if (authHeader.startsWith('Basic ')) {
+      try {
+        const credentials = atob(authHeader.substring(6));
+        const [username, password] = credentials.split(':');
+        return { type: 'basic', basic: { username, password } };
+      } catch { /* ignore */ }
+    }
+
+    if (authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      return { type: 'bearer', bearer: { token } };
+    }
+
+    // Try to detect JWT
+    if (authHeader.split('.').length === 3) {
+      return { type: 'jwt', jwt: { token: authHeader } };
+    }
+
+    return undefined;
+  };
+
+  // Helper to apply authorization to headers
+  const applyAuthToHeaders = (currentHeaders: Record<string, string>): Record<string, string> => {
+    const headersWithAuth = { ...currentHeaders };
+
+    if (!auth || auth.type === 'noauth' || auth.type === 'inherit') {
+      return headersWithAuth;
+    }
+
+    if (auth.type === 'basic' && auth.basic?.username) {
+      const credentials = btoa(`${auth.basic.username}:${auth.basic.password || ''}`);
+      headersWithAuth['Authorization'] = `Basic ${credentials}`;
+    }
+
+    if (auth.type === 'bearer' && auth.bearer?.token) {
+      headersWithAuth['Authorization'] = `Bearer ${auth.bearer.token}`;
+    }
+
+    if (auth.type === 'jwt' && auth.jwt?.token) {
+      headersWithAuth['Authorization'] = `Bearer ${auth.jwt.token}`;
+    }
+
+    if (auth.type === 'digest' && auth.digest?.username) {
+      // Digest auth is typically handled by the backend
+      // For now, we'll store digest params as a header to be processed
+      headersWithAuth['X-Digest-Auth'] = JSON.stringify(auth.digest);
+    }
+
+    if (auth.type === 'oauth1' && auth.oauth1?.accessToken) {
+      // OAuth 1.0 requires complex signing - typically handled by backend
+      headersWithAuth['X-OAuth1-Auth'] = JSON.stringify(auth.oauth1);
+    }
+
+    if (auth.type === 'oauth2' && auth.oauth2?.accessToken) {
+      const tokenType = auth.oauth2.tokenType || 'Bearer';
+      headersWithAuth['Authorization'] = `${tokenType} ${auth.oauth2.accessToken}`;
+    }
+
+    if (auth.type === 'hawk' && auth.hawk?.authId) {
+      // Hawk auth requires complex header generation - typically handled by backend
+      headersWithAuth['X-Hawk-Auth'] = JSON.stringify(auth.hawk);
+    }
+
+    if (auth.type === 'awssig' && auth.awssig?.accessKey) {
+      // AWS Signature requires complex signing - typically handled by backend
+      headersWithAuth['X-AWS-Signature'] = JSON.stringify(auth.awssig);
+    }
+
+    if (auth.type === 'ntlm' && auth.ntlm?.username) {
+      // NTLM requires complex negotiation - typically handled by backend
+      headersWithAuth['X-NTLM-Auth'] = JSON.stringify(auth.ntlm);
+    }
+
+    if (auth.type === 'apikey' && auth.apikey?.key && auth.apikey?.value) {
+      if (auth.apikey.addTo === 'header') {
+        headersWithAuth[auth.apikey.key] = auth.apikey.value;
+      }
+    }
+
+    if (auth.type === 'akamai' && auth.akamai?.clientToken) {
+      // Akamai EdgeGrid requires complex header generation - typically handled by backend
+      headersWithAuth['X-Akamai-Auth'] = JSON.stringify(auth.akamai);
+    }
+
+    if (auth.type === 'asap' && auth.asap?.issuer) {
+      // ASAP requires JWT generation - typically handled by backend
+      headersWithAuth['X-ASAP-Auth'] = JSON.stringify(auth.asap);
+    }
+
+    return headersWithAuth;
+  };
 
   // Helper to parse query params from URL
   const parseQueryParamsFromUrl = (urlString: string): Array<{ key: string; value: string }> => {
@@ -113,6 +230,7 @@ export default function RequestBuilder({
     headers?: Array<{ key: string; value: string }>;
     body?: string;
     queryParams?: Array<{ key: string; value: string }>;
+    auth?: Authorization;
   }) => {
     if (isInitialMount.current) return;
     if (!onUpdateRef.current) return;
@@ -127,6 +245,7 @@ export default function RequestBuilder({
       headers: Object.fromEntries(currentHeaders.filter(h => h.key).map(h => [h.key, h.value])),
       body: updates.body ?? body,
       queryParams: Object.fromEntries(currentParams.filter(q => q.key).map(q => [q.key, q.value])),
+      auth: updates.auth !== undefined ? updates.auth : auth,
     };
 
     // Only auto-generate tab name for fresh "Untitled" tabs when the URL changes.
@@ -168,13 +287,22 @@ export default function RequestBuilder({
 
     try {
       const headersObj = Object.fromEntries(headers.filter(h => h.key).map(h => [h.key.trim(), h.value]));
+      const headersWithAuth = applyAuthToHeaders(headersObj);
+
+      // Handle API key in query params if needed
+      let finalUrl = url;
+      let finalQueryParams = { ...Object.fromEntries(queryParams.filter(q => q.key).map(q => [q.key.trim(), q.value])) };
+
+      if (auth?.type === 'apikey' && auth.apikey?.key && auth.apikey?.value && auth.apikey?.addTo === 'query') {
+        finalQueryParams[auth.apikey.key] = auth.apikey.value;
+      }
 
       // url already contains query params (synced by buildUrlWithParams),
       // so pass empty query_params to avoid duplication
       const request: ExecuteRequest = {
         method,
-        url,
-        headers: headersObj,
+        url: finalUrl,
+        headers: headersWithAuth,
         body: bodyType === 'raw' ? body : '',
         body_type: bodyType,
         form_data: bodyType === 'form-data' ? formData.filter(f => f.key) : undefined,
@@ -195,10 +323,10 @@ export default function RequestBuilder({
       const sentRequest: SentRequest = {
         method,
         url,
-        headers: headersObj,
+        headers: headersWithAuth,
         body: body, // Always pass the body, let the viewer handle display
         bodyType,
-        queryParams: Object.fromEntries(queryParams.filter(q => q.key).map(q => [q.key.trim(), q.value])),
+        queryParams: finalQueryParams,
         timestamp: Date.now(),
       };
 
@@ -221,14 +349,37 @@ export default function RequestBuilder({
   };
   const updateHeader = (index: number, field: 'key' | 'value', value: string) => {
     const newHeaders = [...headers];
-    newHeaders[index][field] = value;
+    newHeaders[index] = { ...newHeaders[index], [field]: value };
     setHeaders(newHeaders);
     notifyUpdate({ headers: newHeaders });
+
+    // Sync to auth if this looks like an authorization header
+    if (!isSyncingAuth.current) {
+      const detectedAuth = getAuthFromHeaders(newHeaders);
+      if (detectedAuth) {
+        isSyncingAuth.current = true;
+        setAuth(detectedAuth);
+        // Important: use the NEW headers here
+        notifyUpdate({ headers: newHeaders, auth: detectedAuth });
+        isSyncingAuth.current = false;
+      }
+    }
   };
   const removeHeader = (index: number) => {
     const newHeaders = headers.filter((_, i) => i !== index);
     setHeaders(newHeaders);
     notifyUpdate({ headers: newHeaders });
+
+    // If we removed the auth header, maybe reset auth?
+    if (!isSyncingAuth.current) {
+      const detectedAuth = getAuthFromHeaders(newHeaders);
+      if (!detectedAuth && auth && auth.type !== 'noauth' && auth.type !== 'inherit') {
+        isSyncingAuth.current = true;
+        setAuth({ type: 'noauth' });
+        notifyUpdate({ headers: newHeaders, auth: { type: 'noauth' } });
+        isSyncingAuth.current = false;
+      }
+    }
   };
 
   const addQueryParam = () => {
@@ -483,6 +634,24 @@ export default function RequestBuilder({
               )}
             </span>
             {activeSection === 'body' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveSection('auth')}
+            className={`relative px-3 py-1.5 text-xs font-medium transition-colors ${
+              activeSection === 'auth'
+                ? 'text-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="flex items-center gap-1.5">
+              Authorization
+              {auth && auth.type !== 'noauth' && auth.type !== 'inherit' && (
+                <span className="w-2 h-2 rounded-full bg-primary" />
+              )}
+            </span>
+            {activeSection === 'auth' && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
             )}
           </button>
@@ -829,6 +998,87 @@ export default function RequestBuilder({
                 </div>
               )}
             </div>
+          )}
+
+          {/* Authorization Tab */}
+          {activeSection === 'auth' && (
+            <AuthorizationPanel
+              auth={auth}
+              onAuthChange={(newAuth) => {
+                setAuth(newAuth);
+                notifyUpdate({ auth: newAuth });
+
+                // Sync to headers
+                if (!isSyncingAuth.current) {
+                  isSyncingAuth.current = true;
+                  const newHeaders = [...headers];
+
+                  // Keys that are managed by Authorization
+                  const authKeys = [
+                    'Authorization',
+                    'X-Digest-Auth',
+                    'X-OAuth1-Auth',
+                    'X-Hawk-Auth',
+                    'X-AWS-Signature',
+                    'X-NTLM-Auth',
+                    'X-Akamai-Auth',
+                    'X-ASAP-Auth'
+                  ];
+
+                  // If it's a new apikey, we need to add its key to managed keys
+                  if (newAuth?.type === 'apikey' && newAuth.apikey?.key) {
+                    authKeys.push(newAuth.apikey.key);
+                  }
+
+                  // Remove existing auth headers
+                  let filteredHeaders = newHeaders.filter(h => !authKeys.some(ak => ak.toLowerCase() === h.key.toLowerCase()));
+
+                  if (newAuth && newAuth.type !== 'noauth' && newAuth.type !== 'inherit') {
+                    // Generate headers for the NEW auth, not the state which might not be updated yet
+                    const tempHeadersWithAuth: Record<string, string> = {};
+                    
+                    if (newAuth.type === 'basic' && newAuth.basic?.username) {
+                      const credentials = btoa(`${newAuth.basic.username}:${newAuth.basic.password || ''}`);
+                      tempHeadersWithAuth['Authorization'] = `Basic ${credentials}`;
+                    } else if (newAuth.type === 'bearer' && newAuth.bearer?.token) {
+                      tempHeadersWithAuth['Authorization'] = `Bearer ${newAuth.bearer.token}`;
+                    } else if (newAuth.type === 'jwt' && newAuth.jwt?.token) {
+                      tempHeadersWithAuth['Authorization'] = `Bearer ${newAuth.jwt.token}`;
+                    } else if (newAuth.type === 'digest' && newAuth.digest?.username) {
+                      tempHeadersWithAuth['X-Digest-Auth'] = JSON.stringify(newAuth.digest);
+                    } else if (newAuth.type === 'oauth1' && newAuth.oauth1?.accessToken) {
+                      tempHeadersWithAuth['X-OAuth1-Auth'] = JSON.stringify(newAuth.oauth1);
+                    } else if (newAuth.type === 'oauth2' && newAuth.oauth2?.accessToken) {
+                      const tokenType = newAuth.oauth2.tokenType || 'Bearer';
+                      tempHeadersWithAuth['Authorization'] = `${tokenType} ${newAuth.oauth2.accessToken}`;
+                    } else if (newAuth.type === 'hawk' && newAuth.hawk?.authId) {
+                      tempHeadersWithAuth['X-Hawk-Auth'] = JSON.stringify(newAuth.hawk);
+                    } else if (newAuth.type === 'awssig' && newAuth.awssig?.accessKey) {
+                      tempHeadersWithAuth['X-AWS-Signature'] = JSON.stringify(newAuth.awssig);
+                    } else if (newAuth.type === 'ntlm' && newAuth.ntlm?.username) {
+                      tempHeadersWithAuth['X-NTLM-Auth'] = JSON.stringify(newAuth.ntlm);
+                    } else if (newAuth.type === 'apikey' && newAuth.apikey?.key && newAuth.apikey?.value && newAuth.apikey?.addTo === 'header') {
+                      tempHeadersWithAuth[newAuth.apikey.key] = newAuth.apikey.value;
+                    } else if (newAuth.type === 'akamai' && newAuth.akamai?.clientToken) {
+                      tempHeadersWithAuth['X-Akamai-Auth'] = JSON.stringify(newAuth.akamai);
+                    } else if (newAuth.type === 'asap' && newAuth.asap?.issuer) {
+                      tempHeadersWithAuth['X-ASAP-Auth'] = JSON.stringify(newAuth.asap);
+                    }
+
+                    // Add new auth headers
+                    Object.entries(tempHeadersWithAuth).forEach(([key, value]) => {
+                      filteredHeaders.push({ key, value });
+                    });
+                  }
+
+                  setHeaders(filteredHeaders);
+                  notifyUpdate({ auth: newAuth, headers: filteredHeaders });
+                  isSyncingAuth.current = false;
+                }
+              }}
+              environments={environments}
+              selectedEnvId={selectedEnvId}
+            />
           )}
         </div>
       </div>
