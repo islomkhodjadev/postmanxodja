@@ -80,15 +80,33 @@ type PostmanURL struct {
 }
 
 type PostmanKeyValue struct {
-	Key      string `json:"key"`
-	Value    string `json:"value"`
-	Disabled bool   `json:"disabled,omitempty"`
+	Key         string `json:"key"`
+	Value       string `json:"value"`
+	Description string `json:"description,omitempty"`
+	Disabled    bool   `json:"disabled,omitempty"`
 }
 
 type PostmanRequestBody struct {
-	Mode    string              `json:"mode"` // raw, formdata, urlencoded
-	Raw     string              `json:"raw,omitempty"`
-	Options *PostmanBodyOptions `json:"options,omitempty"`
+	Mode       string              `json:"mode"` // raw, formdata, urlencoded
+	Raw        string              `json:"raw,omitempty"`
+	FormData   []PostmanFormData   `json:"formdata,omitempty"`
+	Urlencoded []PostmanUrlEncoded `json:"urlencoded,omitempty"`
+	Options    *PostmanBodyOptions `json:"options,omitempty"`
+}
+
+type PostmanFormData struct {
+	Key         string `json:"key"`
+	Value       string `json:"value,omitempty"`
+	Description string `json:"description,omitempty"`
+	Type        string `json:"type,omitempty"` // text, file
+	Disabled    bool   `json:"disabled,omitempty"`
+}
+
+type PostmanUrlEncoded struct {
+	Key         string `json:"key"`
+	Value       string `json:"value,omitempty"`
+	Description string `json:"description,omitempty"`
+	Disabled    bool   `json:"disabled,omitempty"`
 }
 
 type PostmanBodyOptions struct {

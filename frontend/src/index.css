@@ -315,6 +315,16 @@ body {
     color: #9ca3af;
 }
 
+/* Comments */
+.vi-comment {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.dark .vi-comment {
+  color: #9ca3af;
+}
+
 /* ── Mobile Sidebar Drawer ── */
 
 .mobile-sidebar-backdrop {
