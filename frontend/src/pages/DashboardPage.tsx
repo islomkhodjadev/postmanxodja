@@ -25,9 +25,9 @@ const createNewTab = (): RequestTab => ({
   name: 'Untitled',
   method: 'GET',
   url: '',
-  headers: {},
+  headers: [],
   body: '',
-  queryParams: {},
+  queryParams: [],
 });
 
 export default function DashboardPage() {
@@ -86,9 +86,13 @@ export default function DashboardPage() {
             name: t.name,
             method: t.method,
             url: t.url,
-            headers: t.headers || {},
+            headers: Array.isArray(t.headers)
+              ? t.headers
+              : Object.entries(t.headers || {}).map(([key, value]) => ({ key, value: String(value), description: '' })),
             body: t.body,
-            queryParams: t.query_params || {},
+            queryParams: Array.isArray(t.query_params)
+              ? t.query_params
+              : Object.entries(t.query_params || {}).map(([key, value]) => ({ key, value: String(value), description: '' })),
           }));
           setTabs(loadedTabs);
           const activeTab = savedTabs.find(t => t.is_active);
@@ -313,16 +317,16 @@ export default function DashboardPage() {
       tab.name === 'Untitled' &&
       !tab.url &&
       !tab.body &&
-      Object.keys(tab.headers).length === 0
+      tab.headers.length === 0
     );
 
     const newTabData = {
       name: 'Imported Request',
       method: data.method,
       url: data.url,
-      headers: data.headers,
+      headers: Object.entries(data.headers).map(([key, value]) => ({ key, value, description: '' })),
       body: data.body,
-      queryParams: {},
+      queryParams: [],
     };
 
     if (emptyTab) {
@@ -379,18 +383,39 @@ export default function DashboardPage() {
         method: tab.method,
         url: {
           raw: tab.url,
-          query: Object.entries(tab.queryParams || {}).map(([key, value]) => ({
-            key,
-            value,
+          query: tab.queryParams.map(p => ({
+            key: p.key,
+            value: p.value,
+            description: p.description,
             disabled: false,
           })),
         },
-        header: Object.entries(tab.headers || {}).map(([key, value]) => ({
-          key,
-          value,
+        header: tab.headers.map(h => ({
+          key: h.key,
+          value: h.value,
+          description: h.description,
           disabled: false,
         })),
-        body: tab.body ? { mode: 'raw', raw: tab.body } : undefined,
+        body: tab.bodyType === 'raw' ? { mode: 'raw', raw: tab.body } :
+              tab.bodyType === 'form-data' ? {
+                mode: 'formdata',
+                formdata: tab.formData?.map(f => ({
+                  key: f.key,
+                  value: f.value,
+                  description: f.description,
+                  type: f.type,
+                  disabled: false
+                }))
+              } :
+              tab.bodyType === 'x-www-form-urlencoded' ? {
+                mode: 'urlencoded',
+                urlencoded: tab.formData?.map(f => ({
+                  key: f.key,
+                  value: f.value,
+                  description: f.description,
+                  disabled: false
+                }))
+              } : undefined,
       };
 
       if (tab.itemPath) {
@@ -938,9 +963,11 @@ export default function DashboardPage() {
                 key={activeTabId}
                 initialMethod={activeTab?.method || 'GET'}
                 initialUrl={activeTab?.url || ''}
-                initialHeaders={activeTab?.headers || {}}
+                initialHeaders={activeTab?.headers || []}
                 initialBody={activeTab?.body || ''}
-                initialQueryParams={activeTab?.queryParams || {}}
+                initialBodyType={activeTab?.bodyType || 'raw'}
+                initialFormData={activeTab?.formData || []}
+                initialQueryParams={activeTab?.queryParams || []}
                 initialName={activeTab?.name || 'Untitled'}
                 environments={environments}
                 initialEnvId={initialEnvId}

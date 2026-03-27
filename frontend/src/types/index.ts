@@ -128,17 +128,35 @@ export interface PostmanURL {
 export interface PostmanKeyValue {
   key: string;
   value: string;
+  description?: string;
   disabled?: boolean;
 }
 
 export interface PostmanRequestBody {
   mode: string;
   raw?: string;
+  formdata?: PostmanFormData[];
+  urlencoded?: PostmanUrlEncoded[];
   options?: {
     raw?: {
       language?: string;
     };
   };
+}
+
+export interface PostmanFormData {
+  key: string;
+  value?: string;
+  description?: string;
+  type?: 'text' | 'file';
+  disabled?: boolean;
+}
+
+export interface PostmanUrlEncoded {
+  key: string;
+  value?: string;
+  description?: string;
+  disabled?: boolean;
 }
 
 export interface PostmanVariable {
@@ -265,6 +283,7 @@ export interface Authorization {
 export interface FormDataItem {
   key: string;
   value: string;
+  description?: string;
   type: 'text' | 'file';
   file?: File;
 }
@@ -319,11 +338,11 @@ export interface RequestTab {
   name: string;
   method: string;
   url: string;
-  headers: Record<string, string>;
+  headers: Array<{ key: string; value: string; description?: string }>;
   body: string;
   bodyType?: BodyType;
   formData?: FormDataItem[];
-  queryParams: Record<string, string>;
+  queryParams: Array<{ key: string; value: string; description?: string }>;
   auth?: Authorization;
   request?: PostmanRequest;
   isDirty?: boolean;

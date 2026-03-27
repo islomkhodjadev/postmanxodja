@@ -12,9 +12,11 @@ interface Props {
   onResponse: (response: ExecuteResponse, sentRequest: SentRequest) => void;
   initialMethod?: string;
   initialUrl?: string;
-  initialHeaders?: Record<string, string>;
+  initialHeaders?: Array<{ key: string; value: string; description?: string }>;
   initialBody?: string;
-  initialQueryParams?: Record<string, string>;
+  initialBodyType?: BodyType;
+  initialFormData?: FormDataItem[];
+  initialQueryParams?: Array<{ key: string; value: string; description?: string }>;
   initialName?: string;
   initialEnvId?: number;
   onUpdate?: (updates: Partial<RequestTab>) => void;
@@ -28,9 +30,11 @@ export default function RequestBuilder({
   onResponse,
   initialMethod = 'GET',
   initialUrl = '',
-  initialHeaders = {},
+  initialHeaders = [],
   initialBody = '',
-  initialQueryParams = {},
+  initialBodyType = 'raw',
+  initialFormData = [],
+  initialQueryParams = [],
   initialName = 'Untitled',
   initialEnvId,
   onUpdate,
@@ -39,15 +43,11 @@ export default function RequestBuilder({
 }: Props) {
   const [method, setMethod] = useState(initialMethod);
   const [url, setUrl] = useState(initialUrl);
-  const [headers, setHeaders] = useState<Array<{ key: string; value: string }>>(() =>
-    Object.entries(initialHeaders).map(([key, value]) => ({ key, value }))
-  );
+  const [headers, setHeaders] = useState<Array<{ key: string; value: string; description?: string }>>(initialHeaders);
   const [body, setBody] = useState(initialBody);
-  const [bodyType, setBodyType] = useState<BodyType>('raw');
-  const [formData, setFormData] = useState<FormDataItem[]>([]);
-  const [queryParams, setQueryParams] = useState<Array<{ key: string; value: string }>>(() =>
-    Object.entries(initialQueryParams).map(([key, value]) => ({ key, value }))
-  );
+  const [bodyType, setBodyType] = useState<BodyType>(initialBodyType);
+  const [formData, setFormData] = useState<FormDataItem[]>(initialFormData);
+  const [queryParams, setQueryParams] = useState<Array<{ key: string; value: string; description?: string }>>(initialQueryParams);
   const [selectedEnvId, setSelectedEnvId] = useState<number | undefined>(initialEnvId);
   const [loading, setLoading] = useState(false);
   const [activeSection, setActiveSection] = useState<'params' | 'headers' | 'body' | 'auth'>('params');
@@ -343,11 +343,11 @@ export default function RequestBuilder({
   };
 
   const addHeader = () => {
-    const newHeaders = [...headers, { key: '', value: '' }];
+    const newHeaders = [...headers, { key: '', value: '', description: '' }];
     setHeaders(newHeaders);
     notifyUpdate({ headers: newHeaders });
   };
-  const updateHeader = (index: number, field: 'key' | 'value', value: string) => {
+  const updateHeader = (index: number, field: 'key' | 'value' | 'description', value: string) => {
     const newHeaders = [...headers];
     newHeaders[index] = { ...newHeaders[index], [field]: value };
     setHeaders(newHeaders);
@@ -383,7 +383,7 @@ export default function RequestBuilder({
   };
 
   const addQueryParam = () => {
-    const newParams = [...queryParams, { key: '', value: '' }];
+    const newParams = [...queryParams, { key: '', value: '', description: '' }];
     setQueryParams(newParams);
     // Update URL with new params
     isUpdatingFromParams.current = true;
@@ -392,9 +392,10 @@ export default function RequestBuilder({
     notifyUpdate({ queryParams: newParams, url: newUrl });
     isUpdatingFromParams.current = false;
   };
-  const updateQueryParam = (index: number, field: 'key' | 'value', value: string) => {
+
+  const updateQueryParam = (index: number, field: 'key' | 'value' | 'description', value: string) => {
     const newParams = [...queryParams];
-    newParams[index][field] = value;
+    newParams[index] = { ...newParams[index], [field]: value };
     setQueryParams(newParams);
     // Update URL with new params
     isUpdatingFromParams.current = true;
@@ -416,7 +417,7 @@ export default function RequestBuilder({
 
   // Form data management
   const addFormDataItem = () => {
-    setFormData([...formData, { key: '', value: '', type: 'text' }]);
+    setFormData([...formData, { key: '', value: '', description: '', type: 'text' }]);
   };
 
   const updateFormDataItem = (index: number, field: keyof FormDataItem, value: string | File) => {
@@ -426,7 +427,7 @@ export default function RequestBuilder({
     } else if (field === 'type') {
       newFormData[index] = { ...newFormData[index], type: value as 'text' | 'file', file: undefined };
     } else {
-      newFormData[index] = { ...newFormData[index], [field]: value as string };
+      newFormData[index] = { ...newFormData[index], [field]: value as any };
     }
     setFormData(newFormData);
   };
@@ -663,8 +664,8 @@ export default function RequestBuilder({
           {activeSection === 'params' && (
             <div>
               {queryParams.map((param, index) => (
-                <div key={index} className="flex flex-col gap-1 mb-3 md:flex-row md:gap-3 md:mb-2">
-                  <div className="w-full md:flex-1">
+                <div key={index} className="flex flex-col gap-1 mb-3 lg:flex-row lg:gap-3 lg:mb-2">
+                  <div className="w-full lg:w-1/4">
                     <label htmlFor={`param-key-${index}`} className="sr-only">Parameter key</label>
                     <input
                       id={`param-key-${index}`}
@@ -675,24 +676,33 @@ export default function RequestBuilder({
                       className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:border-ring outline-none bg-card text-foreground"
                     />
                   </div>
-                  <div className="flex gap-2 md:flex-1 md:min-w-0">
+                  <div className="w-full lg:w-1/3">
+                    <VariableInput
+                      value={param.value}
+                      onChange={(value) => updateQueryParam(index, 'value', value)}
+                      placeholder="Value"
+                      environments={environments}
+                      selectedEnvId={selectedEnvId}
+                    />
+                  </div>
+                  <div className="flex gap-2 lg:flex-1 lg:min-w-0">
                     <div className="flex-1 min-w-0">
-                      <VariableInput
-                        value={param.value}
-                        onChange={(value) => updateQueryParam(index, 'value', value)}
-                        placeholder="Value"
-                        environments={environments}
-                        selectedEnvId={selectedEnvId}
+                      <input
+                        type="text"
+                        value={param.description || ''}
+                        onChange={(e) => updateQueryParam(index, 'description', e.target.value)}
+                        placeholder="Description"
+                        className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:border-ring outline-none bg-card text-foreground"
                       />
                     </div>
                     <button
                       onClick={() => removeQueryParam(index)}
-                      className="p-2 md:px-3 md:py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-sm transition-colors duration-150 shrink-0"
+                      className="p-2 lg:px-3 lg:py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-sm transition-colors duration-150 shrink-0"
                     >
-                      <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 lg:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
-                      <span className="hidden md:inline">Remove</span>
+                      <span className="hidden lg:inline">Remove</span>
                     </button>
                   </div>
                 </div>
@@ -710,8 +720,8 @@ export default function RequestBuilder({
           {activeSection === 'headers' && (
             <div>
               {headers.map((header, index) => (
-                <div key={index} className="flex flex-col gap-1 mb-3 md:flex-row md:gap-3 md:mb-2">
-                  <div className="w-full md:flex-1">
+                <div key={index} className="flex flex-col gap-1 mb-3 lg:flex-row lg:gap-3 lg:mb-2">
+                  <div className="w-full lg:w-1/4">
                     <label htmlFor={`header-key-${index}`} className="sr-only">Header key</label>
                     <input
                       id={`header-key-${index}`}
@@ -722,24 +732,33 @@ export default function RequestBuilder({
                       className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:border-ring outline-none bg-card text-foreground"
                     />
                   </div>
-                  <div className="flex gap-2 md:flex-1 md:min-w-0">
+                  <div className="w-full lg:w-1/3">
+                    <VariableInput
+                      value={header.value}
+                      onChange={(value) => updateHeader(index, 'value', value)}
+                      placeholder="Value"
+                      environments={environments}
+                      selectedEnvId={selectedEnvId}
+                    />
+                  </div>
+                  <div className="flex gap-2 lg:flex-1 lg:min-w-0">
                     <div className="flex-1 min-w-0">
-                      <VariableInput
-                        value={header.value}
-                        onChange={(value) => updateHeader(index, 'value', value)}
-                        placeholder="Value"
-                        environments={environments}
-                        selectedEnvId={selectedEnvId}
+                      <input
+                        type="text"
+                        value={header.description || ''}
+                        onChange={(e) => updateHeader(index, 'description', e.target.value)}
+                        placeholder="Description"
+                        className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:border-ring outline-none bg-card text-foreground"
                       />
                     </div>
                     <button
                       onClick={() => removeHeader(index)}
-                      className="p-2 md:px-3 md:py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-sm transition-colors duration-150 shrink-0"
+                      className="p-2 lg:px-3 lg:py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-sm transition-colors duration-150 shrink-0"
                     >
-                      <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 lg:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
-                      <span className="hidden md:inline">Remove</span>
+                      <span className="hidden lg:inline">Remove</span>
                     </button>
                   </div>
                 </div>
@@ -878,9 +897,9 @@ export default function RequestBuilder({
               {bodyType === 'form-data' && (
                 <div>
                   {formData.map((item, index) => (
-                    <div key={index} className="flex flex-col gap-1 mb-3 md:flex-row md:gap-3 md:mb-2 md:items-center">
-                      <div className="flex gap-2">
-                        <div className="flex-1 md:w-auto">
+                    <div key={index} className="flex flex-col gap-1 mb-3 lg:flex-row lg:gap-3 lg:mb-2 lg:items-center">
+                      <div className="flex gap-2 lg:w-1/4">
+                        <div className="flex-1">
                           <label htmlFor={`formdata-key-${index}`} className="sr-only">Field key</label>
                           <input
                             id={`formdata-key-${index}`}
@@ -900,9 +919,9 @@ export default function RequestBuilder({
                           <option value="file">File</option>
                         </select>
                       </div>
-                      <div className="flex gap-2 md:flex-1 md:min-w-0">
+                      <div className="lg:w-1/3">
                         {item.type === 'text' ? (
-                          <div className="flex-1 min-w-0">
+                          <div className="w-full">
                             <VariableInput
                               value={item.value}
                               onChange={(value) => updateFormDataItem(index, 'value', value)}
@@ -912,7 +931,7 @@ export default function RequestBuilder({
                             />
                           </div>
                         ) : (
-                          <div className="flex-1 min-w-0">
+                          <div className="w-full">
                             <label className="flex items-center gap-2 cursor-pointer border border-border rounded-lg px-3 py-2 text-sm hover:bg-accent transition-colors text-foreground">
                               <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -931,14 +950,25 @@ export default function RequestBuilder({
                             </label>
                           </div>
                         )}
+                      </div>
+                      <div className="flex gap-2 lg:flex-1 lg:min-w-0">
+                        <div className="flex-1 min-w-0">
+                          <input
+                            type="text"
+                            value={item.description || ''}
+                            onChange={(e) => updateFormDataItem(index, 'description', e.target.value)}
+                            placeholder="Description"
+                            className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:border-ring outline-none bg-card text-foreground"
+                          />
+                        </div>
                         <button
                           onClick={() => removeFormDataItem(index)}
-                          className="p-2 md:px-3 md:py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-sm transition-colors duration-150 shrink-0"
+                          className="p-2 lg:px-3 lg:py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-sm transition-colors duration-150 shrink-0"
                         >
-                          <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4 lg:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
-                          <span className="hidden md:inline">Remove</span>
+                          <span className="hidden lg:inline">Remove</span>
                         </button>
                       </div>
                     </div>
@@ -955,8 +985,8 @@ export default function RequestBuilder({
               {bodyType === 'x-www-form-urlencoded' && (
                 <div>
                   {formData.map((item, index) => (
-                    <div key={index} className="flex flex-col gap-1 mb-3 md:flex-row md:gap-3 md:mb-2">
-                      <div className="w-full md:flex-1">
+                    <div key={index} className="flex flex-col gap-1 mb-3 lg:flex-row lg:gap-3 lg:mb-2">
+                      <div className="w-full lg:w-1/4">
                         <label htmlFor={`urlencoded-key-${index}`} className="sr-only">Field key</label>
                         <input
                           id={`urlencoded-key-${index}`}
@@ -967,24 +997,33 @@ export default function RequestBuilder({
                           className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:border-ring outline-none bg-card text-foreground"
                         />
                       </div>
-                      <div className="flex gap-2 md:flex-1 md:min-w-0">
+                      <div className="w-full lg:w-1/3">
+                        <VariableInput
+                          value={item.value}
+                          onChange={(value) => updateFormDataItem(index, 'value', value)}
+                          placeholder="Value"
+                          environments={environments}
+                          selectedEnvId={selectedEnvId}
+                        />
+                      </div>
+                      <div className="flex gap-2 lg:flex-1 lg:min-w-0">
                         <div className="flex-1 min-w-0">
-                          <VariableInput
-                            value={item.value}
-                            onChange={(value) => updateFormDataItem(index, 'value', value)}
-                            placeholder="Value"
-                            environments={environments}
-                            selectedEnvId={selectedEnvId}
+                          <input
+                            type="text"
+                            value={item.description || ''}
+                            onChange={(e) => updateFormDataItem(index, 'description', e.target.value)}
+                            placeholder="Description"
+                            className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:border-ring outline-none bg-card text-foreground"
                           />
                         </div>
                         <button
                           onClick={() => removeFormDataItem(index)}
-                          className="p-2 md:px-3 md:py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-sm transition-colors duration-150 shrink-0"
+                          className="p-2 lg:px-3 lg:py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-sm transition-colors duration-150 shrink-0"
                         >
-                          <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4 lg:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
-                          <span className="hidden md:inline">Remove</span>
+                          <span className="hidden lg:inline">Remove</span>
                         </button>
                       </div>
                     </div>
