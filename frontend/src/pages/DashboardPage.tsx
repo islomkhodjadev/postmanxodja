@@ -25,9 +25,9 @@ const createNewTab = (): RequestTab => ({
     name: 'Untitled',
     method: 'GET',
     url: '',
-    headers: {},
+    headers: [],
     body: '',
-    queryParams: {},
+    queryParams: [],
 });
 
 export default function DashboardPage() {
@@ -86,9 +86,9 @@ export default function DashboardPage() {
                         name: t.name,
                         method: t.method,
                         url: t.url,
-                        headers: t.headers || {},
+                        headers: Object.entries(t.headers || {}).map(([key, value]) => ({ key, value })),
                         body: t.body,
-                        queryParams: t.query_params || {},
+                        queryParams: Object.entries(t.query_params || {}).map(([key, value]) => ({ key, value })),
                     }));
                     setTabs(loadedTabs);
                     const activeTab = savedTabs.find(t => t.is_active);
@@ -211,21 +211,21 @@ export default function DashboardPage() {
         }
 
         // Extract headers
-        const headers: Record<string, string> = {};
+        const headers: any[] = [];
         if (request.header) {
             request.header.forEach((h: any) => {
                 if (!h.disabled) {
-                    headers[h.key] = h.value;
+                    headers.push({ key: h.key, value: h.value, description: h.description });
                 }
             });
         }
 
         // Extract query params from URL object
-        const queryParams: Record<string, string> = {};
+        const queryParams: any[] = [];
         if (request.url?.query) {
             request.url.query.forEach((q: any) => {
                 if (!q.disabled) {
-                    queryParams[q.key] = q.value;
+                    queryParams.push({ key: q.key, value: q.value, description: q.description });
                 }
             });
         }
@@ -236,7 +236,7 @@ export default function DashboardPage() {
             tab.itemPath === request.itemPath
         );
 
-        // If already open, just switch to it
+        // Check if already open, just switch to it
         if (existingTab) {
             setActiveTabId(existingTab.id);
             return;
@@ -247,7 +247,7 @@ export default function DashboardPage() {
             tab.name === 'Untitled' &&
             !tab.url &&
             !tab.body &&
-            Object.keys(tab.headers).length === 0
+            tab.headers.length === 0
         );
 
         const requestData = {
@@ -313,16 +313,16 @@ export default function DashboardPage() {
             tab.name === 'Untitled' &&
             !tab.url &&
             !tab.body &&
-            Object.keys(tab.headers).length === 0
+            tab.headers.length === 0
         );
 
         const newTabData = {
             name: 'Imported Request',
             method: data.method,
             url: data.url,
-            headers: data.headers,
+            headers: Object.entries(data.headers).map(([key, value]) => ({ key, value })),
             body: data.body,
-            queryParams: {},
+            queryParams: [],
         };
 
         if (emptyTab) {
@@ -713,16 +713,16 @@ export default function DashboardPage() {
                 ? origReq.url
                 : (origReq.url as any)?.raw || '')
             : '';
-        const origHeaders: Record<string, string> = origReq
-            ? Object.fromEntries((origReq.header || []).map(h => [h.key, h.value]))
-            : {};
+        const origHeaders: any[] = origReq
+            ? (origReq.header || []).map(h => ({ key: h.key, value: h.value }))
+            : [];
         const origBody = origReq?.body?.raw || '';
         const origMethod = origReq?.method || 'GET';
-        const origQueryParams: Record<string, string> = {};
+        const origQueryParams: any[] = [];
         if (origReq && typeof origReq.url === 'object' && origReq.url && 'query' in origReq.url) {
             const queryArr = (origReq.url as any).query || [];
             for (const q of queryArr) {
-                if (q.key && !q.disabled) origQueryParams[q.key] = q.value || '';
+                if (q.key && !q.disabled) origQueryParams.push({ key: q.key, value: q.value || '' });
             }
         }
 
@@ -748,10 +748,10 @@ export default function DashboardPage() {
         const sentReq: SentRequest = {
             method: origMethod,
             url: origUrl,
-            headers: origHeaders,
+            headers: Object.fromEntries(origHeaders.map(h => [h.key, h.value])),
             body: origBody,
             bodyType: (origReq?.body?.mode as any) || 'none',
-            queryParams: origQueryParams,
+            queryParams: Object.fromEntries(origQueryParams.map(q => [q.key, q.value])),
             timestamp: Date.now(),
         };
 

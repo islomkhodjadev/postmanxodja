@@ -5,16 +5,16 @@ import JsonTreeEditor from './JsonTreeEditor';
 import AuthorizationPanel from './AuthorizationPanel';
 import { SaveButton } from './ui/save-button';
 import { parseCurl, generateCurl } from '../utils/curlParser';
-import type { ExecuteRequest, ExecuteResponse, Environment, RequestTab, BodyType, FormDataItem, SentRequest, Authorization } from '../types';
+import type { ExecuteRequest, ExecuteResponse, Environment, RequestTab, BodyType, FormDataItem, SentRequest, Authorization, PostmanKeyValue } from '../types';
 
 interface Props {
     environments: Environment[];
     onResponse: (response: ExecuteResponse, sentRequest: SentRequest) => void;
     initialMethod?: string;
     initialUrl?: string;
-    initialHeaders?: Record<string, string>;
+    initialHeaders?: PostmanKeyValue[];
     initialBody?: string;
-    initialQueryParams?: Record<string, string>;
+    initialQueryParams?: PostmanKeyValue[];
     initialName?: string;
     initialEnvId?: number;
     onUpdate?: (updates: Partial<RequestTab>) => void;
@@ -28,9 +28,9 @@ export default function RequestBuilder({
                                            onResponse,
                                            initialMethod = 'GET',
                                            initialUrl = '',
-                                           initialHeaders = {},
+                                           initialHeaders = [],
                                            initialBody = '',
-                                           initialQueryParams = {},
+                                           initialQueryParams = [],
                                            initialName = 'Untitled',
                                            initialEnvId,
                                            onUpdate,
@@ -39,14 +39,14 @@ export default function RequestBuilder({
                                        }: Props) {
     const [method, setMethod] = useState(initialMethod);
     const [url, setUrl] = useState(initialUrl);
-    const [headers, setHeaders] = useState<Array<{ key: string; value: string }>>(() =>
-        Object.entries(initialHeaders).map(([key, value]) => ({ key, value }))
+    const [headers, setHeaders] = useState<PostmanKeyValue[]>(() =>
+        initialHeaders && initialHeaders.length > 0 ? initialHeaders : []
     );
     const [body, setBody] = useState(initialBody);
     const [bodyType, setBodyType] = useState<BodyType>('raw');
     const [formData, setFormData] = useState<FormDataItem[]>([]);
-    const [queryParams, setQueryParams] = useState<Array<{ key: string; value: string }>>(() =>
-        Object.entries(initialQueryParams).map(([key, value]) => ({ key, value }))
+    const [queryParams, setQueryParams] = useState<PostmanKeyValue[]>(() =>
+        initialQueryParams && initialQueryParams.length > 0 ? initialQueryParams : []
     );
     const [selectedEnvId, setSelectedEnvId] = useState<number | undefined>(initialEnvId);
     const [loading, setLoading] = useState(false);
@@ -67,7 +67,7 @@ export default function RequestBuilder({
     const isSyncingAuth = useRef(false);
 
     // Helper to generate auth from headers
-    const getAuthFromHeaders = (currentHeaders: Array<{ key: string; value: string }>): Authorization | undefined => {
+    const getAuthFromHeaders = (currentHeaders: PostmanKeyValue[]): Authorization | undefined => {
         const authHeader = currentHeaders.find(h => h.key.toLowerCase() === 'authorization')?.value;
         if (!authHeader) {
             // Check for other types of auth headers
@@ -179,10 +179,10 @@ export default function RequestBuilder({
     };
 
     // Helper to parse query params from URL
-    const parseQueryParamsFromUrl = (urlString: string): Array<{ key: string; value: string }> => {
+    const parseQueryParamsFromUrl = (urlString: string): PostmanKeyValue[] => {
         try {
             const urlObj = new URL(urlString.startsWith('http') ? urlString : `http://${urlString}`);
-            const params: Array<{ key: string; value: string }> = [];
+            const params: PostmanKeyValue[] = [];
             urlObj.searchParams.forEach((value, key) => {
                 params.push({ key, value });
             });
@@ -192,7 +192,7 @@ export default function RequestBuilder({
             const queryIndex = urlString.indexOf('?');
             if (queryIndex === -1) return [];
             const queryString = urlString.slice(queryIndex + 1);
-            const params: Array<{ key: string; value: string }> = [];
+            const params: PostmanKeyValue[] = [];
             queryString.split('&').forEach(part => {
                 const [key, value = ''] = part.split('=');
                 if (key) {
@@ -204,7 +204,7 @@ export default function RequestBuilder({
     };
 
     // Helper to build URL with query params
-    const buildUrlWithParams = (baseUrl: string, params: Array<{ key: string; value: string }>): string => {
+    const buildUrlWithParams = (baseUrl: string, params: PostmanKeyValue[]): string => {
         // Remove existing query params from URL
         let cleanUrl = baseUrl;
         const queryIndex = baseUrl.indexOf('?');
@@ -227,9 +227,9 @@ export default function RequestBuilder({
     const notifyUpdate = (updates: {
         method?: string;
         url?: string;
-        headers?: Array<{ key: string; value: string }>;
+        headers?: PostmanKeyValue[];
         body?: string;
-        queryParams?: Array<{ key: string; value: string }>;
+        queryParams?: PostmanKeyValue[];
         auth?: Authorization;
     }) => {
         if (isInitialMount.current) return;
@@ -242,9 +242,9 @@ export default function RequestBuilder({
         const result: Partial<RequestTab> = {
             method: updates.method ?? method,
             url: currentUrl,
-            headers: Object.fromEntries(currentHeaders.filter(h => h.key).map(h => [h.key, h.value])),
+            headers: currentHeaders,
             body: updates.body ?? body,
-            queryParams: Object.fromEntries(currentParams.filter(q => q.key).map(q => [q.key, q.value])),
+            queryParams: currentParams,
             auth: updates.auth !== undefined ? updates.auth : auth,
         };
 
@@ -343,7 +343,7 @@ export default function RequestBuilder({
     };
 
     const addHeader = () => {
-        const newHeaders = [...headers, { key: '', value: '' }];
+        const newHeaders = [...headers, { key: '', value: '', description: '' }];
         setHeaders(newHeaders);
         notifyUpdate({ headers: newHeaders });
     };
@@ -383,7 +383,7 @@ export default function RequestBuilder({
     };
 
     const addQueryParam = () => {
-        const newParams = [...queryParams, { key: '', value: '' }];
+        const newParams = [...queryParams, { key: '', value: '', description: '' }];
         setQueryParams(newParams);
         // Update URL with new params
         isUpdatingFromParams.current = true;

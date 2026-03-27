@@ -128,6 +128,7 @@ export interface PostmanURL {
 export interface PostmanKeyValue {
     key: string;
     value: string;
+    description?: string;
     disabled?: boolean;
 }
 
@@ -319,11 +320,11 @@ export interface RequestTab {
     name: string;
     method: string;
     url: string;
-    headers: Record<string, string>;
+    headers: PostmanKeyValue[];
     body: string;
     bodyType?: BodyType;
     formData?: FormDataItem[];
-    queryParams: Record<string, string>;
+    queryParams: PostmanKeyValue[];
     auth?: Authorization;
     request?: PostmanRequest;
     isDirty?: boolean;
