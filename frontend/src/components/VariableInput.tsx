@@ -113,18 +113,25 @@ export default function VariableInput({
     (code: string): string => {
       if (!code) return "";
 
-      const regex = /\{\{([^}]+)\}\}/g;
-      let result = "";
+      // Combined regex: variables | comments
+      const regex = /(\{\{[^}]+\}\})|(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/g;
+      let result = '';
       let lastIndex = 0;
       let match;
 
       while ((match = regex.exec(code)) !== null) {
         result += escapeHtml(code.slice(lastIndex, match.index));
 
-        const varName = match[1];
-        const hasValue = envVariables[varName] !== undefined;
-        const cls = hasValue ? "vi-var vi-var-found" : "vi-var vi-var-missing";
-        result += `<span class="${cls}" data-var-name="${escapeHtml(varName)}">${escapeHtml(match[0])}</span>`;
+
+        if (match[1]) {
+          const fullMatch = match[1];
+          const varName = fullMatch.slice(2, -2);
+          const hasValue = envVariables[varName] !== undefined;
+          const cls = hasValue ? 'vi-var vi-var-found' : 'vi-var vi-var-missing';
+          result += `<span class="${cls}" data-var-name="${escapeHtml(varName)}">${escapeHtml(fullMatch)}</span>`;
+        } else if (match[2]) {
+          result += `<span class="vi-comment">${escapeHtml(match[2])}</span>`;
+        }
 
         lastIndex = match.index + match[0].length;
       }
@@ -139,9 +146,10 @@ export default function VariableInput({
     (code: string): string => {
       if (!code) return "";
 
-      // Combined regex: variables | JSON strings | numbers | booleans | null
-      const tokenRegex =
-        /(\{\{[^}]+\}\})|("(?:[^"\\]|\\.)*")|(-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b)|(\btrue\b|\bfalse\b)|(\bnull\b)/g;
+
+      // Combined regex: variables | comments | JSON strings | numbers | booleans | null
+      const tokenRegex = /(\{\{[^}]+\}\})|(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:[^"\\]|\\.)*")|(-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b)|(\btrue\b|\bfalse\b)|(\bnull\b)/g;
+
 
       let result = "";
       let lastIndex = 0;
@@ -164,16 +172,19 @@ export default function VariableInput({
             : "vi-var vi-var-missing";
           result += `<span class="${cls}" data-var-name="${escapeHtml(varName)}">${escapeHtml(fullMatch)}</span>`;
         } else if (match[2]) {
+          // Comment
+          result += `<span class="vi-comment">${escapeHtml(fullMatch)}</span>`;
+        } else if (match[3]) {
           // String — check if it's a key (followed by colon)
           const afterMatch = code.slice(match.index + fullMatch.length);
           const isKey = /^\s*:/.test(afterMatch);
           const cls = isKey ? "vi-json-key" : "vi-json-string";
           result += `<span class="${cls}">${escapeHtml(fullMatch)}</span>`;
-        } else if (match[3]) {
-          result += `<span class="vi-json-number">${escapeHtml(fullMatch)}</span>`;
         } else if (match[4]) {
-          result += `<span class="vi-json-boolean">${escapeHtml(fullMatch)}</span>`;
+          result += `<span class="vi-json-number">${escapeHtml(fullMatch)}</span>`;
         } else if (match[5]) {
+          result += `<span class="vi-json-boolean">${escapeHtml(fullMatch)}</span>`;
+        } else if (match[6]) {
           result += `<span class="vi-json-null">${escapeHtml(fullMatch)}</span>`;
         }
 
