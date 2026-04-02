@@ -66,9 +66,9 @@ type PostmanAuth struct {
 
 // PostmanAuthParameter represents auth key-value pairs
 type PostmanAuthParameter struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-	Type  string `json:"type,omitempty"`
+	Key   string      `json:"key"`
+	Value interface{} `json:"value"`
+	Type  string      `json:"type,omitempty"`
 }
 
 type PostmanURL struct {
@@ -80,10 +80,10 @@ type PostmanURL struct {
 }
 
 type PostmanKeyValue struct {
-	Key         string `json:"key"`
-	Value       string `json:"value"`
-	Description string `json:"description,omitempty"`
-	Disabled    bool   `json:"disabled,omitempty"`
+	Key         string      `json:"key"`
+	Value       interface{} `json:"value"`
+	Description string      `json:"description,omitempty"`
+	Disabled    bool        `json:"disabled,omitempty"`
 }
 
 type PostmanRequestBody struct {

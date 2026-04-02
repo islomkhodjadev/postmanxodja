@@ -379,13 +379,13 @@ export default function DashboardPage() {
                 method: tab.method,
                 url: {
                     raw: tab.url,
-                    query: Object.entries(tab.queryParams || {}).map(([key, value]) => ({
+                    query: (tab.queryParams || []).map(({ key, value }) => ({
                         key,
                         value,
                         disabled: false,
                     })),
                 },
-                header: Object.entries(tab.headers || {}).map(([key, value]) => ({
+                header: (tab.headers || []).map(({ key, value }) => ({
                     key,
                     value,
                     disabled: false,
