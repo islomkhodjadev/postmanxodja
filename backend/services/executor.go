@@ -1,6 +1,7 @@
 package services
 
 import (
+	"compress/gzip"
 	"crypto/tls"
 	"errors"
 	"io"
@@ -143,8 +144,21 @@ func ExecuteHTTPRequest(req *models.ExecuteRequest) (*models.ExecuteResponse, er
 	}
 	defer resp.Body.Close()
 
+	// Decompress body if the server sent it compressed.
+	// Go's transport only auto-decompresses when it added Accept-Encoding itself;
+	// when the caller explicitly sets Accept-Encoding: gzip the raw bytes come through.
+	var respBodyReader io.Reader = resp.Body
+	if strings.EqualFold(resp.Header.Get("Content-Encoding"), "gzip") {
+		gr, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		defer gr.Close()
+		respBodyReader = gr
+	}
+
 	// Read response body
-	bodyBytes, err := io.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(respBodyReader)
 	if err != nil {
 		return nil, err
 	}
@@ -152,10 +166,10 @@ func ExecuteHTTPRequest(req *models.ExecuteRequest) (*models.ExecuteResponse, er
 	// Calculate elapsed time
 	elapsed := time.Since(startTime).Milliseconds()
 
-	// Build response headers map
+	// Build response headers map (strip Content-Encoding since we decoded the body)
 	respHeaders := make(map[string]string)
 	for key, values := range resp.Header {
-		if len(values) > 0 {
+		if len(values) > 0 && !strings.EqualFold(key, "Content-Encoding") {
 			respHeaders[key] = values[0]
 		}
 	}
