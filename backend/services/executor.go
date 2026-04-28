@@ -1,6 +1,8 @@
 package services
 
 import (
+	"bytes"
+	"compress/gzip"
 	"crypto/tls"
 	"errors"
 	"io"
@@ -149,6 +151,20 @@ func ExecuteHTTPRequest(req *models.ExecuteRequest) (*models.ExecuteResponse, er
 		return nil, err
 	}
 
+	// Decompress gzip body when the transport hasn't already done so.
+	// Go's transport auto-decompresses only when it added Accept-Encoding itself;
+	// if the caller set it explicitly the raw bytes come through.
+	if strings.EqualFold(resp.Header.Get("Content-Encoding"), "gzip") {
+		gr, gerr := gzip.NewReader(bytes.NewReader(bodyBytes))
+		if gerr == nil {
+			decompressed, rerr := io.ReadAll(gr)
+			gr.Close()
+			if rerr == nil {
+				bodyBytes = decompressed
+			}
+		}
+	}
+
 	// Calculate elapsed time
 	elapsed := time.Since(startTime).Milliseconds()
 
@@ -159,6 +175,8 @@ func ExecuteHTTPRequest(req *models.ExecuteRequest) (*models.ExecuteResponse, er
 			respHeaders[key] = values[0]
 		}
 	}
+	// Remove Content-Encoding since the body is now decoded
+	delete(respHeaders, "Content-Encoding")
 
 	return &models.ExecuteResponse{
 		Status:     resp.StatusCode,
