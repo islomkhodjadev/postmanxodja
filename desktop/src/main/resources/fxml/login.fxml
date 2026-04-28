@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Hyperlink?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="uz.postbaby.desktop.ui.LoginController"
+           styleClass="login-bg" prefWidth="900" prefHeight="600">
+    <VBox alignment="CENTER" spacing="18" maxWidth="480" styleClass="login-card">
+        <padding><Insets top="36" right="36" bottom="36" left="36"/></padding>
+        <Label text="PostBaby" styleClass="title"/>
+        <Label text="Sign in with Google to continue" styleClass="subtitle"/>
+        <Region prefHeight="6"/>
+        <Button fx:id="googleButton" text="Continue with Google" onAction="#onGoogleSignIn"
+                styleClass="primary" prefWidth="380" prefHeight="40"/>
+        <HBox alignment="CENTER" spacing="8">
+            <ProgressIndicator fx:id="spinner" visible="false" prefWidth="16" prefHeight="16"/>
+            <Label fx:id="statusLabel" styleClass="status"/>
+        </HBox>
+
+        <VBox fx:id="fallbackPanel" visible="false" managed="false" spacing="6">
+            <Label text="Didn't return automatically?" styleClass="subtitle"/>
+            <Label styleClass="status" wrapText="true"
+                   text="If your browser landed on the website, copy the full URL from the address bar and paste it below. Look for ?access_token=…"/>
+            <TextArea fx:id="callbackInput" prefRowCount="3" wrapText="true"
+                      promptText="https://postbaby.uz/auth/callback?access_token=…&amp;refresh_token=…"/>
+            <HBox spacing="8" alignment="CENTER_RIGHT">
+                <Button fx:id="usePastedButton" text="Sign in with pasted URL" onAction="#onUsePasted"/>
+            </HBox>
+        </VBox>
+
+        <Region prefHeight="4"/>
+        <Hyperlink fx:id="endpointLink" onAction="#onChangeEndpoint" styleClass="endpoint-link"/>
+    </VBox>
+</StackPane>

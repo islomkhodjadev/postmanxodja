@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TreeView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="uz.postbaby.desktop.ui.MainController"
+            styleClass="app-root" prefWidth="1200" prefHeight="780">
+
+    <top>
+        <VBox spacing="0">
+            <MenuBar>
+                <Menu text="File">
+                    <MenuItem text="New Collection" onAction="#onNewCollection"/>
+                    <MenuItem text="Sync with backend" onAction="#onSync"/>
+                    <MenuItem text="Sign out" onAction="#onSignOut"/>
+                </Menu>
+                <Menu text="Help">
+                    <MenuItem text="About" onAction="#onAbout"/>
+                </Menu>
+            </MenuBar>
+            <HBox spacing="10" alignment="CENTER_LEFT" styleClass="toolbar">
+                <padding><Insets top="8" right="12" bottom="8" left="12"/></padding>
+                <Label text="Team:"/>
+                <ComboBox fx:id="teamCombo" prefWidth="180"/>
+                <Button text="Members" onAction="#onShowTeam" styleClass="ghost"/>
+                <Label text="Env:"/>
+                <ComboBox fx:id="environmentCombo" prefWidth="180"/>
+                <Button text="Manage…" onAction="#onManageEnvironments" styleClass="ghost"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button fx:id="invitesButton" text="Invites" onAction="#onShowInvites" styleClass="ghost"/>
+                <Button text="API Keys" onAction="#onShowApiKeys" styleClass="ghost"/>
+                <Label fx:id="statusLabel" styleClass="status"/>
+                <Label fx:id="userLabel"/>
+                <Button fx:id="signInButton" text="Sign in" onAction="#onSignIn" styleClass="primary" visible="false" managed="false"/>
+            </HBox>
+        </VBox>
+    </top>
+
+    <center>
+        <SplitPane dividerPositions="0.22" styleClass="main-split">
+            <VBox spacing="6" styleClass="sidebar">
+                <padding><Insets top="6" right="6" bottom="6" left="6"/></padding>
+                <HBox spacing="6">
+                    <Label text="Collections" styleClass="section-title" HBox.hgrow="ALWAYS"/>
+                    <Button text="+" onAction="#onNewCollection" styleClass="ghost"/>
+                    <Button text="↻" onAction="#onRefreshCollections" styleClass="ghost"/>
+                </HBox>
+                <TreeView fx:id="collectionTree" VBox.vgrow="ALWAYS"/>
+            </VBox>
+
+            <VBox spacing="6">
+                <padding><Insets top="6" right="6" bottom="6" left="6"/></padding>
+
+                <HBox spacing="4" alignment="CENTER_LEFT">
+                    <TabPane fx:id="openTabsPane" tabClosingPolicy="ALL_TABS"
+                             HBox.hgrow="ALWAYS" prefHeight="34" styleClass="open-tabs"/>
+                    <Button fx:id="newTabButton" text="+" onAction="#onNewBlankTab" styleClass="ghost"/>
+                </HBox>
+
+                <HBox spacing="6">
+                    <ComboBox fx:id="methodCombo" prefWidth="100"/>
+                    <TextField fx:id="urlField" promptText="https://api.example.com/path  (use {{var}} for environment vars)" HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="sendButton" text="Send" onAction="#onSend" styleClass="primary"/>
+                    <Button fx:id="saveButton" text="Save" onAction="#onSaveRequest"/>
+                </HBox>
+
+                <TabPane fx:id="editorTabs" tabClosingPolicy="UNAVAILABLE" prefHeight="240">
+                    <Tab text="Params">
+                        <TableView fx:id="paramsTable" editable="true">
+                            <columns>
+                                <TableColumn fx:id="paramKeyCol" text="Key" prefWidth="220"/>
+                                <TableColumn fx:id="paramValueCol" text="Value" prefWidth="380"/>
+                                <TableColumn fx:id="paramRemoveCol" text=" " prefWidth="40"/>
+                            </columns>
+                        </TableView>
+                    </Tab>
+                    <Tab text="Headers">
+                        <TableView fx:id="headersTable" editable="true">
+                            <columns>
+                                <TableColumn fx:id="headerKeyCol" text="Key" prefWidth="220"/>
+                                <TableColumn fx:id="headerValueCol" text="Value" prefWidth="380"/>
+                                <TableColumn fx:id="headerRemoveCol" text=" " prefWidth="40"/>
+                            </columns>
+                        </TableView>
+                    </Tab>
+                    <Tab text="Body">
+                        <VBox spacing="6">
+                            <padding><Insets top="6" right="6" bottom="6" left="6"/></padding>
+                            <HBox spacing="6">
+                                <Label text="Type:"/>
+                                <ComboBox fx:id="bodyTypeCombo" prefWidth="160"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Button text="Pretty" onAction="#onPrettyBody"/>
+                            </HBox>
+                            <TextArea fx:id="bodyArea" wrapText="false" VBox.vgrow="ALWAYS"
+                                      promptText="Request body…"/>
+                        </VBox>
+                    </Tab>
+                </TabPane>
+
+                <SplitPane orientation="VERTICAL" dividerPositions="0.0" VBox.vgrow="ALWAYS">
+                    <VBox spacing="4" styleClass="response-panel">
+                        <padding><Insets top="6" right="6" bottom="6" left="6"/></padding>
+                        <HBox spacing="12" alignment="CENTER_LEFT">
+                            <Label text="Response" styleClass="section-title"/>
+                            <Label fx:id="responseStatusLabel" styleClass="status-pill"/>
+                            <Label fx:id="responseTimeLabel"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Button text="Copy" onAction="#onCopyResponse"/>
+                        </HBox>
+                        <TabPane prefHeight="280">
+                            <Tab text="Body">
+                                <TextArea fx:id="responseBodyArea" editable="false" wrapText="false"/>
+                            </Tab>
+                            <Tab text="Headers">
+                                <TableView fx:id="responseHeadersTable">
+                                    <columns>
+                                        <TableColumn fx:id="respHeaderKeyCol" text="Header" prefWidth="240"/>
+                                        <TableColumn fx:id="respHeaderValueCol" text="Value" prefWidth="500"/>
+                                    </columns>
+                                </TableView>
+                            </Tab>
+                        </TabPane>
+                    </VBox>
+                </SplitPane>
+            </VBox>
+        </SplitPane>
+    </center>
+</BorderPane>

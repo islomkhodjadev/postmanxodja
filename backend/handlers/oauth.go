@@ -47,12 +47,13 @@ type GoogleUserInfo struct {
 	Picture       string `json:"picture"`
 }
 
-// generateSignedState creates a signed state token for CSRF protection
-// The state contains a timestamp and random data, signed with HMAC
-func generateSignedState() string {
+// generateSignedState creates a signed state token for CSRF protection.
+// The state encodes a timestamp, random data, and an optional desktop loopback
+// port (0 = web flow). Format: base64(timestamp:random:port).signature
+func generateSignedState(desktopPort int) string {
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	random := services.GenerateInviteToken()[:16]
-	data := timestamp + ":" + random
+	data := timestamp + ":" + random + ":" + strconv.Itoa(desktopPort)
 
 	h := hmac.New(sha256.New, []byte(config.AppConfig.JWTSecret))
 	h.Write([]byte(data))
@@ -61,16 +62,17 @@ func generateSignedState() string {
 	return base64.URLEncoding.EncodeToString([]byte(data)) + "." + signature
 }
 
-// verifySignedState verifies the signed state token
-func verifySignedState(state string) bool {
+// verifySignedState validates the signed state and returns the desktop port
+// embedded in it (0 if absent / web flow). Returns ok=false if invalid.
+func verifySignedState(state string) (int, bool) {
 	parts := strings.Split(state, ".")
 	if len(parts) != 2 {
-		return false
+		return 0, false
 	}
 
 	data, err := base64.URLEncoding.DecodeString(parts[0])
 	if err != nil {
-		return false
+		return 0, false
 	}
 
 	// Verify signature
@@ -78,36 +80,51 @@ func verifySignedState(state string) bool {
 	h.Write(data)
 	expectedSig := base64.URLEncoding.EncodeToString(h.Sum(nil))
 	if !hmac.Equal([]byte(parts[1]), []byte(expectedSig)) {
-		return false
+		return 0, false
 	}
 
 	// Check timestamp (allow 10 minutes)
 	dataParts := strings.Split(string(data), ":")
-	if len(dataParts) != 2 {
-		return false
+	if len(dataParts) < 2 {
+		return 0, false
 	}
 
 	timestamp, err := strconv.ParseInt(dataParts[0], 10, 64)
 	if err != nil {
-		return false
+		return 0, false
 	}
 
 	if time.Now().Unix()-timestamp > 600 {
-		return false
+		return 0, false
 	}
 
-	return true
+	port := 0
+	if len(dataParts) >= 3 {
+		if p, err := strconv.Atoi(dataParts[2]); err == nil {
+			port = p
+		}
+	}
+	return port, true
 }
 
-// GoogleLogin initiates Google OAuth flow
+// GoogleLogin initiates Google OAuth flow.
+// Optional ?desktop_port=NNNN routes the final redirect to http://127.0.0.1:NNNN/
+// instead of FRONTEND_URL — used by the desktop app's loopback callback server.
 func GoogleLogin(c *gin.Context) {
 	if config.AppConfig.GoogleClientID == "" {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Google OAuth not configured"})
 		return
 	}
 
+	desktopPort := 0
+	if raw := c.Query("desktop_port"); raw != "" {
+		if p, err := strconv.Atoi(raw); err == nil && p > 1024 && p < 65536 {
+			desktopPort = p
+		}
+	}
+
 	// Generate signed state for CSRF protection (no cookies needed)
-	state := generateSignedState()
+	state := generateSignedState(desktopPort)
 
 	authURL := googleOAuthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	c.JSON(http.StatusOK, gin.H{"url": authURL})
@@ -117,34 +134,35 @@ func GoogleLogin(c *gin.Context) {
 func GoogleCallback(c *gin.Context) {
 	// Verify state using signature (no cookies needed)
 	state := c.Query("state")
-	if !verifySignedState(state) {
-		redirectWithError(c, "Invalid OAuth state")
+	desktopPort, ok := verifySignedState(state)
+	if !ok {
+		redirectWithError(c, "Invalid OAuth state", 0)
 		return
 	}
 
 	// Get authorization code
 	code := c.Query("code")
 	if code == "" {
-		redirectWithError(c, "No authorization code received")
+		redirectWithError(c, "No authorization code received", desktopPort)
 		return
 	}
 
 	// Exchange code for token
 	token, err := googleOAuthConfig.Exchange(context.Background(), code)
 	if err != nil {
-		redirectWithError(c, "Failed to exchange token")
+		redirectWithError(c, "Failed to exchange token", desktopPort)
 		return
 	}
 
 	// Get user info from Google
 	userInfo, err := getGoogleUserInfo(token.AccessToken)
 	if err != nil {
-		redirectWithError(c, "Failed to get user info")
+		redirectWithError(c, "Failed to get user info", desktopPort)
 		return
 	}
 
 	if !userInfo.VerifiedEmail {
-		redirectWithError(c, "Email not verified with Google")
+		redirectWithError(c, "Email not verified with Google", desktopPort)
 		return
 	}
 
@@ -163,7 +181,7 @@ func GoogleCallback(c *gin.Context) {
 		}
 
 		if err := database.DB.Create(&user).Error; err != nil {
-			redirectWithError(c, "Failed to create user")
+			redirectWithError(c, "Failed to create user", desktopPort)
 			return
 		}
 
@@ -184,13 +202,17 @@ func GoogleCallback(c *gin.Context) {
 	// Generate JWT tokens
 	authResponse, err := services.GenerateTokenPair(&user)
 	if err != nil {
-		redirectWithError(c, "Failed to generate tokens")
+		redirectWithError(c, "Failed to generate tokens", desktopPort)
 		return
 	}
 
-	// Redirect to frontend with tokens
-	redirectURL := fmt.Sprintf("%s/auth/callback?access_token=%s&refresh_token=%s&expires_in=%d",
-		config.AppConfig.FrontendURL,
+	// Pick redirect target: desktop loopback or web frontend
+	target := config.AppConfig.FrontendURL + "/auth/callback"
+	if desktopPort > 0 {
+		target = fmt.Sprintf("http://127.0.0.1:%d/", desktopPort)
+	}
+	redirectURL := fmt.Sprintf("%s?access_token=%s&refresh_token=%s&expires_in=%d",
+		target,
 		url.QueryEscape(authResponse.AccessToken),
 		url.QueryEscape(authResponse.RefreshToken),
 		authResponse.ExpiresIn,
@@ -219,7 +241,11 @@ func getGoogleUserInfo(accessToken string) (*GoogleUserInfo, error) {
 	return &userInfo, nil
 }
 
-func redirectWithError(c *gin.Context, errorMsg string) {
-	redirectURL := config.AppConfig.FrontendURL + "/auth/callback?error=" + url.QueryEscape(errorMsg)
+func redirectWithError(c *gin.Context, errorMsg string, desktopPort int) {
+	target := config.AppConfig.FrontendURL + "/auth/callback"
+	if desktopPort > 0 {
+		target = fmt.Sprintf("http://127.0.0.1:%d/", desktopPort)
+	}
+	redirectURL := target + "?error=" + url.QueryEscape(errorMsg)
 	c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
