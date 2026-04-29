@@ -5,6 +5,7 @@ import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +37,15 @@ public class PostBabyApp extends Application {
         stage.setTitle("PostBaby");
         stage.setMinWidth(1100);
         stage.setMinHeight(700);
+
+        URL iconUrl = PostBabyApp.class.getResource("/icons/postbaby.png");
+        if (iconUrl != null) {
+            try {
+                stage.getIcons().add(new Image(iconUrl.toExternalForm()));
+            } catch (Exception e) {
+                LOG.debug("Failed to set window icon: {}", e.getMessage());
+            }
+        }
 
         showMain();
         stage.show();

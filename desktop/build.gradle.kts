@@ -51,6 +51,10 @@ tasks.withType<JavaCompile> {
 jlink {
     imageZip.set(layout.buildDirectory.file("distributions/postbaby-${version}.zip"))
     options.set(listOf("--strip-debug", "--compress", "2", "--no-header-files", "--no-man-pages"))
+    // RichTextFX + transitives are automatic modules — the plugin merges them into a
+    // single synthetic module that needs the JavaFX modules visible to compile.
+    addExtraDependencies("javafx")
+    forceMerge("richtextfx", "flowless", "reactfx", "undofx", "wellbehavedfx")
     launcher {
         name = "postbaby"
     }
@@ -58,19 +62,30 @@ jlink {
         val os = OperatingSystem.current()
         imageName = "PostBaby"
         installerName = "PostBaby"
-        appVersion = project.version.toString().substringBefore('-')
+        // macOS rejects versions with a leading 0 — coerce 0.x.y to 1.x.y for the bundle only.
+        appVersion = run {
+            val v = project.version.toString().substringBefore('-')
+            val parts = v.split('.')
+            if (parts.isNotEmpty() && parts[0] == "0") "1." + parts.drop(1).joinToString(".") else v
+        }
         vendor = "PostBaby"
+
+        // Use a custom icon when one is checked into src/main/resources/icons/.
+        // Drop in postbaby.icns (mac) and postbaby.ico (win) to brand the installer.
+        val macIcon = file("src/main/resources/icons/postbaby.icns")
+        val winIcon = file("src/main/resources/icons/postbaby.ico")
+
         when {
             os.isMacOsX -> {
                 installerType = "dmg"
-                icon = "src/main/resources/icons/postbaby.icns"
+                if (macIcon.exists()) icon = macIcon.absolutePath
                 installerOptions.addAll(listOf(
                     "--mac-package-name", "PostBaby"
                 ))
             }
             os.isWindows -> {
                 installerType = "exe"
-                icon = "src/main/resources/icons/postbaby.ico"
+                if (winIcon.exists()) icon = winIcon.absolutePath
                 installerOptions.addAll(listOf(
                     "--win-dir-chooser",
                     "--win-shortcut",
