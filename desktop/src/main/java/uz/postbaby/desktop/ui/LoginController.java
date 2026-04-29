@@ -57,10 +57,10 @@ public class LoginController {
     public void onUsePasted() {
         String text = callbackInput.getText() == null ? "" : callbackInput.getText().trim();
         if (text.isEmpty()) {
-            statusLabel.setText("Paste the URL or query string first.");
+            statusLabel.setText("Paste your access token first.");
             return;
         }
-        setBusy(true, "Validating tokens…");
+        setBusy(true, "Validating token…");
         usePastedButton.setDisable(true);
         auth.signInFromCallbackInput(text).whenComplete((user, error) ->
                 Platform.runLater(() -> {

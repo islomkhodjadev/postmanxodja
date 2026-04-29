@@ -2,6 +2,7 @@ package uz.postbaby.desktop.ui;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import uz.postbaby.desktop.model.Authorization;
 import uz.postbaby.desktop.model.SavedTab;
 
 import java.util.LinkedHashMap;
@@ -36,6 +37,9 @@ public class TabState {
     public Long collectionId;
     public String itemPath;
 
+    /** Per-tab auth config. Stored locally; backend's /tabs schema ignores it. */
+    public Authorization authorization = Authorization.noauth();
+
     /** True until the tab is synced through /tabs. */
     public boolean dirty = true;
 
@@ -59,15 +63,18 @@ public class TabState {
         t.headers = new LinkedHashMap<>();
         for (KeyValueRow row : headers) {
             if (row == null || row.isBlank() || row.getKey() == null || row.getKey().isBlank()) continue;
+            if (row.isAuto()) continue; // auth-injected rows live in the Authorization block
             t.headers.put(row.getKey(), row.getValue() == null ? "" : row.getValue());
         }
         t.query_params = new LinkedHashMap<>();
         for (KeyValueRow row : params) {
             if (row == null || row.isBlank() || row.getKey() == null || row.getKey().isBlank()) continue;
+            if (row.isAuto()) continue;
             t.query_params.put(row.getKey(), row.getValue() == null ? "" : row.getValue());
         }
         t.is_active = isActive;
         t.sort_order = sortOrder;
+        t.authorization = authorization;
         return t;
     }
 
@@ -83,6 +90,7 @@ public class TabState {
         if (w.query_params != null) {
             w.query_params.forEach((k, v) -> s.params.add(new KeyValueRow(k, v)));
         }
+        if (w.authorization != null) s.authorization = w.authorization;
         return s;
     }
 }

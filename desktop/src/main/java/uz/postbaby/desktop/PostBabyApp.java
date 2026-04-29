@@ -37,9 +37,6 @@ public class PostBabyApp extends Application {
         stage.setMinWidth(1100);
         stage.setMinHeight(700);
 
-        // Authentication is optional — always start in the main window.
-        // The main window handles online vs. offline state and offers a
-        // "Sign in" button when the user wants to sync.
         showMain();
         stage.show();
     }
@@ -79,6 +76,10 @@ public class PostBabyApp extends Application {
         Scene scene = new Scene(root);
         URL css = PostBabyApp.class.getResource("/css/app.css");
         if (css != null) scene.getStylesheets().add(css.toExternalForm());
+        if ("light".equals(store.loadTheme())) {
+            URL light = PostBabyApp.class.getResource("/css/theme-light.css");
+            if (light != null) scene.getStylesheets().add(light.toExternalForm());
+        }
         primaryStage.setTitle("PostBaby — " + title);
         primaryStage.setScene(scene);
     }

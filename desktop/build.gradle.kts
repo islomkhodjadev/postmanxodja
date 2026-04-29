@@ -29,6 +29,8 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.2")
     implementation("org.slf4j:slf4j-simple:2.0.13")
+    // Live syntax highlighting in the editable request body
+    implementation("org.fxmisc.richtext:richtextfx:0.11.2")
     testImplementation(platform("org.junit:junit-bom:5.10.2"))
     testImplementation("org.junit.jupiter:junit-jupiter")
 }

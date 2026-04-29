@@ -28,11 +28,11 @@
         <VBox fx:id="fallbackPanel" visible="false" managed="false" spacing="6">
             <Label text="Didn't return automatically?" styleClass="subtitle"/>
             <Label styleClass="status" wrapText="true"
-                   text="If your browser landed on the website, copy the full URL from the address bar and paste it below. Look for ?access_token=…"/>
+                   text="Paste your access token below — just the token works, or paste the whole callback URL."/>
             <TextArea fx:id="callbackInput" prefRowCount="3" wrapText="true"
-                      promptText="https://postbaby.uz/auth/callback?access_token=…&amp;refresh_token=…"/>
+                      promptText="paste access token here"/>
             <HBox spacing="8" alignment="CENTER_RIGHT">
-                <Button fx:id="usePastedButton" text="Sign in with pasted URL" onAction="#onUsePasted"/>
+                <Button fx:id="usePastedButton" text="Sign in" onAction="#onUsePasted"/>
             </HBox>
         </VBox>
 

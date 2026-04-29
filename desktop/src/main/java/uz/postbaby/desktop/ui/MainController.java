@@ -10,7 +10,11 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableCell;
@@ -23,9 +27,15 @@ import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.control.cell.TextFieldTableCell;
+import javafx.scene.control.RadioMenuItem;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
+import javafx.scene.web.WebView;
+import org.fxmisc.flowless.VirtualizedScrollPane;
+import org.fxmisc.richtext.CodeArea;
+import org.fxmisc.richtext.LineNumberFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uz.postbaby.desktop.PostBabyApp;
@@ -39,6 +49,7 @@ import uz.postbaby.desktop.api.RequestExecutor;
 import uz.postbaby.desktop.api.TabApi;
 import uz.postbaby.desktop.api.TeamApi;
 import uz.postbaby.desktop.auth.AuthService;
+import uz.postbaby.desktop.model.Authorization;
 import uz.postbaby.desktop.model.Collection;
 import uz.postbaby.desktop.model.Environment;
 import uz.postbaby.desktop.model.ExecuteRequest;
@@ -53,14 +64,22 @@ import uz.postbaby.desktop.model.Team;
 import uz.postbaby.desktop.model.TeamInvite;
 import uz.postbaby.desktop.store.LocalStore;
 import uz.postbaby.desktop.util.Json;
+import uz.postbaby.desktop.util.JsonHighlighter;
+import uz.postbaby.desktop.util.JsonStyle;
 import uz.postbaby.desktop.util.Variables;
 
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -91,6 +110,7 @@ public class MainController {
     @FXML private ComboBox<String> methodCombo;
     @FXML private TextField urlField;
     @FXML private Button sendButton;
+    @FXML private Button syncRequestButton;
 
     @FXML private TabPane editorTabs;
 
@@ -105,12 +125,28 @@ public class MainController {
     @FXML private TableColumn<KeyValueRow, String> headerRemoveCol;
 
     @FXML private ComboBox<String> bodyTypeCombo;
-    @FXML private TextArea bodyArea;
+    @FXML private VBox bodyTabRoot;
+    /** Built programmatically inside bodyTabRoot — RichTextFX needs VirtualizedScrollPane. */
+    private CodeArea bodyArea;
+
+    @FXML private ComboBox<String> authTypeCombo;
+    @FXML private VBox authNoAuthPanel;
+    @FXML private VBox authBearerPanel;
+    @FXML private VBox authBasicPanel;
+    @FXML private VBox authApiKeyPanel;
+    @FXML private TextField bearerTokenField;
+    @FXML private TextField basicUsernameField;
+    @FXML private PasswordField basicPasswordField;
+    @FXML private TextField apiKeyKeyField;
+    @FXML private TextField apiKeyValueField;
+    @FXML private ComboBox<String> apiKeyAddToCombo;
 
     @FXML private Label responseStatusLabel;
     @FXML private Label responseTimeLabel;
-    @FXML private TextArea responseBodyArea;
+    @FXML private WebView responseBodyView;
     @FXML private TableView<Map.Entry<String, String>> responseHeadersTable;
+    @FXML private RadioMenuItem darkThemeItem;
+    @FXML private RadioMenuItem lightThemeItem;
     @FXML private TableColumn<Map.Entry<String, String>, String> respHeaderKeyCol;
     @FXML private TableColumn<Map.Entry<String, String>, String> respHeaderValueCol;
 
@@ -130,6 +166,8 @@ public class MainController {
     private final Map<String, Tab> tabsByState = new HashMap<>();
     private TabState currentTab;
     private boolean suppressUiSync = false;
+    /** Re-entrancy guard for URL ⇄ Params two-way sync. */
+    private boolean syncingUrlParams = false;
 
     private final ScheduledExecutorService scheduler =
             Executors.newSingleThreadScheduledExecutor(r -> {
@@ -156,6 +194,11 @@ public class MainController {
         initTabs();
         initTree();
         refreshAuthIndicator();
+        if ("light".equals(store.loadTheme())) {
+            if (lightThemeItem != null) lightThemeItem.setSelected(true);
+        } else {
+            if (darkThemeItem != null) darkThemeItem.setSelected(true);
+        }
     }
 
     public void onShown() {
@@ -228,11 +271,360 @@ public class MainController {
         responseStatusLabel.setText("");
         responseTimeLabel.setText("");
 
+        // WebView's natural size tracks its content — make it fill the tab instead.
+        if (responseBodyView != null) {
+            responseBodyView.setMinSize(0, 0);
+            responseBodyView.setPrefSize(100, 100);
+            responseBodyView.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        }
+
+        initBodyEditor();
+        initAuthTab();
+
         // Debounced sync on field edits
-        urlField.textProperty().addListener((obs, old, val) -> onTabFieldChanged());
+        urlField.textProperty().addListener((obs, old, val) -> {
+            syncUrlIntoParams(val);
+            onTabFieldChanged();
+        });
         methodCombo.valueProperty().addListener((obs, old, val) -> onTabFieldChanged());
-        bodyArea.textProperty().addListener((obs, old, val) -> onTabFieldChanged());
+        bodyArea.textProperty().addListener((obs, old, val) -> {
+            applyJsonHighlight();
+            onTabFieldChanged();
+        });
         bodyTypeCombo.valueProperty().addListener((obs, old, val) -> onTabFieldChanged());
+    }
+
+    private void initBodyEditor() {
+        bodyArea = new CodeArea();
+        bodyArea.setParagraphGraphicFactory(LineNumberFactory.get(bodyArea));
+        bodyArea.getStyleClass().add("json-editor");
+        bodyArea.setWrapText(false);
+        VirtualizedScrollPane<CodeArea> scroll = new VirtualizedScrollPane<>(bodyArea);
+        scroll.getStyleClass().add("json-editor-scroll");
+        VBox.setVgrow(scroll, Priority.ALWAYS);
+        bodyTabRoot.getChildren().add(scroll);
+    }
+
+    /** Recompute and apply JSON syntax-highlighting style spans. Cheap to call. */
+    private void applyJsonHighlight() {
+        if (bodyArea == null) return;
+        String text = bodyArea.getText();
+        if (text == null) text = "";
+        try {
+            bodyArea.setStyleSpans(0, JsonStyle.compute(text));
+        } catch (Exception ignored) {
+            // Tokenizer is permissive but defensive — never let a styling glitch crash typing
+        }
+    }
+
+    /* ================================================================
+     *  Authorization tab
+     * ================================================================ */
+
+    private static final String AUTH_NOAUTH = "No Auth";
+    private static final String AUTH_BEARER = "Bearer Token";
+    private static final String AUTH_BASIC  = "Basic Auth";
+    private static final String AUTH_APIKEY = "API Key";
+
+    private void initAuthTab() {
+        authTypeCombo.setItems(FXCollections.observableArrayList(
+                AUTH_NOAUTH, AUTH_BEARER, AUTH_BASIC, AUTH_APIKEY));
+        apiKeyAddToCombo.setItems(FXCollections.observableArrayList("Header", "Query Params"));
+        apiKeyAddToCombo.getSelectionModel().select("Header");
+
+        authTypeCombo.valueProperty().addListener((obs, old, val) -> {
+            updateAuthPanelVisibility(val);
+            syncAuthIntoHeaders();
+            onTabFieldChanged();
+        });
+
+        // Field-level listeners so edits sync into headers + debounce-save into the tab
+        bearerTokenField.textProperty().addListener((obs, old, val) -> { syncAuthIntoHeaders(); onTabFieldChanged(); });
+        basicUsernameField.textProperty().addListener((obs, old, val) -> { syncAuthIntoHeaders(); onTabFieldChanged(); });
+        basicPasswordField.textProperty().addListener((obs, old, val) -> { syncAuthIntoHeaders(); onTabFieldChanged(); });
+        apiKeyKeyField.textProperty().addListener((obs, old, val) -> { syncAuthIntoHeaders(); onTabFieldChanged(); });
+        apiKeyValueField.textProperty().addListener((obs, old, val) -> { syncAuthIntoHeaders(); onTabFieldChanged(); });
+        apiKeyAddToCombo.valueProperty().addListener((obs, old, val) -> { syncAuthIntoHeaders(); onTabFieldChanged(); });
+
+        authTypeCombo.getSelectionModel().select(AUTH_NOAUTH);
+        updateAuthPanelVisibility(AUTH_NOAUTH);
+    }
+
+    private void updateAuthPanelVisibility(String label) {
+        boolean noauth = AUTH_NOAUTH.equals(label) || label == null;
+        boolean bearer = AUTH_BEARER.equals(label);
+        boolean basic  = AUTH_BASIC.equals(label);
+        boolean apikey = AUTH_APIKEY.equals(label);
+        toggle(authNoAuthPanel, noauth);
+        toggle(authBearerPanel, bearer);
+        toggle(authBasicPanel, basic);
+        toggle(authApiKeyPanel, apikey);
+    }
+
+    private static void toggle(VBox panel, boolean visible) {
+        panel.setVisible(visible);
+        panel.setManaged(visible);
+    }
+
+    private static String authLabelFromType(String type) {
+        if (type == null) return AUTH_NOAUTH;
+        return switch (type) {
+            case "bearer" -> AUTH_BEARER;
+            case "basic"  -> AUTH_BASIC;
+            case "apikey" -> AUTH_APIKEY;
+            default       -> AUTH_NOAUTH;
+        };
+    }
+
+    private static String authTypeFromLabel(String label) {
+        if (label == null) return "noauth";
+        return switch (label) {
+            case AUTH_BEARER -> "bearer";
+            case AUTH_BASIC  -> "basic";
+            case AUTH_APIKEY -> "apikey";
+            default          -> "noauth";
+        };
+    }
+
+    private void loadAuthIntoUi(Authorization a) {
+        if (a == null) a = Authorization.noauth();
+        authTypeCombo.getSelectionModel().select(authLabelFromType(a.type));
+        bearerTokenField.setText(a.bearer != null && a.bearer.token != null ? a.bearer.token : "");
+        basicUsernameField.setText(a.basic != null && a.basic.username != null ? a.basic.username : "");
+        basicPasswordField.setText(a.basic != null && a.basic.password != null ? a.basic.password : "");
+        apiKeyKeyField.setText(a.apikey != null && a.apikey.key != null ? a.apikey.key : "");
+        apiKeyValueField.setText(a.apikey != null && a.apikey.value != null ? a.apikey.value : "");
+        apiKeyAddToCombo.getSelectionModel().select(
+                a.apikey != null && "query".equals(a.apikey.addTo) ? "Query Params" : "Header");
+        updateAuthPanelVisibility(authLabelFromType(a.type));
+    }
+
+    private Authorization readAuthFromUi() {
+        Authorization a = new Authorization();
+        a.type = authTypeFromLabel(authTypeCombo.getValue());
+        switch (a.type) {
+            case "bearer" -> {
+                a.bearer = new Authorization.Bearer();
+                a.bearer.token = bearerTokenField.getText();
+            }
+            case "basic" -> {
+                a.basic = new Authorization.Basic();
+                a.basic.username = basicUsernameField.getText();
+                a.basic.password = basicPasswordField.getText();
+            }
+            case "apikey" -> {
+                a.apikey = new Authorization.ApiKey();
+                a.apikey.key = apiKeyKeyField.getText();
+                a.apikey.value = apiKeyValueField.getText();
+                a.apikey.addTo = "Query Params".equals(apiKeyAddToCombo.getValue()) ? "query" : "header";
+            }
+            default -> { /* noauth */ }
+        }
+        return a;
+    }
+
+    /* ================================================================
+     *  URL ⇄ Params bidirectional sync
+     * ================================================================ */
+
+    private void syncUrlIntoParams(String url) {
+        if (syncingUrlParams) return;
+        syncingUrlParams = true;
+        try {
+            List<KeyValueRow> parsed = parseQueryFromUrl(url);
+            ObservableList<KeyValueRow> items = paramsTable.getItems();
+            // Strip non-auto rows; preserve auto rows (none today, but defensive)
+            items.removeIf(r -> !r.isAuto() && !r.isBlank());
+            // Insert parsed rows above any auto rows, in their original order
+            int insertAt = 0;
+            for (KeyValueRow row : items) {
+                if (row.isAuto()) break;
+                insertAt++;
+            }
+            items.addAll(Math.min(insertAt, items.size()), parsed);
+            ensureBlankRow(items);
+        } finally {
+            syncingUrlParams = false;
+        }
+    }
+
+    private void syncParamsIntoUrl() {
+        if (syncingUrlParams) return;
+        syncingUrlParams = true;
+        try {
+            String base = stripQueryString(urlField.getText());
+            String built = appendQuery(base, paramsTable.getItems());
+            urlField.setText(built);
+        } finally {
+            syncingUrlParams = false;
+        }
+    }
+
+    /** Strip everything from the first '?' to the (optional) '#' fragment. */
+    private static String stripQueryString(String url) {
+        if (url == null) return "";
+        int q = url.indexOf('?');
+        if (q < 0) return url;
+        int hash = url.indexOf('#', q);
+        if (hash < 0) return url.substring(0, q);
+        return url.substring(0, q) + url.substring(hash);
+    }
+
+    private static String appendQuery(String urlBase, List<KeyValueRow> rows) {
+        if (urlBase == null) urlBase = "";
+        // Pull off fragment so we put query before it
+        String fragment = "";
+        int hash = urlBase.indexOf('#');
+        if (hash >= 0) {
+            fragment = urlBase.substring(hash);
+            urlBase = urlBase.substring(0, hash);
+        }
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (KeyValueRow r : rows) {
+            if (r == null || r.isBlank() || r.getKey() == null || r.getKey().isBlank()) continue;
+            if (r.isAuto()) continue;
+            sb.append(first ? '?' : '&');
+            first = false;
+            sb.append(safeEncode(r.getKey()));
+            sb.append('=');
+            sb.append(safeEncode(r.getValue() == null ? "" : r.getValue()));
+        }
+        return urlBase + sb.toString() + fragment;
+    }
+
+    private static List<KeyValueRow> parseQueryFromUrl(String url) {
+        List<KeyValueRow> out = new ArrayList<>();
+        if (url == null) return out;
+        int q = url.indexOf('?');
+        if (q < 0) return out;
+        String rest = url.substring(q + 1);
+        int hash = rest.indexOf('#');
+        if (hash >= 0) rest = rest.substring(0, hash);
+        if (rest.isEmpty()) return out;
+        for (String part : rest.split("&")) {
+            if (part.isEmpty()) continue;
+            int eq = part.indexOf('=');
+            String k = eq < 0 ? part : part.substring(0, eq);
+            String v = eq < 0 ? "" : part.substring(eq + 1);
+            out.add(new KeyValueRow(safeDecode(k), safeDecode(v)));
+        }
+        return out;
+    }
+
+    /** Decode that preserves {{var}} placeholders untouched. */
+    private static String safeDecode(String s) {
+        if (s == null || s.isEmpty()) return "";
+        if (s.contains("{{") || s.contains("}}")) return s;
+        try { return URLDecoder.decode(s, StandardCharsets.UTF_8); }
+        catch (IllegalArgumentException e) { return s; }
+    }
+
+    /** Encode that preserves {{var}} placeholders untouched. */
+    private static String safeEncode(String s) {
+        if (s == null || s.isEmpty()) return "";
+        if (s.contains("{{") || s.contains("}}")) return s;
+        return URLEncoder.encode(s, StandardCharsets.UTF_8);
+    }
+
+    /* ================================================================
+     *  Auth → Headers/Params auto-row sync
+     * ================================================================ */
+
+    /**
+     * Maintains an auto-generated row in the Headers table (or Params, for API key
+     * in query mode) reflecting the current Authorization tab. Rows that the user
+     * has manually edited are left alone — see EditingCell.commitEdit.
+     */
+    private void syncAuthIntoHeaders() {
+        if (paramsTable.getItems() == null || headersTable.getItems() == null) return;
+        // Drop any prior auto rows
+        Iterator<KeyValueRow> hi = headersTable.getItems().iterator();
+        while (hi.hasNext()) if (hi.next().isAuto()) hi.remove();
+        Iterator<KeyValueRow> pi = paramsTable.getItems().iterator();
+        while (pi.hasNext()) if (pi.next().isAuto()) pi.remove();
+
+        Authorization a = readAuthFromUi();
+        KeyValueRow row = null;
+        boolean toQuery = false;
+        if (a != null && a.type != null) {
+            switch (a.type) {
+                case "bearer" -> {
+                    if (a.bearer != null && a.bearer.token != null && !a.bearer.token.isBlank()) {
+                        row = new KeyValueRow("Authorization", "Bearer " + a.bearer.token);
+                    }
+                }
+                case "basic" -> {
+                    if (a.basic != null && a.basic.username != null && !a.basic.username.isBlank()) {
+                        // Show the encoded value the same way it's sent. Variable
+                        // substitution for the Basic header happens at send time.
+                        String u = a.basic.username == null ? "" : a.basic.username;
+                        String p = a.basic.password == null ? "" : a.basic.password;
+                        if (u.contains("{{") || p.contains("{{")) {
+                            row = new KeyValueRow("Authorization", "Basic <computed>");
+                        } else {
+                            String encoded = Base64.getEncoder()
+                                    .encodeToString((u + ":" + p).getBytes(StandardCharsets.UTF_8));
+                            row = new KeyValueRow("Authorization", "Basic " + encoded);
+                        }
+                    }
+                }
+                case "apikey" -> {
+                    if (a.apikey != null && a.apikey.key != null && !a.apikey.key.isBlank()) {
+                        row = new KeyValueRow(a.apikey.key, a.apikey.value == null ? "" : a.apikey.value);
+                        toQuery = "query".equals(a.apikey.addTo);
+                    }
+                }
+                default -> { /* noauth */ }
+            }
+        }
+        if (row != null) {
+            row.setAuto(true);
+            ObservableList<KeyValueRow> target = toQuery ? paramsTable.getItems() : headersTable.getItems();
+            // Insert above any blank trailing row
+            int idx = target.size();
+            for (int i = target.size() - 1; i >= 0; i--) {
+                if (target.get(i).isBlank()) idx = i;
+                else break;
+            }
+            target.add(idx, row);
+        }
+        ensureBlankRow(headersTable.getItems());
+        ensureBlankRow(paramsTable.getItems());
+    }
+
+    /** Apply the tab's auth into the request being sent. Variable substitution happens here too. */
+    private void applyAuthorization(ExecuteRequest req, Authorization a, Map<String, String> vars) {
+        if (a == null || a.type == null) return;
+        switch (a.type) {
+            case "bearer" -> {
+                if (a.bearer != null && a.bearer.token != null && !a.bearer.token.isBlank()) {
+                    String token = Variables.replace(a.bearer.token, vars);
+                    req.headers.put("Authorization", "Bearer " + token);
+                }
+            }
+            case "basic" -> {
+                if (a.basic != null && a.basic.username != null && !a.basic.username.isBlank()) {
+                    String u = Variables.replace(a.basic.username, vars);
+                    String p = Variables.replace(a.basic.password == null ? "" : a.basic.password, vars);
+                    String encoded = Base64.getEncoder()
+                            .encodeToString((u + ":" + p).getBytes(StandardCharsets.UTF_8));
+                    req.headers.put("Authorization", "Basic " + encoded);
+                }
+            }
+            case "apikey" -> {
+                if (a.apikey != null && a.apikey.key != null && !a.apikey.key.isBlank()) {
+                    String k = Variables.replace(a.apikey.key, vars);
+                    String v = Variables.replace(a.apikey.value == null ? "" : a.apikey.value, vars);
+                    if ("query".equals(a.apikey.addTo)) {
+                        req.query_params.put(k, v);
+                    } else {
+                        req.headers.put(k, v);
+                    }
+                }
+            }
+            default -> { /* noauth — nothing */ }
+        }
     }
 
     private void configureKeyValueTable(TableView<KeyValueRow> table,
@@ -242,16 +634,18 @@ public class MainController {
         table.setEditable(true);
         keyCol.setCellValueFactory(new PropertyValueFactory<>("key"));
         valCol.setCellValueFactory(new PropertyValueFactory<>("value"));
-        keyCol.setCellFactory(TextFieldTableCell.forTableColumn());
-        valCol.setCellFactory(TextFieldTableCell.forTableColumn());
+        keyCol.setCellFactory(c -> new EditingCell());
+        valCol.setCellFactory(c -> new EditingCell());
         keyCol.setOnEditCommit(e -> {
             e.getRowValue().setKey(e.getNewValue());
             ensureBlankRow(table.getItems());
+            if (table == paramsTable) syncParamsIntoUrl();
             onTabFieldChanged();
         });
         valCol.setOnEditCommit(e -> {
             e.getRowValue().setValue(e.getNewValue());
             ensureBlankRow(table.getItems());
+            if (table == paramsTable) syncParamsIntoUrl();
             onTabFieldChanged();
         });
         removeCol.setCellValueFactory(c -> new SimpleStringProperty(""));
@@ -263,6 +657,7 @@ public class MainController {
                     KeyValueRow row = getTableView().getItems().get(getIndex());
                     getTableView().getItems().remove(row);
                     ensureBlankRow(getTableView().getItems());
+                    if (getTableView() == paramsTable) syncParamsIntoUrl();
                     onTabFieldChanged();
                 });
             }
@@ -367,12 +762,56 @@ public class MainController {
     private Tab addTabFor(TabState state, boolean select) {
         Tab tab = new Tab();
         tab.setUserData(state);
-        tab.setText(displayTitle(state));
+        Label titleLabel = new Label(displayTitle(state));
+        titleLabel.getStyleClass().add("open-tab-title");
+        titleLabel.setOnMouseClicked(ev -> {
+            if (ev.getClickCount() == 2) startInlineRename(tab, titleLabel, state);
+        });
+        tab.setGraphic(titleLabel);
         tab.setOnClosed(ev -> onTabClosed(state));
         tabsByState.put(state.tabId, tab);
         openTabsPane.getTabs().add(tab);
         if (select) openTabsPane.getSelectionModel().select(tab);
         return tab;
+    }
+
+    /** Replace the tab's label with a TextField until the user commits / cancels. */
+    private void startInlineRename(Tab tab, Label label, TabState state) {
+        TextField field = new TextField(state.name == null ? "" : state.name);
+        field.getStyleClass().add("open-tab-rename");
+        field.setPrefWidth(Math.max(label.getWidth() + 30, 140));
+        Runnable commit = () -> {
+            String typed = field.getText() == null ? "" : field.getText().trim();
+            if (!typed.isEmpty()) {
+                state.name = typed;
+                if (state.itemPath != null) state.itemPath = typed; // keep tab→collection link aligned
+            }
+            label.setText(displayTitle(state));
+            tab.setGraphic(label);
+            scheduleTabsSync();
+        };
+        field.setOnAction(e -> commit.run());
+        field.focusedProperty().addListener((obs, was, isNow) -> {
+            if (was && !isNow) commit.run();
+        });
+        field.setOnKeyPressed(ev -> {
+            if (ev.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                tab.setGraphic(label);
+                ev.consume();
+            }
+        });
+        tab.setGraphic(field);
+        field.requestFocus();
+        field.selectAll();
+    }
+
+    private static void setTabTitle(Tab tab, TabState state) {
+        if (tab == null) return;
+        if (tab.getGraphic() instanceof Label l) {
+            l.setText(displayTitle(state));
+        } else {
+            tab.setText(displayTitle(state));
+        }
     }
 
     private void onTabClosed(TabState state) {
@@ -409,8 +848,7 @@ public class MainController {
         if (suppressUiSync || currentTab == null) return;
         // Push UI state into the model and refresh tab title
         flushUiToTab(currentTab);
-        Tab t = tabsByState.get(currentTab.tabId);
-        if (t != null) t.setText(displayTitle(currentTab));
+        setTabTitle(tabsByState.get(currentTab.tabId), currentTab);
         scheduleTabsSync();
     }
 
@@ -421,10 +859,12 @@ public class MainController {
         s.body = bodyArea.getText() == null ? "" : bodyArea.getText();
         s.params.setAll(new ArrayList<>(paramsTable.getItems()));
         s.headers.setAll(new ArrayList<>(headersTable.getItems()));
+        s.authorization = readAuthFromUi();
         s.responseStatus = parseIntOrNull(responseStatusLabel.getText());
         s.responseStatusText = responseStatusLabel.getText();
         s.responseTimeMs = parseLongOrNull(responseTimeLabel.getText());
-        s.responseBody = responseBodyArea.getText();
+        // s.responseBody is the source of truth — only updated by applyResponse;
+        // the WebView is purely a renderer of it.
         s.responseHeaders.setAll(responseHeadersTable.getItems());
         s.dirty = true;
     }
@@ -435,12 +875,18 @@ public class MainController {
             methodCombo.getSelectionModel().select(s.method == null ? "GET" : s.method);
             urlField.setText(s.url == null ? "" : s.url);
             bodyTypeCombo.getSelectionModel().select(s.bodyType == null ? "none" : s.bodyType);
-            bodyArea.setText(s.body == null ? "" : s.body);
+            bodyArea.replaceText(s.body == null ? "" : s.body);
 
+            // Strip any auto rows from the previous render so we start clean
+            s.params.removeIf(KeyValueRow::isAuto);
+            s.headers.removeIf(KeyValueRow::isAuto);
             ensureBlankRow(s.params);
             ensureBlankRow(s.headers);
             paramsTable.setItems(s.params);
             headersTable.setItems(s.headers);
+
+            loadAuthIntoUi(s.authorization);
+            syncAuthIntoHeaders();
 
             if (s.responseStatus != null) {
                 responseStatusLabel.setText(s.responseStatusText == null
@@ -452,7 +898,7 @@ public class MainController {
                 responseStatusLabel.getStyleClass().setAll("status-pill");
             }
             responseTimeLabel.setText(s.responseTimeMs == null ? "" : s.responseTimeMs + " ms");
-            responseBodyArea.setText(s.responseBody == null ? "" : s.responseBody);
+            renderResponseBody(s.responseBody);
             responseHeadersTable.setItems(s.responseHeaders);
         } finally {
             suppressUiSync = false;
@@ -619,7 +1065,7 @@ public class MainController {
             @Override protected void updateItem(TreeNodeRef ref, boolean empty) {
                 super.updateItem(ref, empty);
                 if (empty || ref == null) {
-                    setText(null); setGraphic(null); return;
+                    setText(null); setGraphic(null); setContextMenu(null); return;
                 }
                 String prefix = switch (ref.kind) {
                     case COLLECTION -> "📁 ";
@@ -627,6 +1073,7 @@ public class MainController {
                     case REQUEST -> methodLabel(ref.item) + " ";
                 };
                 setText(prefix + ref.toString());
+                setContextMenu(buildContextMenu(ref));
             }
         });
         collectionTree.getSelectionModel().selectedItemProperty().addListener((obs, old, val) -> {
@@ -634,6 +1081,46 @@ public class MainController {
                 openOrFocusRequestTab(val.getValue());
             }
         });
+    }
+
+    private ContextMenu buildContextMenu(TreeNodeRef ref) {
+        ContextMenu menu = new ContextMenu();
+        switch (ref.kind) {
+            case COLLECTION -> {
+                MenuItem addReq = new MenuItem("Add request");
+                addReq.setOnAction(e -> onAddRequestUnder(ref));
+                MenuItem addFolder = new MenuItem("Add folder");
+                addFolder.setOnAction(e -> onAddFolderUnder(ref));
+                MenuItem rename = new MenuItem("Rename");
+                rename.setOnAction(e -> onRenameNode(ref));
+                MenuItem delete = new MenuItem("Delete collection");
+                delete.setOnAction(e -> onDeleteNode(ref));
+                menu.getItems().addAll(addReq, addFolder, new SeparatorMenuItem(), rename, delete);
+            }
+            case FOLDER -> {
+                MenuItem addReq = new MenuItem("Add request");
+                addReq.setOnAction(e -> onAddRequestUnder(ref));
+                MenuItem addFolder = new MenuItem("Add folder");
+                addFolder.setOnAction(e -> onAddFolderUnder(ref));
+                MenuItem rename = new MenuItem("Rename");
+                rename.setOnAction(e -> onRenameNode(ref));
+                MenuItem delete = new MenuItem("Delete folder");
+                delete.setOnAction(e -> onDeleteNode(ref));
+                menu.getItems().addAll(addReq, addFolder, new SeparatorMenuItem(), rename, delete);
+            }
+            case REQUEST -> {
+                MenuItem open = new MenuItem("Open in tab");
+                open.setOnAction(e -> openOrFocusRequestTab(ref));
+                MenuItem sync = new MenuItem("Sync from backend");
+                sync.setOnAction(e -> syncRequestNode(ref));
+                MenuItem rename = new MenuItem("Rename");
+                rename.setOnAction(e -> onRenameNode(ref));
+                MenuItem delete = new MenuItem("Delete");
+                delete.setOnAction(e -> onDeleteNode(ref));
+                menu.getItems().addAll(open, sync, new SeparatorMenuItem(), rename, delete);
+            }
+        }
+        return menu;
     }
 
     private static String methodLabel(PostmanItem item) {
@@ -803,6 +1290,7 @@ public class MainController {
         } else {
             req.body = "";
         }
+        applyAuthorization(req, readAuthFromUi(), vars);
         return req;
     }
 
@@ -822,17 +1310,28 @@ public class MainController {
             responseStatusLabel.getStyleClass().setAll("status-pill", "status-" + tier);
         }
         responseTimeLabel.setText(elapsedMs + " ms");
-        responseBodyArea.setText(prettifyJsonIfPossible(resp.body));
+        String pretty = prettifyJsonIfPossible(resp.body);
+        renderResponseBody(pretty);
         if (currentTab != null) {
             currentTab.responseHeaders.setAll(new ArrayList<>(resp.headers.entrySet()));
             currentTab.responseStatus = resp.status;
             currentTab.responseStatusText = responseStatusLabel.getText();
             currentTab.responseTimeMs = elapsedMs;
-            currentTab.responseBody = responseBodyArea.getText();
+            currentTab.responseBody = pretty;
         }
         responseHeadersTable.setItems(currentTab != null ? currentTab.responseHeaders
                 : FXCollections.observableArrayList(new ArrayList<>(resp.headers.entrySet())));
         setStatus("Done");
+    }
+
+    /** Render the (already-pretty-printed) body into the response WebView with JSON syntax highlighting. */
+    private void renderResponseBody(String body) {
+        if (responseBodyView == null) return;
+        JsonHighlighter.Theme theme = "light".equals(store.loadTheme())
+                ? JsonHighlighter.Theme.LIGHT
+                : JsonHighlighter.Theme.DARK;
+        String html = JsonHighlighter.toHtml(body == null ? "" : body, theme);
+        responseBodyView.getEngine().loadContent(html, "text/html");
     }
 
     private static String prettifyJsonIfPossible(String body) {
@@ -850,13 +1349,14 @@ public class MainController {
 
     @FXML
     public void onPrettyBody() {
-        bodyArea.setText(prettifyJsonIfPossible(bodyArea.getText()));
+        bodyArea.replaceText(prettifyJsonIfPossible(bodyArea.getText()));
     }
 
     @FXML
     public void onCopyResponse() {
         ClipboardContent c = new ClipboardContent();
-        c.putString(responseBodyArea.getText());
+        String text = currentTab != null && currentTab.responseBody != null ? currentTab.responseBody : "";
+        c.putString(text);
         Clipboard.getSystemClipboard().setContent(c);
     }
 
@@ -864,61 +1364,280 @@ public class MainController {
      *  Save current tab back into its source collection
      * ================================================================ */
 
+    /** Right-click "Sync from backend" — open the tree's request in a tab and pull fresh. */
+    private void syncRequestNode(TreeNodeRef ref) {
+        if (ref == null || ref.kind != TreeNodeRef.Kind.REQUEST) return;
+        openOrFocusRequestTab(ref);
+        onSyncRequest();
+    }
+
+    /** Pull the latest version of the current tab's linked request from the backend. */
     @FXML
-    public void onSaveRequest() {
-        if (currentTab == null || currentTab.collectionId == null) {
-            setStatus("This tab isn't linked to a collection — open a request from the tree first.");
+    public void onSyncRequest() {
+        if (currentTab == null) {
+            setStatus("Open a tab first.");
+            return;
+        }
+        if (currentTab.collectionId == null) {
+            setStatus("This tab isn't linked to a collection — nothing to sync.");
             return;
         }
         Team team = teamCombo.getValue();
         if (team == null) return;
-
-        // Find collection in cache
-        List<Collection> all = store.loadCollections(team.id);
-        Collection target = null;
-        for (Collection c : all) {
-            if (Objects.equals(c.id, currentTab.collectionId)) { target = c; break; }
+        if (team.id == LOCAL_TEAM_ID) {
+            setStatus("Local workspace stays on this device — nothing to sync.");
+            return;
         }
-        if (target == null) {
-            setStatus("Source collection not found locally. Try refreshing.");
+        if (!auth.isAuthenticated()) {
+            setStatus("Sign in to sync from the backend.");
             return;
         }
 
+        long collectionId = currentTab.collectionId;
+        String itemPath = currentTab.itemPath;
+        TabState target = currentTab;
+        setStatus("Syncing request…");
+        syncRequestButton.setDisable(true);
+
+        runAsync(() -> {
+            try {
+                Collection fresh = collectionApi.get(team.id, collectionId);
+                // Cache the fresh collection
+                List<Collection> all = store.loadCollections(team.id);
+                boolean replaced = false;
+                for (int i = 0; i < all.size(); i++) {
+                    if (Objects.equals(all.get(i).id, fresh.id)) { all.set(i, fresh); replaced = true; break; }
+                }
+                if (!replaced) all.add(fresh);
+                store.saveCollections(team.id, all);
+
+                PostmanCollection pc = parsePostman(fresh.raw_json);
+                PostmanItem item = pc == null ? null : findItemByPath(pc.item, itemPath);
+
+                Platform.runLater(() -> {
+                    syncRequestButton.setDisable(false);
+                    applyCollections(store.loadCollections(team.id));
+                    if (item == null) {
+                        setStatus("Request \"" + itemPath + "\" no longer exists in the collection.");
+                        return;
+                    }
+                    if (target == currentTab) {
+                        replaceTabFromItem(target, item);
+                        setStatus("Synced.");
+                    }
+                });
+            } catch (BackendException e) {
+                Platform.runLater(() -> {
+                    syncRequestButton.setDisable(false);
+                    setStatus(e.isNetwork() ? "Offline — can't sync right now."
+                                            : "Sync failed: " + e.getMessage());
+                });
+            }
+        });
+    }
+
+    /** Replace a tab's editor state with the contents of a Postman item from disk. */
+    private void replaceTabFromItem(TabState s, PostmanItem item) {
+        s.headers.clear();
+        s.params.clear();
+        s.body = "";
+        s.bodyType = "none";
+
+        PostmanRequest r = item.request;
+        if (r != null) {
+            s.method = r.method == null ? "GET" : r.method.toUpperCase();
+            s.url = extractUrl(r.url);
+            if (r.header != null) {
+                for (PostmanKeyValue h : r.header) {
+                    if (Boolean.TRUE.equals(h.disabled)) continue;
+                    s.headers.add(new KeyValueRow(h.key, h.stringValue()));
+                }
+            }
+            if (r.url instanceof Map<?, ?> m) {
+                Object q = m.get("query");
+                if (q instanceof List<?> list) {
+                    for (Object kv : list) {
+                        if (kv instanceof Map<?, ?> kvm) {
+                            Object kRaw = kvm.get("key");
+                            Object vRaw = kvm.get("value");
+                            String k = kRaw == null ? "" : String.valueOf(kRaw);
+                            String v = vRaw == null ? "" : String.valueOf(vRaw);
+                            s.params.add(new KeyValueRow(k, v));
+                        }
+                    }
+                }
+            }
+            if (r.body != null && "raw".equals(r.body.mode)) {
+                s.bodyType = "raw";
+                s.body = r.body.raw == null ? "" : r.body.raw;
+            }
+        }
+        ensureBlankRow(s.params);
+        ensureBlankRow(s.headers);
+        // Reload the currently-displayed tab UI so user sees the fresh content
+        if (s == currentTab) loadTabIntoUi(s);
+    }
+
+    @FXML
+    public void onSaveRequest() {
+        if (currentTab == null) {
+            setStatus("Open a tab first.");
+            return;
+        }
+        Team team = teamCombo.getValue();
+        if (team == null) {
+            setStatus("Select a team first.");
+            return;
+        }
+        flushUiToTab(currentTab);
+
+        if (currentTab.collectionId != null) {
+            saveExistingRequest(team, currentTab);
+        } else {
+            saveAsNewRequest(team, currentTab);
+        }
+    }
+
+    /** Save a tab that's already linked to a collection request. */
+    private void saveExistingRequest(Team team, TabState tab) {
+        List<Collection> all = store.loadCollections(team.id);
+        Collection target = null;
+        for (Collection c : all) {
+            if (Objects.equals(c.id, tab.collectionId)) { target = c; break; }
+        }
+        if (target == null) {
+            setStatus("Source collection not found locally — try refreshing.");
+            return;
+        }
         PostmanCollection pc = parsePostman(target.raw_json);
         if (pc == null) {
             setStatus("Source collection is not parseable.");
             return;
         }
-        PostmanItem item = findItemByPath(pc.item, currentTab.itemPath);
+        PostmanItem item = findItemByPath(pc.item, tab.itemPath);
         if (item == null) {
-            setStatus("Source request not found in collection.");
+            // Request was renamed / deleted under us — fall back to creating a new entry
+            saveAsNewRequest(team, tab);
             return;
         }
-        applyTabToItem(currentTab, item);
+        applyTabToItem(tab, item);
         target.raw_json = Json.stringify(pc);
         target.dirty = true;
         persistCollectionLocal(target);
+        pushCollectionIfOnline(team, target);
+    }
 
-        // Skip the network round-trip for the Local workspace or when signed out
-        if (team.id == LOCAL_TEAM_ID || !auth.isAuthenticated()) {
+    /** Open the Save dialog and create a fresh request in the chosen collection. */
+    private void saveAsNewRequest(Team team, TabState tab) {
+        List<Collection> all = store.loadCollections(team.id);
+        String defaultName = deriveRequestName(tab);
+        Optional<SaveRequestDialog.Result> picked =
+                SaveRequestDialog.show(all, defaultName, "Save request to collection");
+        if (picked.isEmpty()) return;
+        SaveRequestDialog.Result r = picked.get();
+        createRequestInCollection(team, r.collection, r.folderPath, r.name, tab, /*openAsNewTab=*/false);
+    }
+
+    private static String deriveRequestName(TabState s) {
+        if (s.name != null && !s.name.isBlank() && !"Untitled".equals(s.name)) return s.name;
+        if (s.url != null && !s.url.isBlank()) {
+            String stripped = s.url.replaceFirst("^https?://", "");
+            int q = stripped.indexOf('?');
+            return (s.method == null ? "GET" : s.method) + " "
+                    + (q < 0 ? stripped : stripped.substring(0, q));
+        }
+        return "New Request";
+    }
+
+    /**
+     * Insert a new request into a collection (optionally inside a nested folder),
+     * persist locally, push to the backend if online, and either link the existing
+     * tab to it or open a brand-new tab.
+     */
+    private void createRequestInCollection(Team team, Collection collection, List<String> folderPath,
+                                            String name, TabState sourceTab, boolean openAsNewTab) {
+        PostmanCollection pc = parsePostman(collection.raw_json);
+        if (pc == null) {
+            pc = new PostmanCollection();
+            pc.info.name = collection.name == null ? "Untitled" : collection.name;
+        }
+        List<PostmanItem> targetList = pc.item;
+        if (folderPath != null && !folderPath.isEmpty()) {
+            PostmanItem folder = findFolder(pc.item, folderPath, 0);
+            if (folder != null) targetList = folder.item;
+        }
+        PostmanItem item = new PostmanItem();
+        item.name = name;
+        item.request = new PostmanRequest();
+        if (sourceTab != null) {
+            applyTabToItem(sourceTab, item);
+        } else {
+            item.request.method = "GET";
+            item.request.url = "";
+        }
+        targetList.add(item);
+
+        collection.raw_json = Json.stringify(pc);
+        collection.dirty = true;
+        persistCollectionLocal(collection);
+
+        TabState target = openAsNewTab ? new TabState() : sourceTab;
+        if (target != null) {
+            target.collectionId = collection.id;
+            target.itemPath = name;
+            target.name = name;
+            if (openAsNewTab) {
+                if (item.request != null) {
+                    target.method = item.request.method == null ? "GET" : item.request.method;
+                    target.url = item.request.url == null ? "" : String.valueOf(item.request.url);
+                }
+                ensureBlankRow(target.params);
+                ensureBlankRow(target.headers);
+                addTabFor(target, true);
+                scheduleTabsSync();
+            } else {
+                setTabTitle(tabsByState.get(target.tabId), target);
+            }
+        }
+
+        applyCollections(store.loadCollections(team.id));
+        pushCollectionIfOnline(team, collection);
+    }
+
+    private static PostmanItem findFolder(List<PostmanItem> items, List<String> path, int depth) {
+        if (items == null || depth >= path.size()) return null;
+        String want = path.get(depth);
+        for (PostmanItem it : items) {
+            if (!it.isFolder()) continue;
+            if (Objects.equals(it.name, want)) {
+                if (depth == path.size() - 1) return it;
+                PostmanItem nested = findFolder(it.item, path, depth + 1);
+                if (nested != null) return nested;
+            }
+        }
+        return null;
+    }
+
+    private void pushCollectionIfOnline(Team team, Collection collection) {
+        if (team.id == LOCAL_TEAM_ID || !auth.isAuthenticated()
+                || collection.id == null || collection.id <= 0) {
             setStatus("Saved locally.");
             return;
         }
-
-        Collection finalTarget = target;
+        setStatus("Saving…");
         runAsync(() -> {
             try {
-                Collection updated = collectionApi.update(team.id, finalTarget.id, null, finalTarget.raw_json);
-                finalTarget.raw_json = updated.raw_json;
-                finalTarget.dirty = false;
-                persistCollectionLocal(finalTarget);
+                Collection updated = collectionApi.update(team.id, collection.id, null, collection.raw_json);
+                collection.raw_json = updated.raw_json;
+                collection.dirty = false;
+                persistCollectionLocal(collection);
                 Platform.runLater(() -> setStatus("Saved & synced."));
             } catch (BackendException e) {
                 Platform.runLater(() -> setStatus(
-                        e.isNetwork() ? "Saved locally. Will sync when online." : "Saved locally. Sync failed: " + e.getMessage()));
+                        e.isNetwork() ? "Saved locally. Will sync when online."
+                                       : "Saved locally. Sync failed: " + e.getMessage()));
             }
         });
-        setStatus("Saved locally.");
     }
 
     private static PostmanItem findItemByPath(List<PostmanItem> items, String path) {
@@ -940,6 +1659,7 @@ public class MainController {
         item.request.header = new ArrayList<>();
         for (KeyValueRow row : s.headers) {
             if (row.isBlank() || row.getKey() == null || row.getKey().isBlank()) continue;
+            if (row.isAuto()) continue; // auth-injected — saved via Authorization tab instead
             item.request.header.add(new PostmanKeyValue(row.getKey(), row.getValue()));
         }
         if ("raw".equals(s.bodyType)) {
@@ -1022,6 +1742,186 @@ public class MainController {
     public void onRefreshCollections() {
         Team team = teamCombo.getValue();
         if (team != null) loadCollections(team.id);
+    }
+
+    @FXML
+    public void onNewRequest() {
+        Team team = teamCombo.getValue();
+        if (team == null) {
+            setStatus("Select a team first.");
+            return;
+        }
+        List<Collection> all = store.loadCollections(team.id);
+        if (all.isEmpty()) {
+            setStatus("Create a collection first, then add requests to it.");
+            return;
+        }
+        Optional<SaveRequestDialog.Result> picked =
+                SaveRequestDialog.show(all, "New Request", "Create new request");
+        if (picked.isEmpty()) return;
+        SaveRequestDialog.Result r = picked.get();
+        createRequestInCollection(team, r.collection, r.folderPath, r.name, null, /*openAsNewTab=*/true);
+    }
+
+    /** Used by the tree context menu to add a request directly under a collection or folder. */
+    private void onAddRequestUnder(TreeNodeRef ref) {
+        Team team = teamCombo.getValue();
+        if (team == null || ref == null) return;
+        // Build folder path leading to ref (empty if ref is the collection root)
+        List<String> folderPath = new ArrayList<>();
+        if (ref.kind == TreeNodeRef.Kind.FOLDER) {
+            folderPath.add(ref.item.name == null ? "" : ref.item.name);
+            // Note: we don't currently track ancestor folder names on TreeNodeRef.
+            // For now, a single-level folder selection works; nested folders use the
+            // SaveRequestDialog folder picker.
+        }
+        TextInputDialog dlg = new TextInputDialog("New Request");
+        dlg.setHeaderText("Add request to " + (ref.kind == TreeNodeRef.Kind.FOLDER
+                ? ref.item.name : ref.collection.name));
+        dlg.setContentText("Name:");
+        dlg.showAndWait().ifPresent(name -> {
+            if (name.isBlank()) return;
+            createRequestInCollection(team, ref.collection, folderPath, name.trim(),
+                    null, /*openAsNewTab=*/true);
+        });
+    }
+
+    /** Used by the tree context menu to add a folder. */
+    private void onAddFolderUnder(TreeNodeRef ref) {
+        Team team = teamCombo.getValue();
+        if (team == null || ref == null) return;
+        TextInputDialog dlg = new TextInputDialog("New Folder");
+        dlg.setHeaderText("Add folder");
+        dlg.setContentText("Folder name:");
+        dlg.showAndWait().ifPresent(name -> {
+            if (name.isBlank()) return;
+            // Find collection in cache, mutate, persist
+            List<Collection> all = store.loadCollections(team.id);
+            Collection target = null;
+            for (Collection c : all) {
+                if (Objects.equals(c.id, ref.collection.id)) { target = c; break; }
+            }
+            if (target == null) { setStatus("Collection not found."); return; }
+            PostmanCollection pc = parsePostman(target.raw_json);
+            if (pc == null) {
+                pc = new PostmanCollection();
+                pc.info.name = target.name == null ? "Untitled" : target.name;
+            }
+            List<PostmanItem> dest = pc.item;
+            if (ref.kind == TreeNodeRef.Kind.FOLDER) {
+                dest = ref.item.item; // this mutates the ref's folder live; we'll rewrite raw_json
+            }
+            PostmanItem folder = new PostmanItem();
+            folder.name = name.trim();
+            dest.add(folder);
+            target.raw_json = Json.stringify(pc);
+            target.dirty = true;
+            persistCollectionLocal(target);
+            applyCollections(store.loadCollections(team.id));
+            pushCollectionIfOnline(team, target);
+        });
+    }
+
+    /** Rename a tree node (collection root, folder, or request). */
+    private void onRenameNode(TreeNodeRef ref) {
+        Team team = teamCombo.getValue();
+        if (team == null || ref == null) return;
+        String oldName = ref.kind == TreeNodeRef.Kind.COLLECTION ? ref.collection.name : ref.item.name;
+        TextInputDialog dlg = new TextInputDialog(oldName == null ? "" : oldName);
+        dlg.setHeaderText("Rename");
+        dlg.setContentText("New name:");
+        dlg.showAndWait().ifPresent(value -> {
+            String newName = value == null ? "" : value.trim();
+            if (newName.isEmpty() || newName.equals(oldName)) return;
+
+            List<Collection> all = store.loadCollections(team.id);
+            Collection target = null;
+            for (Collection c : all) {
+                if (Objects.equals(c.id, ref.collection.id)) { target = c; break; }
+            }
+            if (target == null) return;
+            PostmanCollection pc = parsePostman(target.raw_json);
+
+            if (ref.kind == TreeNodeRef.Kind.COLLECTION) {
+                target.name = newName;
+                if (pc != null) {
+                    pc.info.name = newName;
+                    target.raw_json = Json.stringify(pc);
+                }
+            } else {
+                if (pc == null) return;
+                if (!renameByName(pc.item, oldName, newName)) return;
+                target.raw_json = Json.stringify(pc);
+            }
+            target.dirty = true;
+            persistCollectionLocal(target);
+            applyCollections(store.loadCollections(team.id));
+            pushCollectionIfOnline(team, target);
+        });
+    }
+
+    private static boolean renameByName(List<PostmanItem> items, String oldName, String newName) {
+        if (items == null || oldName == null) return false;
+        for (PostmanItem cur : items) {
+            if (oldName.equals(cur.name)) { cur.name = newName; return true; }
+            if (cur.item != null && renameByName(cur.item, oldName, newName)) return true;
+        }
+        return false;
+    }
+
+    private void onDeleteNode(TreeNodeRef ref) {
+        Team team = teamCombo.getValue();
+        if (team == null || ref == null) return;
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                "Delete " + (ref.kind == TreeNodeRef.Kind.COLLECTION ? "collection \"" + ref.collection.name + "\""
+                        : "\"" + (ref.item == null ? "?" : ref.item.name) + "\"") + "?");
+        confirm.setHeaderText("Confirm delete");
+        if (confirm.showAndWait().filter(b -> b == javafx.scene.control.ButtonType.OK).isEmpty()) return;
+
+        if (ref.kind == TreeNodeRef.Kind.COLLECTION) {
+            // Delete collection — backend if online; local only for Local team
+            List<Collection> all = store.loadCollections(team.id);
+            all.removeIf(c -> Objects.equals(c.id, ref.collection.id));
+            store.saveCollections(team.id, all);
+            applyCollections(all);
+            if (team.id != LOCAL_TEAM_ID && auth.isAuthenticated()
+                    && ref.collection.id != null && ref.collection.id > 0) {
+                runAsync(() -> {
+                    try { collectionApi.delete(team.id, ref.collection.id); }
+                    catch (BackendException ignored) {}
+                });
+            }
+            return;
+        }
+
+        // Folder or request — locate in raw_json by walking and remove
+        List<Collection> all = store.loadCollections(team.id);
+        Collection target = null;
+        for (Collection c : all) {
+            if (Objects.equals(c.id, ref.collection.id)) { target = c; break; }
+        }
+        if (target == null) return;
+        PostmanCollection pc = parsePostman(target.raw_json);
+        if (pc == null) return;
+        if (removeByName(pc.item, ref.item.name)) {
+            target.raw_json = Json.stringify(pc);
+            target.dirty = true;
+            persistCollectionLocal(target);
+            applyCollections(store.loadCollections(team.id));
+            pushCollectionIfOnline(team, target);
+        }
+    }
+
+    private static boolean removeByName(List<PostmanItem> items, String name) {
+        if (items == null || name == null) return false;
+        Iterator<PostmanItem> it = items.iterator();
+        while (it.hasNext()) {
+            PostmanItem cur = it.next();
+            if (name.equals(cur.name)) { it.remove(); return true; }
+            if (cur.item != null && removeByName(cur.item, name)) return true;
+        }
+        return false;
     }
 
     @FXML
@@ -1154,6 +2054,21 @@ public class MainController {
                 "PostBaby Desktop\nVersion 0.1.0\nBackend: " + backend.baseUrl());
         a.setHeaderText("About");
         a.showAndWait();
+    }
+
+    @FXML
+    public void onUseDarkTheme() { switchTheme("dark"); }
+
+    @FXML
+    public void onUseLightTheme() { switchTheme("light"); }
+
+    private void switchTheme(String theme) {
+        if (theme.equals(store.loadTheme())) return;
+        // Flush any pending state before the controller is rebuilt
+        if (pendingTabsSync != null) pendingTabsSync.cancel(false);
+        commitTabsSync();
+        store.saveTheme(theme);
+        app.showMain();
     }
 
     /* ================================================================

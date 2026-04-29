@@ -5,12 +5,18 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuButton?>
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.RadioMenuItem?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.control.Tooltip?>
+<?import javafx.scene.web.WebView?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TreeView?>
@@ -31,6 +37,13 @@
                     <MenuItem text="New Collection" onAction="#onNewCollection"/>
                     <MenuItem text="Sync with backend" onAction="#onSync"/>
                     <MenuItem text="Sign out" onAction="#onSignOut"/>
+                </Menu>
+                <Menu text="View">
+                    <fx:define>
+                        <ToggleGroup fx:id="themeGroup"/>
+                    </fx:define>
+                    <RadioMenuItem fx:id="darkThemeItem"  text="Dark theme"  onAction="#onUseDarkTheme"  toggleGroup="$themeGroup"/>
+                    <RadioMenuItem fx:id="lightThemeItem" text="Light theme" onAction="#onUseLightTheme" toggleGroup="$themeGroup"/>
                 </Menu>
                 <Menu text="Help">
                     <MenuItem text="About" onAction="#onAbout"/>
@@ -60,7 +73,12 @@
                 <padding><Insets top="6" right="6" bottom="6" left="6"/></padding>
                 <HBox spacing="6">
                     <Label text="Collections" styleClass="section-title" HBox.hgrow="ALWAYS"/>
-                    <Button text="+" onAction="#onNewCollection" styleClass="ghost"/>
+                    <MenuButton text="+" styleClass="ghost">
+                        <items>
+                            <MenuItem text="New Collection" onAction="#onNewCollection"/>
+                            <MenuItem text="New Request"   onAction="#onNewRequest"/>
+                        </items>
+                    </MenuButton>
                     <Button text="↻" onAction="#onRefreshCollections" styleClass="ghost"/>
                 </HBox>
                 <TreeView fx:id="collectionTree" VBox.vgrow="ALWAYS"/>
@@ -80,55 +98,103 @@
                     <TextField fx:id="urlField" promptText="https://api.example.com/path  (use {{var}} for environment vars)" HBox.hgrow="ALWAYS"/>
                     <Button fx:id="sendButton" text="Send" onAction="#onSend" styleClass="primary"/>
                     <Button fx:id="saveButton" text="Save" onAction="#onSaveRequest"/>
+                    <Button fx:id="syncRequestButton" text="⟳" onAction="#onSyncRequest" styleClass="ghost">
+                        <tooltip><Tooltip text="Pull the latest version of this request from the backend"/></tooltip>
+                    </Button>
                 </HBox>
 
-                <TabPane fx:id="editorTabs" tabClosingPolicy="UNAVAILABLE" prefHeight="240">
-                    <Tab text="Params">
-                        <TableView fx:id="paramsTable" editable="true">
-                            <columns>
-                                <TableColumn fx:id="paramKeyCol" text="Key" prefWidth="220"/>
-                                <TableColumn fx:id="paramValueCol" text="Value" prefWidth="380"/>
-                                <TableColumn fx:id="paramRemoveCol" text=" " prefWidth="40"/>
-                            </columns>
-                        </TableView>
-                    </Tab>
-                    <Tab text="Headers">
-                        <TableView fx:id="headersTable" editable="true">
-                            <columns>
-                                <TableColumn fx:id="headerKeyCol" text="Key" prefWidth="220"/>
-                                <TableColumn fx:id="headerValueCol" text="Value" prefWidth="380"/>
-                                <TableColumn fx:id="headerRemoveCol" text=" " prefWidth="40"/>
-                            </columns>
-                        </TableView>
-                    </Tab>
-                    <Tab text="Body">
-                        <VBox spacing="6">
-                            <padding><Insets top="6" right="6" bottom="6" left="6"/></padding>
-                            <HBox spacing="6">
-                                <Label text="Type:"/>
-                                <ComboBox fx:id="bodyTypeCombo" prefWidth="160"/>
-                                <Region HBox.hgrow="ALWAYS"/>
-                                <Button text="Pretty" onAction="#onPrettyBody"/>
-                            </HBox>
-                            <TextArea fx:id="bodyArea" wrapText="false" VBox.vgrow="ALWAYS"
-                                      promptText="Request body…"/>
-                        </VBox>
-                    </Tab>
-                </TabPane>
+                <SplitPane orientation="VERTICAL" dividerPositions="0.45" VBox.vgrow="ALWAYS"
+                           styleClass="editor-response-split">
+                    <TabPane fx:id="editorTabs" tabClosingPolicy="UNAVAILABLE">
+                        <Tab text="Params">
+                            <TableView fx:id="paramsTable" editable="true">
+                                <columns>
+                                    <TableColumn fx:id="paramKeyCol" text="Key" prefWidth="220"/>
+                                    <TableColumn fx:id="paramValueCol" text="Value" prefWidth="380"/>
+                                    <TableColumn fx:id="paramRemoveCol" text=" " prefWidth="40"/>
+                                </columns>
+                            </TableView>
+                        </Tab>
+                        <Tab text="Headers">
+                            <TableView fx:id="headersTable" editable="true">
+                                <columns>
+                                    <TableColumn fx:id="headerKeyCol" text="Key" prefWidth="220"/>
+                                    <TableColumn fx:id="headerValueCol" text="Value" prefWidth="380"/>
+                                    <TableColumn fx:id="headerRemoveCol" text=" " prefWidth="40"/>
+                                </columns>
+                            </TableView>
+                        </Tab>
+                        <Tab text="Authorization">
+                            <VBox spacing="14" styleClass="auth-tab">
+                                <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
+                                <HBox spacing="10" alignment="CENTER_LEFT">
+                                    <Label text="Type"/>
+                                    <ComboBox fx:id="authTypeCombo" prefWidth="220"/>
+                                </HBox>
 
-                <SplitPane orientation="VERTICAL" dividerPositions="0.0" VBox.vgrow="ALWAYS">
+                                <VBox fx:id="authNoAuthPanel" spacing="6">
+                                    <Label text="No authorization will be sent with this request." styleClass="status"/>
+                                </VBox>
+
+                                <VBox fx:id="authBearerPanel" spacing="6" visible="false" managed="false">
+                                    <Label text="Token"/>
+                                    <TextField fx:id="bearerTokenField" promptText="Paste your token. Use {{var}} for environment variables."/>
+                                    <Label text="Sent as: Authorization: Bearer &lt;token&gt;" styleClass="hint"/>
+                                </VBox>
+
+                                <VBox fx:id="authBasicPanel" spacing="6" visible="false" managed="false">
+                                    <Label text="Username"/>
+                                    <TextField fx:id="basicUsernameField" promptText="username"/>
+                                    <Label text="Password"/>
+                                    <PasswordField fx:id="basicPasswordField" promptText="password"/>
+                                    <Label text="Sent as: Authorization: Basic base64(username:password)" styleClass="hint"/>
+                                </VBox>
+
+                                <VBox fx:id="authApiKeyPanel" spacing="6" visible="false" managed="false">
+                                    <HBox spacing="10">
+                                        <VBox spacing="6" HBox.hgrow="ALWAYS">
+                                            <Label text="Key"/>
+                                            <TextField fx:id="apiKeyKeyField" promptText="X-API-Key"/>
+                                        </VBox>
+                                        <VBox spacing="6" HBox.hgrow="ALWAYS">
+                                            <Label text="Value"/>
+                                            <TextField fx:id="apiKeyValueField" promptText="key value or {{var}}"/>
+                                        </VBox>
+                                    </HBox>
+                                    <Label text="Add to"/>
+                                    <ComboBox fx:id="apiKeyAddToCombo" prefWidth="200"/>
+                                </VBox>
+                            </VBox>
+                        </Tab>
+                        <Tab text="Body">
+                            <VBox fx:id="bodyTabRoot" spacing="6">
+                                <padding><Insets top="6" right="6" bottom="6" left="6"/></padding>
+                                <HBox spacing="6">
+                                    <Label text="Type:"/>
+                                    <ComboBox fx:id="bodyTypeCombo" prefWidth="160"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Button text="Pretty" onAction="#onPrettyBody"/>
+                                </HBox>
+                                <!-- CodeArea is added programmatically inside a VirtualizedScrollPane -->
+                            </VBox>
+                        </Tab>
+                    </TabPane>
+
                     <VBox spacing="4" styleClass="response-panel">
-                        <padding><Insets top="6" right="6" bottom="6" left="6"/></padding>
+                        <padding><Insets top="8" right="8" bottom="8" left="8"/></padding>
                         <HBox spacing="12" alignment="CENTER_LEFT">
                             <Label text="Response" styleClass="section-title"/>
                             <Label fx:id="responseStatusLabel" styleClass="status-pill"/>
                             <Label fx:id="responseTimeLabel"/>
                             <Region HBox.hgrow="ALWAYS"/>
-                            <Button text="Copy" onAction="#onCopyResponse"/>
+                            <Button text="Copy" onAction="#onCopyResponse" styleClass="ghost"/>
                         </HBox>
-                        <TabPane prefHeight="280">
+                        <TabPane VBox.vgrow="ALWAYS">
                             <Tab text="Body">
-                                <TextArea fx:id="responseBodyArea" editable="false" wrapText="false"/>
+                                <VBox VBox.vgrow="ALWAYS">
+                                    <WebView fx:id="responseBodyView" VBox.vgrow="ALWAYS"
+                                             prefWidth="100" prefHeight="100"/>
+                                </VBox>
                             </Tab>
                             <Tab text="Headers">
                                 <TableView fx:id="responseHeadersTable">

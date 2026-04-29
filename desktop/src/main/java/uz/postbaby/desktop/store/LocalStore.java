@@ -85,6 +85,20 @@ public final class LocalStore {
         public Long activeTeamId;
         public Long activeEnvironmentId;
         public String activeTabId;
+        /** "dark" | "light". Defaults to dark. */
+        public String theme;
+    }
+
+    public String loadTheme() {
+        Settings s = readJson("settings.json", Settings.class);
+        return s == null || s.theme == null ? "dark" : s.theme;
+    }
+
+    public void saveTheme(String theme) {
+        Settings s = readJson("settings.json", Settings.class);
+        if (s == null) s = new Settings();
+        s.theme = theme;
+        writeJson("settings.json", s);
     }
 
     public String loadActiveTabId() {

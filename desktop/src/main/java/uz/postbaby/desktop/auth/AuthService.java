@@ -61,10 +61,10 @@ public class AuthService {
         return CompletableFuture.supplyAsync(() -> {
             Map<String, String> q = parseCallbackInput(input);
             String access = q.get("access_token");
-            String refresh = q.get("refresh_token");
-            if (access == null || access.isBlank() || refresh == null || refresh.isBlank()) {
+            String refresh = q.get("refresh_token"); // optional — desktop can run without it
+            if (access == null || access.isBlank()) {
                 throw new IllegalArgumentException(
-                        "Couldn't find access_token and refresh_token in the pasted text.");
+                        "Paste your access token (or the full callback URL).");
             }
             long expiresIn = 3600;
             try { expiresIn = Long.parseLong(q.getOrDefault("expires_in", "3600")); } catch (Exception ignored) {}
@@ -92,6 +92,14 @@ public class AuthService {
         if (input == null) return out;
         String trimmed = input.trim();
         if (trimmed.isEmpty()) return out;
+
+        // Bare access token — user pasted just the token value (no URL, no separators)
+        if (!trimmed.contains("=") && !trimmed.contains("&")
+                && !trimmed.startsWith("http://") && !trimmed.startsWith("https://")
+                && !trimmed.startsWith("?") && !trimmed.startsWith("#")) {
+            out.put("access_token", trimmed);
+            return out;
+        }
 
         String query = trimmed;
         try {
