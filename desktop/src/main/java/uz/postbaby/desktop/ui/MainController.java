@@ -111,6 +111,8 @@ public class MainController {
     private Button invitesButton;
     @FXML
     private Button signInButton;
+    @FXML
+    private Button signOutButton;
 
     @FXML
     private TreeView<TreeNodeRef> collectionTree;
@@ -133,6 +135,11 @@ public class MainController {
     private TabPane editorTabs;
     @FXML
     private javafx.scene.control.SplitPane editorResponseSplit;
+
+    private javafx.scene.layout.StackPane responseCollapseButton;
+    private javafx.scene.shape.SVGPath responseCollapseChevron;
+    private double savedDividerPosition = 0.5;
+    private boolean responseCollapsed = false;
 
     @FXML
     private TableView<KeyValueRow> paramsTable;
@@ -268,12 +275,20 @@ public class MainController {
             userLabel.setText(label);
             signInButton.setVisible(false);
             signInButton.setManaged(false);
+            if (signOutButton != null) {
+                signOutButton.setVisible(true);
+                signOutButton.setManaged(true);
+            }
             invitesButton.setVisible(true);
             invitesButton.setManaged(true);
         } else {
             userLabel.setText("Offline");
             signInButton.setVisible(true);
             signInButton.setManaged(true);
+            if (signOutButton != null) {
+                signOutButton.setVisible(false);
+                signOutButton.setManaged(false);
+            }
             invitesButton.setVisible(false);
             invitesButton.setManaged(false);
         }
@@ -343,6 +358,7 @@ public class MainController {
             javafx.application.Platform.runLater(() -> {
                 editorResponseSplit.setDividerPositions(0.5);
                 forceDividerStyle(editorResponseSplit);
+                setupResponseCollapseButton();
             });
         }
 
@@ -371,30 +387,147 @@ public class MainController {
      * so it's guaranteed to be visible and draggable.
      */
     private static void forceDividerStyle(javafx.scene.control.SplitPane sp) {
+        String base =
+                "-fx-background-color:#3b556b;" +
+                        "-fx-background-insets:0;" +
+                        "-fx-padding:0;" +
+                        "-fx-min-height:4;" +
+                        "-fx-pref-height:4;" +
+                        "-fx-max-height:4;" +
+                        "-fx-cursor:v-resize;";
+        String hover =
+                "-fx-background-color:#ff6c37;" +
+                        "-fx-background-insets:0;" +
+                        "-fx-padding:0;" +
+                        "-fx-min-height:4;" +
+                        "-fx-pref-height:4;" +
+                        "-fx-max-height:4;" +
+                        "-fx-cursor:v-resize;";
         for (javafx.scene.Node n : sp.lookupAll(".split-pane-divider")) {
             if (n instanceof javafx.scene.layout.Region r) {
-                r.setStyle(
-                        "-fx-background-color:#3a3a3e;" +
-                                "-fx-background-insets:0;" +
-                                "-fx-padding:4 0 4 0;" +
-                                "-fx-min-height:8;" +
-                                "-fx-pref-height:8;" +
-                                "-fx-cursor:v-resize;");
-                r.setOnMouseEntered(e -> r.setStyle(
-                        "-fx-background-color:#ff6c37;" +
-                                "-fx-background-insets:0;" +
-                                "-fx-padding:4 0 4 0;" +
-                                "-fx-min-height:8;" +
-                                "-fx-pref-height:8;" +
-                                "-fx-cursor:v-resize;"));
-                r.setOnMouseExited(e -> r.setStyle(
-                        "-fx-background-color:#3a3a3e;" +
-                                "-fx-background-insets:0;" +
-                                "-fx-padding:4 0 4 0;" +
-                                "-fx-min-height:8;" +
-                                "-fx-pref-height:8;" +
-                                "-fx-cursor:v-resize;"));
+                r.setStyle(base);
+                r.setOnMouseEntered(e -> r.setStyle(hover));
+                r.setOnMouseExited(e -> r.setStyle(base));
             }
+        }
+    }
+
+    private static final String COLLAPSE_PILL_BASE =
+            "-fx-background-color: #1f2733;" +
+                    "-fx-background-radius: 6;" +
+                    "-fx-border-color: #3b556b;" +
+                    "-fx-border-radius: 6;" +
+                    "-fx-border-width: 1;" +
+                    "-fx-cursor: hand;";
+    private static final String COLLAPSE_PILL_HOVER =
+            "-fx-background-color: #2a3340;" +
+                    "-fx-background-radius: 6;" +
+                    "-fx-border-color: #ff6c37;" +
+                    "-fx-border-radius: 6;" +
+                    "-fx-border-width: 1;" +
+                    "-fx-cursor: hand;";
+    private static final javafx.scene.paint.Color CHEVRON_COLOR = javafx.scene.paint.Color.web("#c8d4e3");
+    private static final javafx.scene.paint.Color CHEVRON_HOVER = javafx.scene.paint.Color.web("#ff6c37");
+
+    /**
+     * Build a small chevron-pill toggle and parent it to the SplitPane's own
+     * divider node so it's painted on the divider line. The divider keeps
+     * its native drag behavior on areas not covered by the pill — the pill
+     * only swallows clicks within its own bounds.
+     *
+     * We use a plain StackPane (not a Button) to avoid the JavaFX Button
+     * skin, which can clash with custom backgrounds and graphic positioning
+     * when nested inside the SplitPane skin's own divider StackPane.
+     */
+    private void setupResponseCollapseButton() {
+        if (editorResponseSplit == null) return;
+        if (responseCollapseButton != null) return; // already wired
+
+        responseCollapseChevron = new javafx.scene.shape.SVGPath();
+        responseCollapseChevron.setContent("M2 4 L8 10 L14 4");
+        responseCollapseChevron.setFill(null);
+        responseCollapseChevron.setStroke(CHEVRON_COLOR);
+        responseCollapseChevron.setStrokeWidth(2);
+        responseCollapseChevron.setStrokeLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
+        responseCollapseChevron.setStrokeLineJoin(javafx.scene.shape.StrokeLineJoin.ROUND);
+
+        responseCollapseButton = new javafx.scene.layout.StackPane(responseCollapseChevron);
+        responseCollapseButton.setStyle(COLLAPSE_PILL_BASE);
+        responseCollapseButton.setMinSize(40, 18);
+        responseCollapseButton.setPrefSize(40, 18);
+        responseCollapseButton.setMaxSize(40, 18);
+        responseCollapseButton.setPadding(new javafx.geometry.Insets(2, 12, 2, 12));
+        javafx.scene.control.Tooltip.install(responseCollapseButton,
+                new javafx.scene.control.Tooltip("Collapse / expand the response panel"));
+
+        responseCollapseButton.setOnMouseEntered(e -> {
+            responseCollapseButton.setStyle(COLLAPSE_PILL_HOVER);
+            responseCollapseChevron.setStroke(CHEVRON_HOVER);
+        });
+        responseCollapseButton.setOnMouseExited(e -> {
+            responseCollapseButton.setStyle(COLLAPSE_PILL_BASE);
+            responseCollapseChevron.setStroke(CHEVRON_COLOR);
+        });
+        responseCollapseButton.setOnMouseClicked(e -> {
+            toggleResponseCollapse();
+            e.consume();
+        });
+
+        // Defer until the divider node has been laid out — lookup returns null
+        // before the SplitPane has gone through a layout pass.
+        Platform.runLater(this::attachCollapseButtonToDivider);
+    }
+
+    private void attachCollapseButtonToDivider() {
+        if (editorResponseSplit == null || responseCollapseButton == null) return;
+        javafx.scene.Node divider = editorResponseSplit.lookup(".split-pane-divider");
+        if (!(divider instanceof javafx.scene.layout.StackPane sp)) {
+            Platform.runLater(this::attachCollapseButtonToDivider);
+            return;
+        }
+        if (responseCollapseButton.getParent() == sp) return;
+        // managed=false → StackPane skin won't try to lay it out (the
+        // SplitPaneSkin's ContentDivider has finicky layout). We position
+        // it manually on every width change.
+        responseCollapseButton.setManaged(false);
+        sp.getChildren().add(responseCollapseButton);
+
+        Runnable positionPill = () -> {
+            double dw = sp.getWidth();
+            double bw = responseCollapseButton.getWidth();
+            double dh = sp.getHeight();
+            double bh = responseCollapseButton.getHeight();
+            if (dw <= 0 || bw <= 0) return;
+            // Center horizontally; vertically pin to divider center so the
+            // pill overflows above and below the 4px divider.
+            responseCollapseButton.setLayoutX((dw - bw) / 2.0);
+            responseCollapseButton.setLayoutY((dh - bh) / 2.0);
+        };
+        sp.widthProperty().addListener((obs, o, n) -> positionPill.run());
+        sp.heightProperty().addListener((obs, o, n) -> positionPill.run());
+        responseCollapseButton.widthProperty().addListener((obs, o, n) -> positionPill.run());
+        responseCollapseButton.heightProperty().addListener((obs, o, n) -> positionPill.run());
+        Platform.runLater(() -> {
+            responseCollapseButton.autosize();
+            positionPill.run();
+        });
+    }
+
+    private void toggleResponseCollapse() {
+        if (editorResponseSplit == null) return;
+        var dividers = editorResponseSplit.getDividers();
+        if (dividers.isEmpty()) return;
+        if (responseCollapsed) {
+            editorResponseSplit.setDividerPositions(savedDividerPosition);
+            responseCollapsed = false;
+        } else {
+            savedDividerPosition = dividers.get(0).getPosition();
+            if (savedDividerPosition >= 0.98) savedDividerPosition = 0.5;
+            editorResponseSplit.setDividerPositions(1.0);
+            responseCollapsed = true;
+        }
+        if (responseCollapseChevron != null) {
+            responseCollapseChevron.setRotate(responseCollapsed ? 180 : 0);
         }
     }
 
@@ -1627,7 +1760,7 @@ public class MainController {
             return;
         }
         if (!auth.isAuthenticated()) {
-            setStatus("Sign in to sync from the backend.");
+            showToast("Sign in to sync from the backend.");
             return;
         }
 
@@ -2385,5 +2518,64 @@ public class MainController {
 
     private void setStatus(String msg) {
         statusLabel.setText(msg);
+    }
+
+    /**
+     * Show a small brand-colored toast near the bottom of the main window.
+     * Uses a JavaFX Popup so it doesn't steal focus and disappears on its own.
+     */
+    private void showToast(String message) {
+        if (statusLabel == null || statusLabel.getScene() == null) {
+            // Scene not ready — fall back to status bar.
+            setStatus(message);
+            return;
+        }
+        javafx.stage.Window owner = statusLabel.getScene().getWindow();
+        if (owner == null) {
+            setStatus(message);
+            return;
+        }
+
+        Label label = new Label(message);
+        label.setStyle(
+                "-fx-background-color: #1f2733;" +
+                        "-fx-border-color: #ff6c37;" +
+                        "-fx-border-width: 1.5;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-border-radius: 8;" +
+                        "-fx-text-fill: #f0f4f8;" +
+                        "-fx-font-size: 13px;" +
+                        "-fx-padding: 10 18 10 18;"
+        );
+        label.setOpacity(0);
+
+        javafx.stage.Popup popup = new javafx.stage.Popup();
+        popup.getContent().add(label);
+        popup.setAutoFix(true);
+
+        // Position at bottom-center of the owner window.
+        popup.setOnShown(e -> {
+            double w = label.prefWidth(-1);
+            double h = label.prefHeight(-1);
+            popup.setX(owner.getX() + (owner.getWidth() - w) / 2.0);
+            popup.setY(owner.getY() + owner.getHeight() - h - 60);
+        });
+        popup.show(owner);
+
+        javafx.animation.FadeTransition fadeIn =
+                new javafx.animation.FadeTransition(javafx.util.Duration.millis(180), label);
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+
+        javafx.animation.PauseTransition hold =
+                new javafx.animation.PauseTransition(javafx.util.Duration.seconds(2.5));
+
+        javafx.animation.FadeTransition fadeOut =
+                new javafx.animation.FadeTransition(javafx.util.Duration.millis(220), label);
+        fadeOut.setFromValue(1);
+        fadeOut.setToValue(0);
+        fadeOut.setOnFinished(e -> popup.hide());
+
+        new javafx.animation.SequentialTransition(fadeIn, hold, fadeOut).play();
     }
 }

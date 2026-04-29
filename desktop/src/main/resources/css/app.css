@@ -280,15 +280,16 @@
     -fx-background-color: #ff6c37;
 }
 
-/* Editor↔response divider — same look as the outer collections divider:
-   thin grey bar that turns orange on hover. We size + paint by targeting
-   the SplitPane's own children directly with high-specificity selectors. */
+/* Editor↔response divider — solid 4px blue line, orange on hover.
+   Visible and graspable. Inline overrides in MainController.forceDividerStyle
+   guarantee the same look in case JavaFX's modena cascade outranks this. */
 SplitPane.editor-response-split > .split-pane-divider {
-    -fx-background-color: #3a3a3e;
+    -fx-background-color: #3b556b;
     -fx-background-insets: 0;
-    -fx-padding: 4 0 4 0;
-    -fx-min-height: 8;
-    -fx-pref-height: 8;
+    -fx-padding: 0;
+    -fx-min-height: 4;
+    -fx-pref-height: 4;
+    -fx-max-height: 4;
     -fx-cursor: v-resize;
 }
 SplitPane.editor-response-split > .split-pane-divider:hover,

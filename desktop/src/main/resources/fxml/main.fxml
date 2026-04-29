@@ -63,6 +63,7 @@
                 <Label fx:id="statusLabel" styleClass="status"/>
                 <Label fx:id="userLabel"/>
                 <Button fx:id="signInButton" text="Sign in" onAction="#onSignIn" styleClass="primary" visible="false" managed="false"/>
+                <Button fx:id="signOutButton" text="Sign out" onAction="#onSignOut" styleClass="ghost" visible="false" managed="false"/>
             </HBox>
         </VBox>
     </top>

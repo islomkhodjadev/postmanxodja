@@ -90,7 +90,8 @@ public class AuthService {
     }
 
     /**
-     * Accepts a full URL, just the query string, or `key=value&...` pasted by the user.
+     * Accepts a full URL (http(s)://, postbaby://, or any scheme://), just the
+     * query string, or `key=value&...` pasted by the user.
      */
     static Map<String, String> parseCallbackInput(String input) {
         Map<String, String> out = new HashMap<>();
@@ -98,9 +99,11 @@ public class AuthService {
         String trimmed = input.trim();
         if (trimmed.isEmpty()) return out;
 
-        // Bare access token — user pasted just the token value (no URL, no separators)
+        boolean looksLikeUrl = trimmed.contains("://");
+
+        // Bare access token — user pasted just the token value
         if (!trimmed.contains("=") && !trimmed.contains("&")
-                && !trimmed.startsWith("http://") && !trimmed.startsWith("https://")
+                && !looksLikeUrl
                 && !trimmed.startsWith("?") && !trimmed.startsWith("#")) {
             out.put("access_token", trimmed);
             return out;
@@ -108,10 +111,25 @@ public class AuthService {
 
         String query = trimmed;
         try {
-            if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+            if (looksLikeUrl) {
                 URI uri = URI.create(trimmed);
-                if (uri.getRawQuery() != null) query = uri.getRawQuery();
-                else if (uri.getRawFragment() != null) query = uri.getRawFragment();
+                if (uri.getRawQuery() != null) {
+                    query = uri.getRawQuery();
+                } else if (uri.getRawFragment() != null) {
+                    query = uri.getRawFragment();
+                } else {
+                    // Custom schemes (postbaby://signin?token=...) sometimes leave
+                    // getRawQuery() null; fall back to splitting the SSP manually.
+                    String ssp = uri.getRawSchemeSpecificPart();
+                    if (ssp != null) {
+                        int q = ssp.indexOf('?');
+                        if (q >= 0) query = ssp.substring(q + 1);
+                        else {
+                            int hash = ssp.indexOf('#');
+                            if (hash >= 0) query = ssp.substring(hash + 1);
+                        }
+                    }
+                }
             } else if (trimmed.startsWith("?") || trimmed.startsWith("#")) {
                 query = trimmed.substring(1);
             }

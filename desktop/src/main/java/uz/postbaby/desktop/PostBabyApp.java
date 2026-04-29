@@ -16,16 +16,31 @@ import uz.postbaby.desktop.ui.LoginController;
 import uz.postbaby.desktop.ui.MainController;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 
 public class PostBabyApp extends Application {
 
     private static final Logger LOG = LoggerFactory.getLogger(PostBabyApp.class);
+    private static final String DEEP_LINK_SCHEME = "postbaby://";
 
     private LocalStore store;
     private BackendClient backend;
     private AuthService auth;
     private Stage primaryStage;
+
+    /** Cold-start deep link captured in init(); applied after the main scene mounts. */
+    private volatile String pendingDeepLink;
+
+    @Override
+    public void init() {
+        for (String arg : getParameters().getRaw()) {
+            if (arg != null && arg.startsWith(DEEP_LINK_SCHEME)) {
+                pendingDeepLink = arg;
+                break;
+            }
+        }
+    }
 
     @Override
     public void start(Stage stage) {
@@ -47,8 +62,53 @@ public class PostBabyApp extends Application {
             }
         }
 
+        registerDeepLinkHandler();
+
         showMain();
         stage.show();
+
+        if (pendingDeepLink != null) {
+            String url = pendingDeepLink;
+            pendingDeepLink = null;
+            handleDeepLink(url);
+        }
+    }
+
+    /**
+     * On macOS, when the user clicks a {@code postbaby://...} link while the
+     * app is already running, AppKit dispatches the URL to the JVM via this
+     * handler. {@link java.awt.Desktop#setOpenURIHandler} is unsupported on
+     * Linux/Windows — they need a separate single-instance + scheme story.
+     */
+    private void registerDeepLinkHandler() {
+        try {
+            if (java.awt.Desktop.isDesktopSupported()) {
+                java.awt.Desktop d = java.awt.Desktop.getDesktop();
+                d.setOpenURIHandler(event -> {
+                    URI u = event.getURI();
+                    if (u == null) return;
+                    String url = u.toString();
+                    Platform.runLater(() -> handleDeepLink(url));
+                });
+                LOG.info("Registered deep-link URI handler");
+            }
+        } catch (UnsupportedOperationException | SecurityException e) {
+            LOG.debug("Desktop URI handler not available on this platform: {}", e.getMessage());
+        }
+    }
+
+    private void handleDeepLink(String url) {
+        if (url == null || !url.startsWith(DEEP_LINK_SCHEME)) return;
+        LOG.info("Received deep link sign-in");
+        auth.signInFromCallbackInput(url).whenComplete((user, error) ->
+                Platform.runLater(() -> {
+                    if (error != null) {
+                        Throwable cause = error.getCause() != null ? error.getCause() : error;
+                        LOG.warn("Deep-link sign-in failed: {}", cause.getMessage());
+                        return;
+                    }
+                    showMain();
+                }));
     }
 
     public void showLogin() {

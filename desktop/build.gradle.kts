@@ -48,9 +48,51 @@ tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
 }
 
+/**
+ * Inject CFBundleURLTypes into the macOS app bundle's Info.plist so the OS
+ * dispatches `postbaby://` URLs to the desktop app (used by the deep-link
+ * sign-in flow). Runs after `jpackageImage` builds the .app and before
+ * `jpackage` packages it into a DMG.
+ */
+val patchMacInfoPlist by tasks.registering {
+    onlyIf { OperatingSystem.current().isMacOsX }
+    doLast {
+        val plist = layout.buildDirectory.file("jpackage/PostBaby.app/Contents/Info.plist").get().asFile
+        if (!plist.exists()) {
+            logger.warn("Info.plist not found at ${plist.absolutePath}; skipping URL scheme registration.")
+            return@doLast
+        }
+        val xml = """
+            <array>
+              <dict>
+                <key>CFBundleURLName</key>
+                <string>uz.postbaby.desktop</string>
+                <key>CFBundleURLSchemes</key>
+                <array>
+                  <string>postbaby</string>
+                </array>
+              </dict>
+            </array>
+        """.trimIndent()
+        // -replace is idempotent across rebuilds (insert would fail if the key already exists).
+        exec {
+            commandLine("plutil", "-replace", "CFBundleURLTypes", "-xml", xml, plist.absolutePath)
+        }
+        logger.lifecycle("Registered postbaby:// URL scheme in ${plist.absolutePath}")
+    }
+}
+
 jlink {
     imageZip.set(layout.buildDirectory.file("distributions/postbaby-${version}.zip"))
-    options.set(listOf("--strip-debug", "--compress", "2", "--no-header-files", "--no-man-pages"))
+    options.set(listOf(
+        "--strip-debug", "--compress", "2", "--no-header-files", "--no-man-pages",
+        // jdk.crypto.ec is loaded via ServiceLoader at runtime so jlink can't infer it.
+        // Without it, TLS handshakes against modern servers fail with handshake_failure
+        // (no ECDHE/ECDSA support).
+        // jdk.crypto.cryptoki is similar — useful when the host has a PKCS#11 truststore.
+        // jdk.localedata + java.naming round out the bundle so URL/DNS/locale paths work.
+        "--add-modules", "jdk.crypto.ec,jdk.crypto.cryptoki,jdk.localedata,java.naming"
+    ))
     // RichTextFX + transitives are automatic modules — the plugin merges them into a
     // single synthetic module that needs the JavaFX modules visible to compile.
     addExtraDependencies("javafx")
@@ -98,4 +140,11 @@ jlink {
             }
         }
     }
+}
+
+afterEvaluate {
+    tasks.findByName("jpackageImage")?.let { image ->
+        patchMacInfoPlist.configure { dependsOn(image) }
+    }
+    tasks.findByName("jpackage")?.dependsOn(patchMacInfoPlist)
 }
