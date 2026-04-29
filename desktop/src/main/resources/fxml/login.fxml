@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Hyperlink?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="uz.postbaby.desktop.ui.LoginController"
+           styleClass="login-bg" prefWidth="900" prefHeight="600">
+    <VBox alignment="CENTER" spacing="18" maxWidth="480" styleClass="login-card">
+        <padding><Insets top="36" right="36" bottom="36" left="36"/></padding>
+        <ImageView fitWidth="72" fitHeight="72" preserveRatio="true" smooth="true">
+            <image>
+                <Image url="@../icons/postbaby.png"/>
+            </image>
+        </ImageView>
+        <Label text="PostBaby" styleClass="title"/>
+        <Label text="Sign in to your PostBaby account to continue" styleClass="subtitle"/>
+        <Region prefHeight="6"/>
+        <Button fx:id="openSignInButton" text="Open sign-in page in browser" onAction="#onOpenSignInPage"
+                styleClass="primary" prefWidth="380" prefHeight="40"/>
+        <HBox alignment="CENTER" spacing="8">
+            <ProgressIndicator fx:id="spinner" visible="false" prefWidth="16" prefHeight="16"/>
+            <Label fx:id="statusLabel" styleClass="status" wrapText="true"/>
+        </HBox>
+
+        <Region prefHeight="4"/>
+        <HBox alignment="CENTER" spacing="16">
+            <Hyperlink text="← Back to app" onAction="#onBack" styleClass="endpoint-link"/>
+            <Hyperlink fx:id="endpointLink" onAction="#onChangeEndpoint" styleClass="endpoint-link"/>
+        </HBox>
+    </VBox>
+</StackPane>

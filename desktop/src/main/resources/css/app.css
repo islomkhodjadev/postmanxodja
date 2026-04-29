@@ -1,0 +1,506 @@
+/* PostBaby desktop — Postman-inspired dark theme.
+   Palette:
+     bg          #1c1c1f   page background
+     panel       #232326   sidebar / toolbar / cards
+     elevated    #2a2a2e   inputs / cells
+     border      #3a3a3e   dividers
+     text        #d8d8da   default text
+     muted       #888a90   secondary text
+     accent      #ff6c37   Postman orange — Send button + selection accent
+     accent-hover #e85a26
+     selection   rgba(255,108,55,0.18)  row hover/highlight
+*/
+
+.root {
+    -fx-base: #1c1c1f;
+    -fx-background: #1c1c1f;
+    -fx-control-inner-background: #2a2a2e;
+    -fx-control-inner-background-alt: #26262a;
+    -fx-text-fill: #d8d8da;
+    -fx-text-base-color: #d8d8da;
+    -fx-text-background-color: #d8d8da;
+    -fx-focus-color: #ff6c37;
+    -fx-faint-focus-color: rgba(255, 108, 55, 0.20);
+    -fx-accent: #ff6c37;
+    -fx-selection-bar: rgba(255, 108, 55, 0.22);
+    -fx-selection-bar-non-focused: rgba(255, 108, 55, 0.12);
+    -fx-font-family: "Inter", "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    -fx-font-size: 13;
+}
+
+.app-root {
+    -fx-background-color: #1c1c1f;
+}
+
+/* ── Toolbar / menu bar ── */
+.toolbar {
+    -fx-background-color: #232326;
+    -fx-border-color: transparent transparent #3a3a3e transparent;
+    -fx-border-width: 0 0 1 0;
+}
+.menu-bar {
+    -fx-background-color: #232326;
+    -fx-border-color: transparent transparent #3a3a3e transparent;
+    -fx-border-width: 0 0 1 0;
+}
+.menu-bar .label,
+.menu-bar .menu .label {
+    -fx-text-fill: #d8d8da;
+}
+.menu-item .label {
+    -fx-text-fill: #d8d8da;
+}
+.context-menu, .menu-bar .menu .menu-item {
+    -fx-background-color: #232326;
+}
+
+/* ── Generic text / labels ── */
+.label {
+    -fx-text-fill: #d8d8da;
+}
+
+/* ── Inputs ── */
+.text-field, .text-area {
+    -fx-background-color: #2a2a2e;
+    -fx-text-fill: #d8d8da;
+    -fx-prompt-text-fill: #6c6e74;
+    -fx-border-color: #3a3a3e;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-padding: 6 10;
+    -fx-highlight-fill: rgba(255, 108, 55, 0.4);
+    -fx-highlight-text-fill: #ffffff;
+}
+.text-field:focused, .text-area:focused {
+    -fx-border-color: #ff6c37;
+}
+.text-area .content {
+    -fx-background-color: #2a2a2e;
+}
+.text-area .scroll-pane,
+.text-area .scroll-pane .viewport,
+.text-area .scroll-pane .content {
+    -fx-background-color: #2a2a2e;
+}
+
+/* ComboBox */
+.combo-box-base {
+    -fx-background-color: #2a2a2e;
+    -fx-border-color: #3a3a3e;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+.combo-box-base:focused {
+    -fx-border-color: #ff6c37;
+}
+.combo-box-base .arrow-button .arrow {
+    -fx-background-color: #d8d8da;
+}
+.combo-box .list-cell {
+    -fx-text-fill: #d8d8da;
+    -fx-background-color: #2a2a2e;
+}
+.combo-box-popup .list-view {
+    -fx-background-color: #2a2a2e;
+    -fx-border-color: #3a3a3e;
+}
+.combo-box-popup .list-cell {
+    -fx-text-fill: #d8d8da;
+    -fx-background-color: #2a2a2e;
+}
+.combo-box-popup .list-cell:filled:hover {
+    -fx-background-color: rgba(255, 108, 55, 0.18);
+}
+.combo-box-popup .list-cell:filled:selected {
+    -fx-background-color: rgba(255, 108, 55, 0.28);
+}
+
+/* ── Buttons ── */
+.button {
+    -fx-background-color: #2a2a2e;
+    -fx-text-fill: #d8d8da;
+    -fx-border-color: #3a3a3e;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-padding: 6 14;
+    -fx-cursor: hand;
+}
+.button:hover {
+    -fx-background-color: #34343a;
+    -fx-border-color: #4a4a50;
+}
+.button:focused {
+    -fx-border-color: #ff6c37;
+}
+
+.button.primary {
+    -fx-background-color: #ff6c37;
+    -fx-border-color: #ff6c37;
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+}
+.button.primary:hover {
+    -fx-background-color: #e85a26;
+    -fx-border-color: #e85a26;
+}
+
+.button.ghost {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: #c3c4c8;
+}
+.button.ghost:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.06);
+    -fx-text-fill: #ffffff;
+}
+
+.button.danger {
+    -fx-background-color: #d9434f;
+    -fx-border-color: #d9434f;
+    -fx-text-fill: white;
+}
+.button.danger:hover {
+    -fx-background-color: #c2333f;
+}
+
+/* ── Sidebar / sections ── */
+.sidebar {
+    -fx-background-color: #232326;
+    -fx-border-color: transparent #3a3a3e transparent transparent;
+    -fx-border-width: 0 1 0 0;
+}
+
+.section-title {
+    -fx-text-fill: #888a90;
+    -fx-font-size: 11;
+    -fx-font-weight: bold;
+    -fx-padding: 4 0 0 0;
+}
+
+/* ── Tree view ── */
+.tree-view {
+    -fx-background-color: #232326;
+    -fx-control-inner-background: #232326;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+.tree-view:focused {
+    -fx-background-insets: 0;
+}
+.tree-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #d8d8da;
+    -fx-padding: 4 6;
+}
+.tree-cell:filled:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.05);
+}
+.tree-cell:filled:selected,
+.tree-cell:filled:selected:focused {
+    -fx-background-color: rgba(255, 108, 55, 0.22);
+    -fx-text-fill: #ffffff;
+}
+
+/* ── Table view ── */
+.table-view {
+    -fx-background-color: #232326;
+    -fx-control-inner-background: #232326;
+    -fx-control-inner-background-alt: #26262a;
+    -fx-table-cell-border-color: transparent;
+    -fx-padding: 0;
+    -fx-background-insets: 0;
+}
+.table-view .column-header-background {
+    -fx-background-color: #2a2a2e;
+}
+.table-view .column-header,
+.table-view .filler {
+    -fx-background-color: #2a2a2e;
+    -fx-border-color: transparent #3a3a3e #3a3a3e transparent;
+    -fx-border-width: 0 1 1 0;
+}
+.table-view .column-header .label {
+    -fx-text-fill: #c3c4c8;
+    -fx-font-weight: bold;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 6 8;
+}
+.table-row-cell {
+    -fx-background-color: #232326;
+    -fx-table-cell-border-color: transparent;
+    -fx-cell-size: 30px;
+}
+.table-row-cell:filled:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.04);
+}
+.table-row-cell:filled:selected {
+    -fx-background-color: rgba(255, 108, 55, 0.22);
+}
+.table-row-cell:filled:selected .table-cell {
+    -fx-text-fill: #ffffff;
+}
+.table-cell {
+    -fx-text-fill: #d8d8da;
+    -fx-border-color: transparent;
+    -fx-padding: 4 8;
+    -fx-alignment: CENTER_LEFT;
+}
+.table-cell:focused {
+    -fx-background-color: transparent;
+    -fx-text-fill: #d8d8da;
+}
+
+/* The TextField inside an editing cell — was inheriting black on dark. */
+.kv-cell-field {
+    -fx-background-color: #1c1c1f;
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #ff6c37;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-padding: 2 6;
+    -fx-prompt-text-fill: #6c6e74;
+}
+
+/* ── Split panes ── */
+.split-pane {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-background-insets: 0;
+}
+.split-pane > .split-pane-divider {
+    -fx-background-color: #3a3a3e;
+    -fx-padding: 0 3 0 3;
+    -fx-cursor: h-resize;
+}
+.split-pane:vertical > .split-pane-divider {
+    -fx-padding: 3 0 3 0;
+    -fx-cursor: v-resize;
+}
+.split-pane > .split-pane-divider:hover {
+    -fx-background-color: #ff6c37;
+}
+
+/* Editor↔response divider — solid 4px blue line, orange on hover.
+   Visible and graspable. Inline overrides in MainController.forceDividerStyle
+   guarantee the same look in case JavaFX's modena cascade outranks this. */
+SplitPane.editor-response-split > .split-pane-divider {
+    -fx-background-color: #3b556b;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+    -fx-min-height: 4;
+    -fx-pref-height: 4;
+    -fx-max-height: 4;
+    -fx-cursor: v-resize;
+}
+SplitPane.editor-response-split > .split-pane-divider:hover,
+SplitPane.editor-response-split > .split-pane-divider:pressed {
+    -fx-background-color: #ff6c37;
+}
+
+/* ── Inner Tab panes (params/headers/body and response body/headers) ── */
+.tab-pane {
+    -fx-tab-min-height: 28;
+    -fx-tab-max-height: 30;
+}
+.tab-pane > .tab-header-area > .tab-header-background {
+    -fx-background-color: transparent;
+}
+.tab-pane > .tab-header-area {
+    -fx-background-color: transparent;
+    -fx-padding: 0 0 0 0;
+}
+.tab-pane > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 4 14 4 14;
+    -fx-border-color: transparent transparent #3a3a3e transparent;
+    -fx-border-width: 0 0 1 0;
+}
+.tab-pane > .tab-header-area > .headers-region > .tab:selected {
+    -fx-border-color: transparent transparent #ff6c37 transparent;
+    -fx-border-width: 0 0 2 0;
+}
+.tab-pane > .tab-header-area > .headers-region > .tab .tab-label {
+    -fx-text-fill: #888a90;
+    -fx-font-weight: normal;
+}
+.tab-pane > .tab-header-area > .headers-region > .tab:selected .tab-label {
+    -fx-text-fill: #ffffff;
+}
+.tab-pane > .tab-header-area > .headers-region > .tab:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Inline tab title label / rename field */
+.open-tab-title {
+    -fx-text-fill: inherit;
+    -fx-padding: 0;
+}
+.open-tab-rename {
+    -fx-background-color: #1c1c1f;
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #ff6c37;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-padding: 1 4;
+    -fx-font-size: 12;
+}
+
+/* Open requests strip — uses explicit accent fill */
+.open-tabs > .tab-header-area > .tab-header-background {
+    -fx-background-color: transparent;
+}
+.open-tabs > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: #2a2a2e;
+    -fx-padding: 3 10 3 10;
+    -fx-border-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 4 4 0 0;
+}
+.open-tabs > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: #1c1c1f;
+    -fx-border-color: #ff6c37 transparent transparent transparent;
+    -fx-border-width: 2 0 0 0;
+}
+.open-tabs > .tab-header-area > .headers-region > .tab .tab-label {
+    -fx-text-fill: #888a90;
+}
+.open-tabs > .tab-header-area > .headers-region > .tab:selected .tab-label {
+    -fx-text-fill: #ffffff;
+}
+
+/* ── Status / response pills ── */
+.status {
+    -fx-text-fill: #888a90;
+    -fx-font-size: 12;
+}
+
+.status-pill {
+    -fx-padding: 3 10;
+    -fx-background-radius: 999;
+    -fx-background-color: #3a3a3e;
+    -fx-text-fill: #d8d8da;
+    -fx-font-weight: bold;
+    -fx-font-size: 11;
+}
+.status-pill.status-2xx { -fx-background-color: #2bb673; -fx-text-fill: white; }
+.status-pill.status-3xx { -fx-background-color: #f29e3c; -fx-text-fill: white; }
+.status-pill.status-4xx { -fx-background-color: #d9434f; -fx-text-fill: white; }
+.status-pill.status-5xx { -fx-background-color: #b03741; -fx-text-fill: white; }
+.status-pill.error      { -fx-background-color: #6e1b22; -fx-text-fill: white; }
+
+/* ── Scrollbars (tone them down) ── */
+.scroll-bar:vertical, .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+}
+.scroll-bar .thumb {
+    -fx-background-color: #4a4a50;
+    -fx-background-radius: 6;
+}
+.scroll-bar .thumb:hover {
+    -fx-background-color: #5a5a60;
+}
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button,
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-shape: " ";
+}
+
+/* ── Misc ── */
+.monospace {
+    -fx-font-family: "Menlo", "Consolas", "Courier New", monospace;
+}
+
+.response-panel {
+    -fx-background-color: #1c1c1f;
+}
+
+/* Request body — RichTextFX CodeArea with live JSON highlighting */
+.json-editor {
+    -fx-background-color: #1c1c1f;
+    -fx-font-family: "Menlo", "Consolas", "SF Mono", "Courier New", monospace;
+    -fx-font-size: 12;
+    -fx-padding: 6;
+}
+.json-editor .text {
+    -fx-fill: #d8d8da;          /* default character color */
+}
+.json-editor .caret {
+    -fx-stroke: #ff6c37;
+}
+.json-editor .selection {
+    -fx-fill: rgba(255, 108, 55, 0.30);
+}
+.json-editor .lineno {
+    -fx-background-color: #1c1c1f;
+    -fx-text-fill: #555861;
+}
+.json-editor-scroll {
+    -fx-background-color: #1c1c1f;
+}
+
+/* Token classes — match the response WebView palette */
+.json-editor .json-key    { -fx-fill: #82aaff; }
+.json-editor .json-string { -fx-fill: #a5e075; }
+.json-editor .json-number { -fx-fill: #f78c6c; }
+.json-editor .json-bool   { -fx-fill: #c792ea; -fx-font-weight: bold; }
+.json-editor .json-nul    { -fx-fill: #ff5370; -fx-font-weight: bold; }
+.json-editor .json-punct  { -fx-fill: #888a90; }
+
+/* Authorization tab */
+.auth-tab {
+    -fx-background-color: #1c1c1f;
+}
+.auth-tab .label {
+    -fx-text-fill: #d8d8da;
+}
+.hint {
+    -fx-text-fill: #6c6e74;
+    -fx-font-size: 11;
+    -fx-font-style: italic;
+}
+
+/* Password field — match the rest of the dark inputs */
+.password-field {
+    -fx-background-color: #2a2a2e;
+    -fx-text-fill: #d8d8da;
+    -fx-prompt-text-fill: #6c6e74;
+    -fx-border-color: #3a3a3e;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-padding: 6 10;
+}
+.password-field:focused {
+    -fx-border-color: #ff6c37;
+}
+
+/* ── Login screen ── */
+.login-bg {
+    -fx-background-color: #1c1c1f;
+}
+.login-card {
+    -fx-background-color: #232326;
+    -fx-background-radius: 8;
+    -fx-border-color: #3a3a3e;
+    -fx-border-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 18, 0.15, 0, 6);
+}
+.login-card .title {
+    -fx-font-size: 26;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+}
+.login-card .subtitle {
+    -fx-text-fill: #888a90;
+}
+.login-card .endpoint-link {
+    -fx-text-fill: #6c6e74;
+    -fx-font-size: 11;
+    -fx-underline: false;
+}
+.login-card .endpoint-link:hover {
+    -fx-text-fill: #ff6c37;
+}

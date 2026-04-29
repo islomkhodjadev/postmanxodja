@@ -1,0 +1,329 @@
+/* PostBaby desktop — light theme. Layered on top of app.css.
+   Postman-light palette:
+     bg          #ffffff   page background
+     panel       #f4f5f7   sidebar / toolbar / cards
+     elevated    #ffffff   inputs / cells
+     border      #e1e4e8   dividers
+     text        #1f2328   default text
+     muted       #6b7280   secondary text
+     accent      #ff6c37   Postman orange
+     selection   rgba(255, 108, 55, 0.18)
+*/
+
+.root {
+    -fx-base: #ffffff;
+    -fx-background: #ffffff;
+    -fx-control-inner-background: #ffffff;
+    -fx-control-inner-background-alt: #fafbfc;
+    -fx-text-fill: #1f2328;
+    -fx-text-base-color: #1f2328;
+    -fx-text-background-color: #1f2328;
+    -fx-focus-color: #ff6c37;
+    -fx-faint-focus-color: rgba(255, 108, 55, 0.18);
+    -fx-accent: #ff6c37;
+    -fx-selection-bar: rgba(255, 108, 55, 0.18);
+    -fx-selection-bar-non-focused: rgba(255, 108, 55, 0.10);
+}
+
+.app-root { -fx-background-color: #ffffff; }
+
+.toolbar, .menu-bar {
+    -fx-background-color: #f4f5f7;
+    -fx-border-color: transparent transparent #e1e4e8 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+.menu-bar .label,
+.menu-bar .menu .label,
+.menu-item .label {
+    -fx-text-fill: #1f2328;
+}
+.context-menu, .menu-bar .menu .menu-item {
+    -fx-background-color: #ffffff;
+}
+
+.label { -fx-text-fill: #1f2328; }
+
+.text-field, .text-area {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #1f2328;
+    -fx-prompt-text-fill: #9ca3af;
+    -fx-border-color: #e1e4e8;
+    -fx-highlight-fill: rgba(255, 108, 55, 0.32);
+    -fx-highlight-text-fill: #1f2328;
+}
+.text-field:focused, .text-area:focused {
+    -fx-border-color: #ff6c37;
+}
+.text-area .content,
+.text-area .scroll-pane,
+.text-area .scroll-pane .viewport,
+.text-area .scroll-pane .content {
+    -fx-background-color: #ffffff;
+}
+
+.password-field {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #1f2328;
+    -fx-prompt-text-fill: #9ca3af;
+    -fx-border-color: #e1e4e8;
+}
+
+.combo-box-base {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e1e4e8;
+}
+.combo-box-base .arrow-button .arrow {
+    -fx-background-color: #4b5563;
+}
+.combo-box .list-cell,
+.combo-box-popup .list-cell {
+    -fx-text-fill: #1f2328;
+    -fx-background-color: #ffffff;
+}
+.combo-box-popup .list-view {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e1e4e8;
+}
+.combo-box-popup .list-cell:filled:hover {
+    -fx-background-color: rgba(255, 108, 55, 0.12);
+}
+.combo-box-popup .list-cell:filled:selected {
+    -fx-background-color: rgba(255, 108, 55, 0.22);
+}
+
+.button {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #1f2328;
+    -fx-border-color: #d0d7de;
+}
+.button:hover {
+    -fx-background-color: #f3f4f6;
+    -fx-border-color: #c2cad3;
+}
+.button:focused {
+    -fx-border-color: #ff6c37;
+}
+.button.primary {
+    -fx-background-color: #ff6c37;
+    -fx-border-color: #ff6c37;
+    -fx-text-fill: #ffffff;
+}
+.button.primary:hover {
+    -fx-background-color: #e85a26;
+    -fx-border-color: #e85a26;
+}
+.button.ghost {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: #4b5563;
+}
+.button.ghost:hover {
+    -fx-background-color: rgba(0, 0, 0, 0.05);
+    -fx-text-fill: #1f2328;
+}
+.button.danger {
+    -fx-background-color: #d9434f;
+    -fx-border-color: #d9434f;
+    -fx-text-fill: #ffffff;
+}
+.button.danger:hover {
+    -fx-background-color: #c2333f;
+    -fx-border-color: #c2333f;
+}
+
+.sidebar {
+    -fx-background-color: #f4f5f7;
+    -fx-border-color: transparent #e1e4e8 transparent transparent;
+    -fx-border-width: 0 1 0 0;
+}
+
+.section-title {
+    -fx-text-fill: #6b7280;
+}
+
+.tree-view {
+    -fx-background-color: #f4f5f7;
+    -fx-control-inner-background: #f4f5f7;
+}
+.tree-cell {
+    -fx-text-fill: #1f2328;
+}
+.tree-cell:filled:hover {
+    -fx-background-color: rgba(0, 0, 0, 0.04);
+}
+.tree-cell:filled:selected,
+.tree-cell:filled:selected:focused {
+    -fx-background-color: rgba(255, 108, 55, 0.22);
+    -fx-text-fill: #1f2328;
+}
+
+.table-view {
+    -fx-background-color: #ffffff;
+    -fx-control-inner-background: #ffffff;
+    -fx-control-inner-background-alt: #fafbfc;
+}
+.table-view .column-header-background,
+.table-view .column-header,
+.table-view .filler {
+    -fx-background-color: #f4f5f7;
+    -fx-border-color: transparent #e1e4e8 #e1e4e8 transparent;
+    -fx-border-width: 0 1 1 0;
+}
+.table-view .column-header .label {
+    -fx-text-fill: #4b5563;
+}
+.table-row-cell {
+    -fx-background-color: #ffffff;
+}
+.table-row-cell:odd {
+    -fx-background-color: #fafbfc;
+}
+.table-row-cell:filled:hover {
+    -fx-background-color: rgba(0, 0, 0, 0.04);
+}
+.table-row-cell:filled:selected {
+    -fx-background-color: rgba(255, 108, 55, 0.22);
+}
+.table-row-cell:filled:selected .table-cell {
+    -fx-text-fill: #1f2328;
+}
+.table-cell {
+    -fx-text-fill: #1f2328;
+}
+
+.kv-cell-field {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #1f2328;
+    -fx-border-color: #ff6c37;
+}
+
+.split-pane > .split-pane-divider {
+    -fx-background-color: #e1e4e8;
+}
+.split-pane > .split-pane-divider:hover {
+    -fx-background-color: #ff6c37;
+}
+SplitPane.editor-response-split > .split-pane-divider {
+    -fx-background-color: #d0d7de;
+    -fx-background-insets: 0;
+    -fx-padding: 4 0 4 0;
+    -fx-min-height: 8;
+    -fx-pref-height: 8;
+    -fx-cursor: v-resize;
+}
+SplitPane.editor-response-split > .split-pane-divider:hover,
+SplitPane.editor-response-split > .split-pane-divider:pressed {
+    -fx-background-color: #ff6c37;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab {
+    -fx-border-color: transparent transparent #e1e4e8 transparent;
+}
+.tab-pane > .tab-header-area > .headers-region > .tab:selected {
+    -fx-border-color: transparent transparent #ff6c37 transparent;
+}
+.tab-pane > .tab-header-area > .headers-region > .tab .tab-label {
+    -fx-text-fill: #6b7280;
+}
+.tab-pane > .tab-header-area > .headers-region > .tab:selected .tab-label {
+    -fx-text-fill: #1f2328;
+}
+.tab-pane > .tab-header-area > .headers-region > .tab:hover {
+    -fx-background-color: rgba(0, 0, 0, 0.04);
+}
+
+.open-tabs > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: #eaecf0;
+}
+.open-tabs > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #ff6c37 transparent transparent transparent;
+    -fx-border-width: 2 0 0 0;
+}
+.open-tabs > .tab-header-area > .headers-region > .tab .tab-label {
+    -fx-text-fill: #6b7280;
+}
+.open-tabs > .tab-header-area > .headers-region > .tab:selected .tab-label {
+    -fx-text-fill: #1f2328;
+}
+
+.open-tab-rename {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #1f2328;
+    -fx-border-color: #ff6c37;
+}
+
+.status {
+    -fx-text-fill: #6b7280;
+}
+.hint {
+    -fx-text-fill: #9ca3af;
+}
+
+.status-pill {
+    -fx-background-color: #e1e4e8;
+    -fx-text-fill: #1f2328;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: #cbd0d6;
+}
+.scroll-bar .thumb:hover {
+    -fx-background-color: #b1b7be;
+}
+
+.response-panel,
+.auth-tab {
+    -fx-background-color: #ffffff;
+}
+.auth-tab .label {
+    -fx-text-fill: #1f2328;
+}
+
+/* Request body editor — light variant */
+.json-editor {
+    -fx-background-color: #ffffff;
+}
+.json-editor .text {
+    -fx-fill: #1f2328;
+}
+.json-editor .caret {
+    -fx-stroke: #ff6c37;
+}
+.json-editor .selection {
+    -fx-fill: rgba(255, 108, 55, 0.22);
+}
+.json-editor .lineno {
+    -fx-background-color: #f4f5f7;
+    -fx-text-fill: #9ca3af;
+}
+.json-editor-scroll {
+    -fx-background-color: #ffffff;
+}
+.json-editor .json-key    { -fx-fill: #0550ae; }
+.json-editor .json-string { -fx-fill: #0a8754; }
+.json-editor .json-number { -fx-fill: #cf222e; }
+.json-editor .json-bool   { -fx-fill: #8250df; -fx-font-weight: bold; }
+.json-editor .json-nul    { -fx-fill: #a8071a; -fx-font-weight: bold; }
+.json-editor .json-punct  { -fx-fill: #6b7280; }
+
+.login-bg {
+    -fx-background-color: #f4f5f7;
+}
+.login-card {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e1e4e8;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 18, 0.15, 0, 6);
+}
+.login-card .title {
+    -fx-text-fill: #1f2328;
+}
+.login-card .subtitle {
+    -fx-text-fill: #6b7280;
+}
+.login-card .endpoint-link {
+    -fx-text-fill: #6b7280;
+}
+.login-card .endpoint-link:hover {
+    -fx-text-fill: #ff6c37;
+}
