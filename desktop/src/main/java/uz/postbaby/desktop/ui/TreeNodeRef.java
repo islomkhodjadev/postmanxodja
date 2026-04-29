@@ -8,7 +8,7 @@ import uz.postbaby.desktop.model.PostmanItem;
  * (PostmanItem with sub-items) or a request (PostmanItem with a request).
  */
 public class TreeNodeRef {
-    public enum Kind { COLLECTION, FOLDER, REQUEST }
+    public enum Kind {COLLECTION, FOLDER, REQUEST}
 
     public final Kind kind;
     public final Collection collection;

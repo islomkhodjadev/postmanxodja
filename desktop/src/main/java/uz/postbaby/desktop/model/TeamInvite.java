@@ -7,7 +7,9 @@ public class TeamInvite {
     public long id;
     public long team_id;
     public String invitee_email;
-    /** "pending" | "accepted" | "declined" */
+    /**
+     * "pending" | "accepted" | "declined"
+     */
     public String status;
     public String expires_at;
     public String created_at;

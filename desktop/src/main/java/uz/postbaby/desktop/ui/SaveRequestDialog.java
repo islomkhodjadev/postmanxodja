@@ -27,9 +27,9 @@ import java.util.Optional;
 
 /**
  * Modal that asks where to save / create a request:
- *  - which Collection
- *  - which folder inside it (root or any nested folder)
- *  - request name
+ * - which Collection
+ * - which folder inside it (root or any nested folder)
+ * - request name
  */
 public class SaveRequestDialog {
 
@@ -66,8 +66,15 @@ public class SaveRequestDialog {
         Label collectionLabel = new Label("Collection");
         ComboBox<Collection> collCombo = new ComboBox<>(FXCollections.observableArrayList(collections));
         collCombo.setConverter(new javafx.util.StringConverter<>() {
-            @Override public String toString(Collection c) { return c == null ? "" : c.name; }
-            @Override public Collection fromString(String s) { return null; }
+            @Override
+            public String toString(Collection c) {
+                return c == null ? "" : c.name;
+            }
+
+            @Override
+            public Collection fromString(String s) {
+                return null;
+            }
         });
         collCombo.setMaxWidth(Double.MAX_VALUE);
 
@@ -87,7 +94,8 @@ public class SaveRequestDialog {
                 try {
                     PostmanCollection pc = Json.parse(sel.raw_json, PostmanCollection.class);
                     if (pc != null && pc.item != null) collectFolders(pc.item, new ArrayList<>(), folderPaths);
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
             folderCombo.getItems().addAll(folderPaths.keySet().stream().filter(k -> !ROOT_LABEL.equals(k)).toList());
             folderCombo.getSelectionModel().select(ROOT_LABEL);
@@ -112,9 +120,15 @@ public class SaveRequestDialog {
 
         save.setOnAction(e -> {
             String name = nameField.getText() == null ? "" : nameField.getText().trim();
-            if (name.isEmpty()) { status.setText("Name can't be empty."); return; }
+            if (name.isEmpty()) {
+                status.setText("Name can't be empty.");
+                return;
+            }
             Collection sel = collCombo.getValue();
-            if (sel == null) { status.setText("Pick a collection."); return; }
+            if (sel == null) {
+                status.setText("Pick a collection.");
+                return;
+            }
             List<String> path = folderPaths.getOrDefault(folderCombo.getValue(), new ArrayList<>());
             result[0] = new Result(sel, path, name);
             stage.close();
@@ -138,7 +152,7 @@ public class SaveRequestDialog {
     }
 
     private static void collectFolders(List<PostmanItem> items, List<String> ancestors,
-                                        Map<String, List<String>> out) {
+                                       Map<String, List<String>> out) {
         for (PostmanItem it : items) {
             if (it == null) continue;
             if (it.isFolder()) {

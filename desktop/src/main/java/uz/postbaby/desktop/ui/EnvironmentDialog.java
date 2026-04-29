@@ -5,7 +5,13 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.HBox;
@@ -35,7 +41,8 @@ public class EnvironmentDialog {
         ListView<Environment> list = new ListView<>();
         list.setPrefWidth(220);
         list.setCellFactory(lv -> new ListCell<>() {
-            @Override protected void updateItem(Environment env, boolean empty) {
+            @Override
+            protected void updateItem(Environment env, boolean empty) {
                 super.updateItem(env, empty);
                 setText(empty || env == null ? null : (env.name == null ? "Untitled" : env.name));
             }
@@ -189,13 +196,29 @@ public class EnvironmentDialog {
             this.value.set(v == null ? "" : v);
         }
 
-        public String getKey() { return key.get(); }
-        public void setKey(String k) { key.set(k); }
-        public javafx.beans.property.SimpleStringProperty keyProperty() { return key; }
+        public String getKey() {
+            return key.get();
+        }
 
-        public String getValue() { return value.get(); }
-        public void setValue(String v) { value.set(v); }
-        public javafx.beans.property.SimpleStringProperty valueProperty() { return value; }
+        public void setKey(String k) {
+            key.set(k);
+        }
+
+        public javafx.beans.property.SimpleStringProperty keyProperty() {
+            return key;
+        }
+
+        public String getValue() {
+            return value.get();
+        }
+
+        public void setValue(String v) {
+            value.set(v);
+        }
+
+        public javafx.beans.property.SimpleStringProperty valueProperty() {
+            return value;
+        }
 
         public boolean isBlank() {
             return (key.get() == null || key.get().isBlank()) && (value.get() == null || value.get().isBlank());

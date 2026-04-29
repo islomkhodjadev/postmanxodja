@@ -280,17 +280,20 @@
     -fx-background-color: #ff6c37;
 }
 
-/* The editor-response divider is the one users grab most — give it a chunkier
-   handle so it's obvious you can drag it. */
-.editor-response-split > .split-pane-divider {
-    -fx-background-color: #2a2a2e;
-    -fx-padding: 5 0 5 0;
-    -fx-background-insets: 2 0 2 0;
+/* Editor↔response divider — same look as the outer collections divider:
+   thin grey bar that turns orange on hover. We size + paint by targeting
+   the SplitPane's own children directly with high-specificity selectors. */
+SplitPane.editor-response-split > .split-pane-divider {
+    -fx-background-color: #3a3a3e;
+    -fx-background-insets: 0;
+    -fx-padding: 4 0 4 0;
+    -fx-min-height: 8;
+    -fx-pref-height: 8;
     -fx-cursor: v-resize;
 }
-.editor-response-split > .split-pane-divider:hover {
+SplitPane.editor-response-split > .split-pane-divider:hover,
+SplitPane.editor-response-split > .split-pane-divider:pressed {
     -fx-background-color: #ff6c37;
-    -fx-background-insets: 0;
 }
 
 /* ── Inner Tab panes (params/headers/body and response body/headers) ── */

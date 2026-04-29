@@ -103,7 +103,8 @@
                     </Button>
                 </HBox>
 
-                <SplitPane orientation="VERTICAL" dividerPositions="0.45" VBox.vgrow="ALWAYS"
+                <SplitPane fx:id="editorResponseSplit" orientation="VERTICAL"
+                           dividerPositions="0.5" VBox.vgrow="ALWAYS"
                            styleClass="editor-response-split">
                     <TabPane fx:id="editorTabs" tabClosingPolicy="UNAVAILABLE">
                         <Tab text="Params">

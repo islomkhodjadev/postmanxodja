@@ -16,7 +16,8 @@ public class TabApi {
     }
 
     public List<SavedTab> list() {
-        return client.get("/tabs", new TypeReference<List<SavedTab>>() {});
+        return client.get("/tabs", new TypeReference<List<SavedTab>>() {
+        });
     }
 
     public void save(List<SavedTab> tabs, String activeTabId) {

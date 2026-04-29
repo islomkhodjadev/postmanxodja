@@ -7,12 +7,15 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class PostmanKeyValue {
     public String key;
-    /** value can be string or other primitives in Postman files. */
+    /**
+     * value can be string or other primitives in Postman files.
+     */
     public Object value;
     public String description;
     public Boolean disabled;
 
-    public PostmanKeyValue() {}
+    public PostmanKeyValue() {
+    }
 
     public PostmanKeyValue(String key, String value) {
         this.key = key;

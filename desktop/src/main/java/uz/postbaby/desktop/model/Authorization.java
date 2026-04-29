@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 /**
  * Per-request auth config. Mirrors the subset of the web app's Authorization
  * type that the desktop currently supports: noauth, bearer, basic, apikey.
- *
+ * <p>
  * Stored locally per tab. Not round-tripped through /tabs (the backend's
  * tab schema doesn't include auth — it's silently dropped on sync).
  */
@@ -14,7 +14,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Authorization {
 
-    /** "noauth" | "bearer" | "basic" | "apikey" */
+    /**
+     * "noauth" | "bearer" | "basic" | "apikey"
+     */
     public String type = "noauth";
 
     public Bearer bearer;
@@ -45,7 +47,9 @@ public class Authorization {
     public static class ApiKey {
         public String key;
         public String value;
-        /** "header" | "query" */
+        /**
+         * "header" | "query"
+         */
         public String addTo = "header";
     }
 }

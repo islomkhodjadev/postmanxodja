@@ -105,7 +105,9 @@ public class ApiKeysDialog {
             Integer days = null;
             String raw = expiresField.getText();
             if (raw != null && !raw.isBlank()) {
-                try { days = Integer.parseInt(raw.trim()); } catch (NumberFormatException ex) {
+                try {
+                    days = Integer.parseInt(raw.trim());
+                } catch (NumberFormatException ex) {
                     status.setText("Expiry must be a number of days.");
                     return;
                 }

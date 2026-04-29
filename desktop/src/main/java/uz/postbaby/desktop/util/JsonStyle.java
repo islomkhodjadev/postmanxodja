@@ -10,13 +10,14 @@ import java.util.Collections;
  * Computes RichTextFX StyleSpans for JSON text — assigns CSS classes
  * (json-key, json-string, json-number, json-bool, json-nul, json-punct)
  * so a CodeArea can render colored JSON live as the user edits.
- *
+ * <p>
  * Permissive: invalid JSON still gets best-effort tokenization. Unknown
  * fragments (whitespace, malformed leftovers) get an empty style class.
  */
 public final class JsonStyle {
 
-    private JsonStyle() {}
+    private JsonStyle() {
+    }
 
     public static StyleSpans<Collection<String>> compute(String json) {
         StyleSpansBuilder<Collection<String>> spans = new StyleSpansBuilder<>();
@@ -39,8 +40,14 @@ public final class JsonStyle {
                 int j = i + 1;
                 while (j < len) {
                     char cc = json.charAt(j);
-                    if (cc == '\\' && j + 1 < len) { j += 2; continue; }
-                    if (cc == '"') { j++; break; }
+                    if (cc == '\\' && j + 1 < len) {
+                        j += 2;
+                        continue;
+                    }
+                    if (cc == '"') {
+                        j++;
+                        break;
+                    }
                     j++;
                 }
                 tokenLen = j - i;
@@ -60,13 +67,21 @@ public final class JsonStyle {
                 tokenLen = j - i;
                 cls = "json-number";
             } else if (matches(json, i, "true")) {
-                tokenStart = i; tokenLen = 4; cls = "json-bool";
+                tokenStart = i;
+                tokenLen = 4;
+                cls = "json-bool";
             } else if (matches(json, i, "false")) {
-                tokenStart = i; tokenLen = 5; cls = "json-bool";
+                tokenStart = i;
+                tokenLen = 5;
+                cls = "json-bool";
             } else if (matches(json, i, "null")) {
-                tokenStart = i; tokenLen = 4; cls = "json-nul";
+                tokenStart = i;
+                tokenLen = 4;
+                cls = "json-nul";
             } else if ("{}[],:".indexOf(c) >= 0) {
-                tokenStart = i; tokenLen = 1; cls = "json-punct";
+                tokenStart = i;
+                tokenLen = 1;
+                cls = "json-punct";
             }
 
             if (tokenStart >= 0) {

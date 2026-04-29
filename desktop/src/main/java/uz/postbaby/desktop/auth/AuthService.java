@@ -67,7 +67,10 @@ public class AuthService {
                         "Paste your access token (or the full callback URL).");
             }
             long expiresIn = 3600;
-            try { expiresIn = Long.parseLong(q.getOrDefault("expires_in", "3600")); } catch (Exception ignored) {}
+            try {
+                expiresIn = Long.parseLong(q.getOrDefault("expires_in", "3600"));
+            } catch (Exception ignored) {
+            }
             return adoptTokensAndFetchUser(new AuthTokens(access, refresh, expiresIn, null));
         });
     }
@@ -86,7 +89,9 @@ public class AuthService {
         }
     }
 
-    /** Accepts a full URL, just the query string, or `key=value&...` pasted by the user. */
+    /**
+     * Accepts a full URL, just the query string, or `key=value&...` pasted by the user.
+     */
     static Map<String, String> parseCallbackInput(String input) {
         Map<String, String> out = new HashMap<>();
         if (input == null) return out;
@@ -138,7 +143,9 @@ public class AuthService {
         store.clearTokens();
     }
 
-    /** Re-validates the cached token by hitting /auth/me. Returns null if invalid or offline. */
+    /**
+     * Re-validates the cached token by hitting /auth/me. Returns null if invalid or offline.
+     */
     public User refreshUser() {
         if (tokens == null) return null;
         try {

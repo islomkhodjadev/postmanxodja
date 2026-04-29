@@ -18,7 +18,8 @@ public final class Json {
             .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
             .enable(SerializationFeature.INDENT_OUTPUT);
 
-    private Json() {}
+    private Json() {
+    }
 
     public static String stringify(Object value) {
         try {

@@ -8,7 +8,8 @@ public final class AppConfig {
     private static final String DEFAULT_API_BASE = "https://postbaby.uz/api";
     private static final String LOCAL_API_BASE = "http://localhost:8080/api";
 
-    private AppConfig() {}
+    private AppConfig() {
+    }
 
     public static String apiBaseUrl() {
         String override = System.getProperty("postbaby.api.base");

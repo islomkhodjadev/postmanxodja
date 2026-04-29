@@ -10,7 +10,8 @@ public class AuthTokens {
     public User user;
     public long stored_at;
 
-    public AuthTokens() {}
+    public AuthTokens() {
+    }
 
     public AuthTokens(String access, String refresh, long expiresIn, User user) {
         this.access_token = access;

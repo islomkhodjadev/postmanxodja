@@ -16,7 +16,8 @@ public class CollectionApi {
 
     public List<Collection> list(long teamId) {
         return client.get("/teams/" + teamId + "/collections",
-                new TypeReference<List<Collection>>() {});
+                new TypeReference<List<Collection>>() {
+                });
     }
 
     public Collection get(long teamId, long id) {

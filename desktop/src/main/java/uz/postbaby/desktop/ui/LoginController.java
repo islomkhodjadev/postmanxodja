@@ -17,13 +17,20 @@ import uz.postbaby.desktop.config.AppConfig;
 
 public class LoginController {
 
-    @FXML private Button googleButton;
-    @FXML private Label statusLabel;
-    @FXML private ProgressIndicator spinner;
-    @FXML private Hyperlink endpointLink;
-    @FXML private VBox fallbackPanel;
-    @FXML private TextArea callbackInput;
-    @FXML private Button usePastedButton;
+    @FXML
+    private Button googleButton;
+    @FXML
+    private Label statusLabel;
+    @FXML
+    private ProgressIndicator spinner;
+    @FXML
+    private Hyperlink endpointLink;
+    @FXML
+    private VBox fallbackPanel;
+    @FXML
+    private TextArea callbackInput;
+    @FXML
+    private Button usePastedButton;
 
     private PostBabyApp app;
     private AuthService auth;
@@ -100,8 +107,10 @@ public class LoginController {
         statusLabel.setText(message);
     }
 
-    /** Reveal the "paste your URL" fallback after a few seconds — the loopback flow
-     *  is the happy path, and we don't want to confuse users with a paste box up-front. */
+    /**
+     * Reveal the "paste your URL" fallback after a few seconds — the loopback flow
+     * is the happy path, and we don't want to confuse users with a paste box up-front.
+     */
     private void scheduleFallbackReveal() {
         if (fallbackReveal != null) fallbackReveal.stop();
         fallbackReveal = new PauseTransition(Duration.seconds(8));

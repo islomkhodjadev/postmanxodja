@@ -14,20 +14,19 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.PasswordField;
+import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
-import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.control.RadioMenuItem;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.Priority;
@@ -63,6 +62,7 @@ import uz.postbaby.desktop.model.SavedTab;
 import uz.postbaby.desktop.model.Team;
 import uz.postbaby.desktop.model.TeamInvite;
 import uz.postbaby.desktop.store.LocalStore;
+import uz.postbaby.desktop.util.CurlParser;
 import uz.postbaby.desktop.util.Json;
 import uz.postbaby.desktop.util.JsonHighlighter;
 import uz.postbaby.desktop.util.JsonStyle;
@@ -90,65 +90,116 @@ public class MainController {
 
     private static final Logger LOG = LoggerFactory.getLogger(MainController.class);
     private static final long TABS_SYNC_DEBOUNCE_MS = 1500;
-    /** Sentinel team id used when the user isn't signed in. Server team ids start at 1. */
+    /**
+     * Sentinel team id used when the user isn't signed in. Server team ids start at 1.
+     */
     private static final long LOCAL_TEAM_ID = 0L;
-    /** User id used to key local-only files when no real user is signed in. */
+    /**
+     * User id used to key local-only files when no real user is signed in.
+     */
     private static final long ANON_USER_ID = 0L;
 
-    @FXML private ComboBox<Team> teamCombo;
-    @FXML private ComboBox<Environment> environmentCombo;
-    @FXML private Label statusLabel;
-    @FXML private Label userLabel;
-    @FXML private Button invitesButton;
-    @FXML private Button signInButton;
+    @FXML
+    private ComboBox<Team> teamCombo;
+    @FXML
+    private ComboBox<Environment> environmentCombo;
+    @FXML
+    private Label statusLabel;
+    @FXML
+    private Label userLabel;
+    @FXML
+    private Button invitesButton;
+    @FXML
+    private Button signInButton;
 
-    @FXML private TreeView<TreeNodeRef> collectionTree;
+    @FXML
+    private TreeView<TreeNodeRef> collectionTree;
 
-    @FXML private TabPane openTabsPane;
-    @FXML private Button newTabButton;
+    @FXML
+    private TabPane openTabsPane;
+    @FXML
+    private Button newTabButton;
 
-    @FXML private ComboBox<String> methodCombo;
-    @FXML private TextField urlField;
-    @FXML private Button sendButton;
-    @FXML private Button syncRequestButton;
+    @FXML
+    private ComboBox<String> methodCombo;
+    @FXML
+    private TextField urlField;
+    @FXML
+    private Button sendButton;
+    @FXML
+    private Button syncRequestButton;
 
-    @FXML private TabPane editorTabs;
+    @FXML
+    private TabPane editorTabs;
+    @FXML
+    private javafx.scene.control.SplitPane editorResponseSplit;
 
-    @FXML private TableView<KeyValueRow> paramsTable;
-    @FXML private TableColumn<KeyValueRow, String> paramKeyCol;
-    @FXML private TableColumn<KeyValueRow, String> paramValueCol;
-    @FXML private TableColumn<KeyValueRow, String> paramRemoveCol;
+    @FXML
+    private TableView<KeyValueRow> paramsTable;
+    @FXML
+    private TableColumn<KeyValueRow, String> paramKeyCol;
+    @FXML
+    private TableColumn<KeyValueRow, String> paramValueCol;
+    @FXML
+    private TableColumn<KeyValueRow, String> paramRemoveCol;
 
-    @FXML private TableView<KeyValueRow> headersTable;
-    @FXML private TableColumn<KeyValueRow, String> headerKeyCol;
-    @FXML private TableColumn<KeyValueRow, String> headerValueCol;
-    @FXML private TableColumn<KeyValueRow, String> headerRemoveCol;
+    @FXML
+    private TableView<KeyValueRow> headersTable;
+    @FXML
+    private TableColumn<KeyValueRow, String> headerKeyCol;
+    @FXML
+    private TableColumn<KeyValueRow, String> headerValueCol;
+    @FXML
+    private TableColumn<KeyValueRow, String> headerRemoveCol;
 
-    @FXML private ComboBox<String> bodyTypeCombo;
-    @FXML private VBox bodyTabRoot;
-    /** Built programmatically inside bodyTabRoot — RichTextFX needs VirtualizedScrollPane. */
+    @FXML
+    private ComboBox<String> bodyTypeCombo;
+    @FXML
+    private VBox bodyTabRoot;
+    /**
+     * Built programmatically inside bodyTabRoot — RichTextFX needs VirtualizedScrollPane.
+     */
     private CodeArea bodyArea;
 
-    @FXML private ComboBox<String> authTypeCombo;
-    @FXML private VBox authNoAuthPanel;
-    @FXML private VBox authBearerPanel;
-    @FXML private VBox authBasicPanel;
-    @FXML private VBox authApiKeyPanel;
-    @FXML private TextField bearerTokenField;
-    @FXML private TextField basicUsernameField;
-    @FXML private PasswordField basicPasswordField;
-    @FXML private TextField apiKeyKeyField;
-    @FXML private TextField apiKeyValueField;
-    @FXML private ComboBox<String> apiKeyAddToCombo;
+    @FXML
+    private ComboBox<String> authTypeCombo;
+    @FXML
+    private VBox authNoAuthPanel;
+    @FXML
+    private VBox authBearerPanel;
+    @FXML
+    private VBox authBasicPanel;
+    @FXML
+    private VBox authApiKeyPanel;
+    @FXML
+    private TextField bearerTokenField;
+    @FXML
+    private TextField basicUsernameField;
+    @FXML
+    private PasswordField basicPasswordField;
+    @FXML
+    private TextField apiKeyKeyField;
+    @FXML
+    private TextField apiKeyValueField;
+    @FXML
+    private ComboBox<String> apiKeyAddToCombo;
 
-    @FXML private Label responseStatusLabel;
-    @FXML private Label responseTimeLabel;
-    @FXML private WebView responseBodyView;
-    @FXML private TableView<Map.Entry<String, String>> responseHeadersTable;
-    @FXML private RadioMenuItem darkThemeItem;
-    @FXML private RadioMenuItem lightThemeItem;
-    @FXML private TableColumn<Map.Entry<String, String>, String> respHeaderKeyCol;
-    @FXML private TableColumn<Map.Entry<String, String>, String> respHeaderValueCol;
+    @FXML
+    private Label responseStatusLabel;
+    @FXML
+    private Label responseTimeLabel;
+    @FXML
+    private WebView responseBodyView;
+    @FXML
+    private TableView<Map.Entry<String, String>> responseHeadersTable;
+    @FXML
+    private RadioMenuItem darkThemeItem;
+    @FXML
+    private RadioMenuItem lightThemeItem;
+    @FXML
+    private TableColumn<Map.Entry<String, String>, String> respHeaderKeyCol;
+    @FXML
+    private TableColumn<Map.Entry<String, String>, String> respHeaderValueCol;
 
     private PostBabyApp app;
     private AuthService auth;
@@ -166,7 +217,9 @@ public class MainController {
     private final Map<String, Tab> tabsByState = new HashMap<>();
     private TabState currentTab;
     private boolean suppressUiSync = false;
-    /** Re-entrancy guard for URL ⇄ Params two-way sync. */
+    /**
+     * Re-entrancy guard for URL ⇄ Params two-way sync.
+     */
     private boolean syncingUrlParams = false;
 
     private final ScheduledExecutorService scheduler =
@@ -237,7 +290,9 @@ public class MainController {
         return t;
     }
 
-    /** Run the action if signed in; otherwise show a friendly nudge. */
+    /**
+     * Run the action if signed in; otherwise show a friendly nudge.
+     */
     private void requireSignIn(String reason, Runnable action) {
         if (auth.isAuthenticated()) {
             action.run();
@@ -278,11 +333,27 @@ public class MainController {
             responseBodyView.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
         }
 
+        // Defer divider positioning until after the SplitPane has its own size,
+        // and force-style the divider in case the CSS rule loses the cascade.
+        if (editorResponseSplit != null) {
+            // Allow the children to shrink so the divider is actually draggable
+            for (javafx.scene.Node child : editorResponseSplit.getItems()) {
+                if (child instanceof javafx.scene.layout.Region r) r.setMinHeight(40);
+            }
+            javafx.application.Platform.runLater(() -> {
+                editorResponseSplit.setDividerPositions(0.5);
+                forceDividerStyle(editorResponseSplit);
+            });
+        }
+
         initBodyEditor();
         initAuthTab();
 
-        // Debounced sync on field edits
+        // Debounced sync on field edits — also detect cURL paste
         urlField.textProperty().addListener((obs, old, val) -> {
+            if (CurlParser.looksLikeCurl(val)) {
+                if (importCurl(val)) return;
+            }
             syncUrlIntoParams(val);
             onTabFieldChanged();
         });
@@ -292,6 +363,39 @@ public class MainController {
             onTabFieldChanged();
         });
         bodyTypeCombo.valueProperty().addListener((obs, old, val) -> onTabFieldChanged());
+    }
+
+    /**
+     * JavaFX's modena CSS often outranks user CSS for SplitPane dividers in
+     * the cascade. We look the divider up after layout and apply inline style
+     * so it's guaranteed to be visible and draggable.
+     */
+    private static void forceDividerStyle(javafx.scene.control.SplitPane sp) {
+        for (javafx.scene.Node n : sp.lookupAll(".split-pane-divider")) {
+            if (n instanceof javafx.scene.layout.Region r) {
+                r.setStyle(
+                        "-fx-background-color:#3a3a3e;" +
+                                "-fx-background-insets:0;" +
+                                "-fx-padding:4 0 4 0;" +
+                                "-fx-min-height:8;" +
+                                "-fx-pref-height:8;" +
+                                "-fx-cursor:v-resize;");
+                r.setOnMouseEntered(e -> r.setStyle(
+                        "-fx-background-color:#ff6c37;" +
+                                "-fx-background-insets:0;" +
+                                "-fx-padding:4 0 4 0;" +
+                                "-fx-min-height:8;" +
+                                "-fx-pref-height:8;" +
+                                "-fx-cursor:v-resize;"));
+                r.setOnMouseExited(e -> r.setStyle(
+                        "-fx-background-color:#3a3a3e;" +
+                                "-fx-background-insets:0;" +
+                                "-fx-padding:4 0 4 0;" +
+                                "-fx-min-height:8;" +
+                                "-fx-pref-height:8;" +
+                                "-fx-cursor:v-resize;"));
+            }
+        }
     }
 
     private void initBodyEditor() {
@@ -305,7 +409,73 @@ public class MainController {
         bodyTabRoot.getChildren().add(scroll);
     }
 
-    /** Recompute and apply JSON syntax-highlighting style spans. Cheap to call. */
+    /**
+     * Smart-paste: when the URL field's contents look like a curl command,
+     * parse it and populate method, URL, headers, params, body, and basic
+     * auth across the editor. Returns true if the import succeeded so the
+     * caller can skip the normal URL→Params syncing.
+     */
+    private boolean importCurl(String raw) {
+        CurlParser.Parsed c = CurlParser.parse(raw);
+        if (c == null || c.url == null || c.url.isBlank()) return false;
+
+        // Suppress the URL listener and the URL⇄Params guard during the rebuild
+        boolean prevSuppress = suppressUiSync;
+        boolean prevSyncing = syncingUrlParams;
+        suppressUiSync = true;
+        syncingUrlParams = true;
+        try {
+            methodCombo.getSelectionModel().select(c.method == null ? "GET" : c.method);
+
+            // Headers — wipe non-auto rows, then drop in the parsed ones above any auto rows
+            ObservableList<KeyValueRow> headers = headersTable.getItems();
+            headers.removeIf(r -> !r.isAuto() && !r.isBlank());
+            int insertAt = 0;
+            for (KeyValueRow row : headers) {
+                if (row.isAuto()) break;
+                insertAt++;
+            }
+            if (!c.headers.isEmpty()) headers.addAll(Math.min(insertAt, headers.size()), c.headers);
+            ensureBlankRow(headers);
+
+            // Body
+            if (c.body != null && !c.body.isEmpty()) {
+                bodyTypeCombo.getSelectionModel().select("raw");
+                bodyArea.replaceText(c.body);
+            } else {
+                bodyTypeCombo.getSelectionModel().select("none");
+                bodyArea.replaceText("");
+            }
+
+            // Auth (currently only Basic from -u user:pass)
+            if (c.auth != null) {
+                loadAuthIntoUi(c.auth);
+            }
+
+            // Replace URL with the parsed URL — release the URL guard for this call only
+            // so syncUrlIntoParams below can do its work.
+            urlField.setText(c.url);
+            syncingUrlParams = false;
+            syncUrlIntoParams(c.url);
+            // Re-sync the auth-injected header rows now that headers were rewritten
+            syncAuthIntoHeaders();
+        } finally {
+            syncingUrlParams = prevSyncing;
+            suppressUiSync = prevSuppress;
+        }
+
+        if (currentTab != null) {
+            flushUiToTab(currentTab);
+            setTabTitle(tabsByState.get(currentTab.tabId), currentTab);
+            scheduleTabsSync();
+        }
+        setStatus("Imported cURL command — " + c.method + " " + c.url);
+        return true;
+    }
+
+    /**
+     * Recompute and apply JSON syntax-highlighting style spans. Cheap to call.
+     */
     private void applyJsonHighlight() {
         if (bodyArea == null) return;
         String text = bodyArea.getText();
@@ -323,7 +493,7 @@ public class MainController {
 
     private static final String AUTH_NOAUTH = "No Auth";
     private static final String AUTH_BEARER = "Bearer Token";
-    private static final String AUTH_BASIC  = "Basic Auth";
+    private static final String AUTH_BASIC = "Basic Auth";
     private static final String AUTH_APIKEY = "API Key";
 
     private void initAuthTab() {
@@ -339,12 +509,30 @@ public class MainController {
         });
 
         // Field-level listeners so edits sync into headers + debounce-save into the tab
-        bearerTokenField.textProperty().addListener((obs, old, val) -> { syncAuthIntoHeaders(); onTabFieldChanged(); });
-        basicUsernameField.textProperty().addListener((obs, old, val) -> { syncAuthIntoHeaders(); onTabFieldChanged(); });
-        basicPasswordField.textProperty().addListener((obs, old, val) -> { syncAuthIntoHeaders(); onTabFieldChanged(); });
-        apiKeyKeyField.textProperty().addListener((obs, old, val) -> { syncAuthIntoHeaders(); onTabFieldChanged(); });
-        apiKeyValueField.textProperty().addListener((obs, old, val) -> { syncAuthIntoHeaders(); onTabFieldChanged(); });
-        apiKeyAddToCombo.valueProperty().addListener((obs, old, val) -> { syncAuthIntoHeaders(); onTabFieldChanged(); });
+        bearerTokenField.textProperty().addListener((obs, old, val) -> {
+            syncAuthIntoHeaders();
+            onTabFieldChanged();
+        });
+        basicUsernameField.textProperty().addListener((obs, old, val) -> {
+            syncAuthIntoHeaders();
+            onTabFieldChanged();
+        });
+        basicPasswordField.textProperty().addListener((obs, old, val) -> {
+            syncAuthIntoHeaders();
+            onTabFieldChanged();
+        });
+        apiKeyKeyField.textProperty().addListener((obs, old, val) -> {
+            syncAuthIntoHeaders();
+            onTabFieldChanged();
+        });
+        apiKeyValueField.textProperty().addListener((obs, old, val) -> {
+            syncAuthIntoHeaders();
+            onTabFieldChanged();
+        });
+        apiKeyAddToCombo.valueProperty().addListener((obs, old, val) -> {
+            syncAuthIntoHeaders();
+            onTabFieldChanged();
+        });
 
         authTypeCombo.getSelectionModel().select(AUTH_NOAUTH);
         updateAuthPanelVisibility(AUTH_NOAUTH);
@@ -353,7 +541,7 @@ public class MainController {
     private void updateAuthPanelVisibility(String label) {
         boolean noauth = AUTH_NOAUTH.equals(label) || label == null;
         boolean bearer = AUTH_BEARER.equals(label);
-        boolean basic  = AUTH_BASIC.equals(label);
+        boolean basic = AUTH_BASIC.equals(label);
         boolean apikey = AUTH_APIKEY.equals(label);
         toggle(authNoAuthPanel, noauth);
         toggle(authBearerPanel, bearer);
@@ -370,9 +558,9 @@ public class MainController {
         if (type == null) return AUTH_NOAUTH;
         return switch (type) {
             case "bearer" -> AUTH_BEARER;
-            case "basic"  -> AUTH_BASIC;
+            case "basic" -> AUTH_BASIC;
             case "apikey" -> AUTH_APIKEY;
-            default       -> AUTH_NOAUTH;
+            default -> AUTH_NOAUTH;
         };
     }
 
@@ -380,9 +568,9 @@ public class MainController {
         if (label == null) return "noauth";
         return switch (label) {
             case AUTH_BEARER -> "bearer";
-            case AUTH_BASIC  -> "basic";
+            case AUTH_BASIC -> "basic";
             case AUTH_APIKEY -> "apikey";
-            default          -> "noauth";
+            default -> "noauth";
         };
     }
 
@@ -460,7 +648,9 @@ public class MainController {
         }
     }
 
-    /** Strip everything from the first '?' to the (optional) '#' fragment. */
+    /**
+     * Strip everything from the first '?' to the (optional) '#' fragment.
+     */
     private static String stripQueryString(String url) {
         if (url == null) return "";
         int q = url.indexOf('?');
@@ -512,15 +702,22 @@ public class MainController {
         return out;
     }
 
-    /** Decode that preserves {{var}} placeholders untouched. */
+    /**
+     * Decode that preserves {{var}} placeholders untouched.
+     */
     private static String safeDecode(String s) {
         if (s == null || s.isEmpty()) return "";
         if (s.contains("{{") || s.contains("}}")) return s;
-        try { return URLDecoder.decode(s, StandardCharsets.UTF_8); }
-        catch (IllegalArgumentException e) { return s; }
+        try {
+            return URLDecoder.decode(s, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            return s;
+        }
     }
 
-    /** Encode that preserves {{var}} placeholders untouched. */
+    /**
+     * Encode that preserves {{var}} placeholders untouched.
+     */
     private static String safeEncode(String s) {
         if (s == null || s.isEmpty()) return "";
         if (s.contains("{{") || s.contains("}}")) return s;
@@ -593,7 +790,9 @@ public class MainController {
         ensureBlankRow(paramsTable.getItems());
     }
 
-    /** Apply the tab's auth into the request being sent. Variable substitution happens here too. */
+    /**
+     * Apply the tab's auth into the request being sent. Variable substitution happens here too.
+     */
     private void applyAuthorization(ExecuteRequest req, Authorization a, Map<String, String> vars) {
         if (a == null || a.type == null) return;
         switch (a.type) {
@@ -628,9 +827,9 @@ public class MainController {
     }
 
     private void configureKeyValueTable(TableView<KeyValueRow> table,
-                                         TableColumn<KeyValueRow, String> keyCol,
-                                         TableColumn<KeyValueRow, String> valCol,
-                                         TableColumn<KeyValueRow, String> removeCol) {
+                                        TableColumn<KeyValueRow, String> keyCol,
+                                        TableColumn<KeyValueRow, String> valCol,
+                                        TableColumn<KeyValueRow, String> removeCol) {
         table.setEditable(true);
         keyCol.setCellValueFactory(new PropertyValueFactory<>("key"));
         valCol.setCellValueFactory(new PropertyValueFactory<>("value"));
@@ -651,6 +850,7 @@ public class MainController {
         removeCol.setCellValueFactory(c -> new SimpleStringProperty(""));
         removeCol.setCellFactory(col -> new TableCell<>() {
             private final Button btn = new Button("✕");
+
             {
                 btn.getStyleClass().add("ghost");
                 btn.setOnAction(e -> {
@@ -661,7 +861,9 @@ public class MainController {
                     onTabFieldChanged();
                 });
             }
-            @Override protected void updateItem(String item, boolean empty) {
+
+            @Override
+            protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
                 setGraphic(empty ? null : btn);
             }
@@ -697,7 +899,9 @@ public class MainController {
         });
     }
 
-    /** Load tabs from local store, then (if signed in) fetch /tabs and merge. */
+    /**
+     * Load tabs from local store, then (if signed in) fetch /tabs and merge.
+     */
     private void loadOpenTabs() {
         long uid = effectiveUserId();
         List<SavedTab> cached = store.loadTabs(uid);
@@ -750,7 +954,8 @@ public class MainController {
             if (activeId != null) {
                 for (Tab t : openTabsPane.getTabs()) {
                     if (t.getUserData() instanceof TabState s && activeId.equals(s.tabId)) {
-                        toSelect = t; break;
+                        toSelect = t;
+                        break;
                     }
                 }
             }
@@ -775,7 +980,9 @@ public class MainController {
         return tab;
     }
 
-    /** Replace the tab's label with a TextField until the user commits / cancels. */
+    /**
+     * Replace the tab's label with a TextField until the user commits / cancels.
+     */
     private void startInlineRename(Tab tab, Label label, TabState state) {
         TextField field = new TextField(state.name == null ? "" : state.name);
         field.getStyleClass().add("open-tab-rename");
@@ -910,17 +1117,23 @@ public class MainController {
         try {
             String head = s.split(" ")[0];
             return Integer.parseInt(head);
-        } catch (Exception e) { return null; }
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private static Long parseLongOrNull(String s) {
         if (s == null || s.isBlank()) return null;
         try {
             return Long.parseLong(s.replaceAll("[^0-9]", ""));
-        } catch (Exception e) { return null; }
+        } catch (Exception e) {
+            return null;
+        }
     }
 
-    /** Debounce-saves the open tab set to the local store + (if signed in) /tabs. */
+    /**
+     * Debounce-saves the open tab set to the local store + (if signed in) /tabs.
+     */
     private void scheduleTabsSync() {
         if (pendingTabsSync != null) pendingTabsSync.cancel(false);
         pendingTabsSync = scheduler.schedule(() -> Platform.runLater(this::commitTabsSync),
@@ -991,8 +1204,15 @@ public class MainController {
     private void applyTeams(List<Team> teams) {
         teamCombo.setItems(FXCollections.observableArrayList(teams));
         teamCombo.setConverter(new javafx.util.StringConverter<>() {
-            @Override public String toString(Team t) { return t == null ? "" : t.name; }
-            @Override public Team fromString(String s) { return null; }
+            @Override
+            public String toString(Team t) {
+                return t == null ? "" : t.name;
+            }
+
+            @Override
+            public Team fromString(String s) {
+                return null;
+            }
         });
 
         if (teams.isEmpty()) {
@@ -1039,8 +1259,15 @@ public class MainController {
 
         environmentCombo.setItems(FXCollections.observableArrayList(withNone));
         environmentCombo.setConverter(new javafx.util.StringConverter<>() {
-            @Override public String toString(Environment e) { return e == null ? "" : e.name; }
-            @Override public Environment fromString(String s) { return null; }
+            @Override
+            public String toString(Environment e) {
+                return e == null ? "" : e.name;
+            }
+
+            @Override
+            public Environment fromString(String s) {
+                return null;
+            }
         });
 
         Long active = store.loadActiveEnvironmentId();
@@ -1062,10 +1289,14 @@ public class MainController {
         collectionTree.setRoot(root);
         collectionTree.setShowRoot(false);
         collectionTree.setCellFactory(tv -> new TreeCell<>() {
-            @Override protected void updateItem(TreeNodeRef ref, boolean empty) {
+            @Override
+            protected void updateItem(TreeNodeRef ref, boolean empty) {
                 super.updateItem(ref, empty);
                 if (empty || ref == null) {
-                    setText(null); setGraphic(null); setContextMenu(null); return;
+                    setText(null);
+                    setGraphic(null);
+                    setContextMenu(null);
+                    return;
                 }
                 String prefix = switch (ref.kind) {
                     case COLLECTION -> "📁 ";
@@ -1195,7 +1426,8 @@ public class MainController {
                         try {
                             Collection full = collectionApi.get(teamId, c.id);
                             c.raw_json = full.raw_json;
-                        } catch (Exception ignored) {}
+                        } catch (Exception ignored) {
+                        }
                     }
                 }
                 store.saveCollections(teamId, fresh);
@@ -1324,7 +1556,9 @@ public class MainController {
         setStatus("Done");
     }
 
-    /** Render the (already-pretty-printed) body into the response WebView with JSON syntax highlighting. */
+    /**
+     * Render the (already-pretty-printed) body into the response WebView with JSON syntax highlighting.
+     */
     private void renderResponseBody(String body) {
         if (responseBodyView == null) return;
         JsonHighlighter.Theme theme = "light".equals(store.loadTheme())
@@ -1364,14 +1598,18 @@ public class MainController {
      *  Save current tab back into its source collection
      * ================================================================ */
 
-    /** Right-click "Sync from backend" — open the tree's request in a tab and pull fresh. */
+    /**
+     * Right-click "Sync from backend" — open the tree's request in a tab and pull fresh.
+     */
     private void syncRequestNode(TreeNodeRef ref) {
         if (ref == null || ref.kind != TreeNodeRef.Kind.REQUEST) return;
         openOrFocusRequestTab(ref);
         onSyncRequest();
     }
 
-    /** Pull the latest version of the current tab's linked request from the backend. */
+    /**
+     * Pull the latest version of the current tab's linked request from the backend.
+     */
     @FXML
     public void onSyncRequest() {
         if (currentTab == null) {
@@ -1406,7 +1644,11 @@ public class MainController {
                 List<Collection> all = store.loadCollections(team.id);
                 boolean replaced = false;
                 for (int i = 0; i < all.size(); i++) {
-                    if (Objects.equals(all.get(i).id, fresh.id)) { all.set(i, fresh); replaced = true; break; }
+                    if (Objects.equals(all.get(i).id, fresh.id)) {
+                        all.set(i, fresh);
+                        replaced = true;
+                        break;
+                    }
                 }
                 if (!replaced) all.add(fresh);
                 store.saveCollections(team.id, all);
@@ -1430,13 +1672,15 @@ public class MainController {
                 Platform.runLater(() -> {
                     syncRequestButton.setDisable(false);
                     setStatus(e.isNetwork() ? "Offline — can't sync right now."
-                                            : "Sync failed: " + e.getMessage());
+                            : "Sync failed: " + e.getMessage());
                 });
             }
         });
     }
 
-    /** Replace a tab's editor state with the contents of a Postman item from disk. */
+    /**
+     * Replace a tab's editor state with the contents of a Postman item from disk.
+     */
     private void replaceTabFromItem(TabState s, PostmanItem item) {
         s.headers.clear();
         s.params.clear();
@@ -1498,12 +1742,17 @@ public class MainController {
         }
     }
 
-    /** Save a tab that's already linked to a collection request. */
+    /**
+     * Save a tab that's already linked to a collection request.
+     */
     private void saveExistingRequest(Team team, TabState tab) {
         List<Collection> all = store.loadCollections(team.id);
         Collection target = null;
         for (Collection c : all) {
-            if (Objects.equals(c.id, tab.collectionId)) { target = c; break; }
+            if (Objects.equals(c.id, tab.collectionId)) {
+                target = c;
+                break;
+            }
         }
         if (target == null) {
             setStatus("Source collection not found locally — try refreshing.");
@@ -1527,7 +1776,9 @@ public class MainController {
         pushCollectionIfOnline(team, target);
     }
 
-    /** Open the Save dialog and create a fresh request in the chosen collection. */
+    /**
+     * Open the Save dialog and create a fresh request in the chosen collection.
+     */
     private void saveAsNewRequest(Team team, TabState tab) {
         List<Collection> all = store.loadCollections(team.id);
         String defaultName = deriveRequestName(tab);
@@ -1555,7 +1806,7 @@ public class MainController {
      * tab to it or open a brand-new tab.
      */
     private void createRequestInCollection(Team team, Collection collection, List<String> folderPath,
-                                            String name, TabState sourceTab, boolean openAsNewTab) {
+                                           String name, TabState sourceTab, boolean openAsNewTab) {
         PostmanCollection pc = parsePostman(collection.raw_json);
         if (pc == null) {
             pc = new PostmanCollection();
@@ -1635,7 +1886,7 @@ public class MainController {
             } catch (BackendException e) {
                 Platform.runLater(() -> setStatus(
                         e.isNetwork() ? "Saved locally. Will sync when online."
-                                       : "Saved locally. Sync failed: " + e.getMessage()));
+                                : "Saved locally. Sync failed: " + e.getMessage()));
             }
         });
     }
@@ -1678,7 +1929,11 @@ public class MainController {
         List<Collection> all = store.loadCollections(team.id);
         boolean replaced = false;
         for (int i = 0; i < all.size(); i++) {
-            if (Objects.equals(all.get(i).id, c.id)) { all.set(i, c); replaced = true; break; }
+            if (Objects.equals(all.get(i).id, c.id)) {
+                all.set(i, c);
+                replaced = true;
+                break;
+            }
         }
         if (!replaced) all.add(c);
         store.saveCollections(team.id, all);
@@ -1763,7 +2018,9 @@ public class MainController {
         createRequestInCollection(team, r.collection, r.folderPath, r.name, null, /*openAsNewTab=*/true);
     }
 
-    /** Used by the tree context menu to add a request directly under a collection or folder. */
+    /**
+     * Used by the tree context menu to add a request directly under a collection or folder.
+     */
     private void onAddRequestUnder(TreeNodeRef ref) {
         Team team = teamCombo.getValue();
         if (team == null || ref == null) return;
@@ -1786,7 +2043,9 @@ public class MainController {
         });
     }
 
-    /** Used by the tree context menu to add a folder. */
+    /**
+     * Used by the tree context menu to add a folder.
+     */
     private void onAddFolderUnder(TreeNodeRef ref) {
         Team team = teamCombo.getValue();
         if (team == null || ref == null) return;
@@ -1799,9 +2058,15 @@ public class MainController {
             List<Collection> all = store.loadCollections(team.id);
             Collection target = null;
             for (Collection c : all) {
-                if (Objects.equals(c.id, ref.collection.id)) { target = c; break; }
+                if (Objects.equals(c.id, ref.collection.id)) {
+                    target = c;
+                    break;
+                }
             }
-            if (target == null) { setStatus("Collection not found."); return; }
+            if (target == null) {
+                setStatus("Collection not found.");
+                return;
+            }
             PostmanCollection pc = parsePostman(target.raw_json);
             if (pc == null) {
                 pc = new PostmanCollection();
@@ -1822,7 +2087,9 @@ public class MainController {
         });
     }
 
-    /** Rename a tree node (collection root, folder, or request). */
+    /**
+     * Rename a tree node (collection root, folder, or request).
+     */
     private void onRenameNode(TreeNodeRef ref) {
         Team team = teamCombo.getValue();
         if (team == null || ref == null) return;
@@ -1837,7 +2104,10 @@ public class MainController {
             List<Collection> all = store.loadCollections(team.id);
             Collection target = null;
             for (Collection c : all) {
-                if (Objects.equals(c.id, ref.collection.id)) { target = c; break; }
+                if (Objects.equals(c.id, ref.collection.id)) {
+                    target = c;
+                    break;
+                }
             }
             if (target == null) return;
             PostmanCollection pc = parsePostman(target.raw_json);
@@ -1863,7 +2133,10 @@ public class MainController {
     private static boolean renameByName(List<PostmanItem> items, String oldName, String newName) {
         if (items == null || oldName == null) return false;
         for (PostmanItem cur : items) {
-            if (oldName.equals(cur.name)) { cur.name = newName; return true; }
+            if (oldName.equals(cur.name)) {
+                cur.name = newName;
+                return true;
+            }
             if (cur.item != null && renameByName(cur.item, oldName, newName)) return true;
         }
         return false;
@@ -1888,8 +2161,10 @@ public class MainController {
             if (team.id != LOCAL_TEAM_ID && auth.isAuthenticated()
                     && ref.collection.id != null && ref.collection.id > 0) {
                 runAsync(() -> {
-                    try { collectionApi.delete(team.id, ref.collection.id); }
-                    catch (BackendException ignored) {}
+                    try {
+                        collectionApi.delete(team.id, ref.collection.id);
+                    } catch (BackendException ignored) {
+                    }
                 });
             }
             return;
@@ -1899,7 +2174,10 @@ public class MainController {
         List<Collection> all = store.loadCollections(team.id);
         Collection target = null;
         for (Collection c : all) {
-            if (Objects.equals(c.id, ref.collection.id)) { target = c; break; }
+            if (Objects.equals(c.id, ref.collection.id)) {
+                target = c;
+                break;
+            }
         }
         if (target == null) return;
         PostmanCollection pc = parsePostman(target.raw_json);
@@ -1918,7 +2196,10 @@ public class MainController {
         Iterator<PostmanItem> it = items.iterator();
         while (it.hasNext()) {
             PostmanItem cur = it.next();
-            if (name.equals(cur.name)) { it.remove(); return true; }
+            if (name.equals(cur.name)) {
+                it.remove();
+                return true;
+            }
             if (cur.item != null && removeByName(cur.item, name)) return true;
         }
         return false;
@@ -1942,14 +2223,18 @@ public class MainController {
                             try {
                                 collectionApi.update(team.id, c.id, null, c.raw_json);
                                 c.dirty = false;
-                            } catch (BackendException ignored) {}
+                            } catch (BackendException ignored) {
+                            }
                         }
                     }
                     store.saveCollections(team.id, local);
                     List<Collection> fresh = collectionApi.list(team.id);
                     for (Collection c : fresh) {
                         if (c.raw_json == null || c.raw_json.isBlank()) {
-                            try { c.raw_json = collectionApi.get(team.id, c.id).raw_json; } catch (Exception ignored) {}
+                            try {
+                                c.raw_json = collectionApi.get(team.id, c.id).raw_json;
+                            } catch (Exception ignored) {
+                            }
                         }
                     }
                     store.saveCollections(team.id, fresh);
@@ -2031,7 +2316,8 @@ public class MainController {
                 List<TeamInvite> pending = inviteApi.listForUser();
                 int n = pending == null ? 0 : pending.size();
                 Platform.runLater(() -> invitesButton.setText(n > 0 ? "Invites (" + n + ")" : "Invites"));
-            } catch (BackendException ignored) {}
+            } catch (BackendException ignored) {
+            }
         });
     }
 
@@ -2057,10 +2343,14 @@ public class MainController {
     }
 
     @FXML
-    public void onUseDarkTheme() { switchTheme("dark"); }
+    public void onUseDarkTheme() {
+        switchTheme("dark");
+    }
 
     @FXML
-    public void onUseLightTheme() { switchTheme("light"); }
+    public void onUseLightTheme() {
+        switchTheme("light");
+    }
 
     private void switchTheme(String theme) {
         if (theme.equals(store.loadTheme())) return;

@@ -16,7 +16,8 @@ public class TeamApi {
     }
 
     public List<Team> list() {
-        return client.get("/teams", new TypeReference<List<Team>>() {});
+        return client.get("/teams", new TypeReference<List<Team>>() {
+        });
     }
 
     public Team create(String name) {
@@ -37,7 +38,8 @@ public class TeamApi {
 
     public List<TeamMember> members(long teamId) {
         return client.get("/teams/" + teamId + "/members",
-                new TypeReference<List<TeamMember>>() {});
+                new TypeReference<List<TeamMember>>() {
+                });
     }
 
     public void removeMember(long teamId, long userId) {

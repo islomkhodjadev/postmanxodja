@@ -12,8 +12,12 @@ public class Collection {
     public Long team_id;
     public String created_at;
 
-    /** Local-only marker — true if this collection has unsynced changes. */
+    /**
+     * Local-only marker — true if this collection has unsynced changes.
+     */
     public boolean dirty;
-    /** Local-only marker — set when collection only exists locally and hasn't been pushed yet. */
+    /**
+     * Local-only marker — set when collection only exists locally and hasn't been pushed yet.
+     */
     public boolean localOnly;
 }

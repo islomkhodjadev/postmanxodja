@@ -8,7 +8,8 @@ public final class Variables {
 
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{([^}]+)}}");
 
-    private Variables() {}
+    private Variables() {
+    }
 
     public static String replace(String text, Map<String, String> variables) {
         if (text == null || text.isEmpty() || variables == null || variables.isEmpty()) {

@@ -8,9 +8,10 @@ import com.fasterxml.jackson.databind.SerializationFeature;
  */
 public final class JsonHighlighter {
 
-    public enum Theme { DARK, LIGHT }
+    public enum Theme {DARK, LIGHT}
 
-    private JsonHighlighter() {}
+    private JsonHighlighter() {
+    }
 
     public static String toHtml(String body, Theme theme) {
         String pretty = tryPretty(body);
@@ -50,7 +51,8 @@ public final class JsonHighlighter {
                         .enable(SerializationFeature.INDENT_OUTPUT)
                         .writerWithDefaultPrettyPrinter()
                         .writeValueAsString(node);
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
         return body;
     }
@@ -67,8 +69,14 @@ public final class JsonHighlighter {
                 i++;
                 while (i < len) {
                     char cc = json.charAt(i);
-                    if (cc == '\\' && i + 1 < len) { i += 2; continue; }
-                    if (cc == '"') { i++; break; }
+                    if (cc == '\\' && i + 1 < len) {
+                        i += 2;
+                        continue;
+                    }
+                    if (cc == '"') {
+                        i++;
+                        break;
+                    }
                     i++;
                 }
                 String literal = json.substring(start, i);
@@ -135,8 +143,8 @@ public final class JsonHighlighter {
     }
 
     private record Palette(String bg, String text, String key, String string,
-                            String number, String bool, String nul, String punct,
-                            String selection) {
+                           String number, String bool, String nul, String punct,
+                           String selection) {
         static Palette dark() {
             return new Palette(
                     "#1c1c1f", "#d8d8da",
@@ -149,6 +157,7 @@ public final class JsonHighlighter {
                     "#ff6c37"    // selection — Postman orange
             );
         }
+
         static Palette light() {
             return new Palette(
                     "#ffffff", "#1f2328",

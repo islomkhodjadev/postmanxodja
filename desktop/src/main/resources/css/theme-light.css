@@ -203,10 +203,16 @@
 .split-pane > .split-pane-divider:hover {
     -fx-background-color: #ff6c37;
 }
-.editor-response-split > .split-pane-divider {
-    -fx-background-color: #f0f1f3;
+SplitPane.editor-response-split > .split-pane-divider {
+    -fx-background-color: #d0d7de;
+    -fx-background-insets: 0;
+    -fx-padding: 4 0 4 0;
+    -fx-min-height: 8;
+    -fx-pref-height: 8;
+    -fx-cursor: v-resize;
 }
-.editor-response-split > .split-pane-divider:hover {
+SplitPane.editor-response-split > .split-pane-divider:hover,
+SplitPane.editor-response-split > .split-pane-divider:pressed {
     -fx-background-color: #ff6c37;
 }
 

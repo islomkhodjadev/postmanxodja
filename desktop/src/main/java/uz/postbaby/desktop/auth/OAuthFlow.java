@@ -8,7 +8,7 @@ import uz.postbaby.desktop.api.BackendClient;
 import uz.postbaby.desktop.model.AuthTokens;
 import uz.postbaby.desktop.util.Json;
 
-import java.awt.Desktop;
+import java.awt.*;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -22,10 +22,10 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Performs the desktop Google OAuth flow:
- *  1. Asks the backend for the Google auth URL with desktop_port baked into state.
- *  2. Starts a tiny loopback HTTP server on 127.0.0.1:<port> to receive the redirect.
- *  3. Opens the system browser to the auth URL.
- *  4. Returns the tokens once the loopback server receives them (or an error / timeout).
+ * 1. Asks the backend for the Google auth URL with desktop_port baked into state.
+ * 2. Starts a tiny loopback HTTP server on 127.0.0.1:<port> to receive the redirect.
+ * 3. Opens the system browser to the auth URL.
+ * 4. Returns the tokens once the loopback server receives them (or an error / timeout).
  */
 public class OAuthFlow {
 
@@ -77,7 +77,10 @@ public class OAuthFlow {
                     future.completeExceptionally(new RuntimeException("Missing tokens in callback"));
                 } else {
                     long expiresIn = 3600;
-                    try { expiresIn = Long.parseLong(expiresInRaw); } catch (Exception ignored) {}
+                    try {
+                        expiresIn = Long.parseLong(expiresInRaw);
+                    } catch (Exception ignored) {
+                    }
                     AuthTokens tokens = new AuthTokens(accessToken, refreshToken, expiresIn, null);
                     body = htmlPage("Signed in", "<p>You can close this window and return to PostBaby.</p>");
                     future.complete(tokens);
@@ -108,7 +111,10 @@ public class OAuthFlow {
 
         // Watchdog timeout
         future.orTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS).whenComplete((ok, ex) -> {
-            try { running.stop(0); } catch (Exception ignored) {}
+            try {
+                running.stop(0);
+            } catch (Exception ignored) {
+            }
         });
 
         return future;
@@ -116,7 +122,8 @@ public class OAuthFlow {
 
     private String fetchAuthUrl(int port) {
         String body = backend.sendRaw("GET", "/auth/google?desktop_port=" + port, null);
-        Map<String, Object> json = Json.parse(body, new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> json = Json.parse(body, new TypeReference<Map<String, Object>>() {
+        });
         Object url = json == null ? null : json.get("url");
         if (url == null) {
             throw new RuntimeException("Backend did not return an auth URL");

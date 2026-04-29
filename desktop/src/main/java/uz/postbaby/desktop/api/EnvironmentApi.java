@@ -15,7 +15,8 @@ public class EnvironmentApi {
 
     public List<Environment> list(long teamId) {
         return client.get("/teams/" + teamId + "/environments",
-                new TypeReference<List<Environment>>() {});
+                new TypeReference<List<Environment>>() {
+                });
     }
 
     public Environment create(long teamId, Environment env) {

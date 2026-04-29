@@ -9,10 +9,14 @@ public class ApiKey {
     public long id;
     public long team_id;
     public String name;
-    /** Returned only on creation. Null afterwards. */
+    /**
+     * Returned only on creation. Null afterwards.
+     */
     public String key;
     public String key_prefix;
-    /** "read" | "write" | "read_write" */
+    /**
+     * "read" | "write" | "read_write"
+     */
     public String permissions;
     public String last_used_at;
     public String expires_at;

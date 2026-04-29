@@ -85,7 +85,9 @@ public final class LocalStore {
         public Long activeTeamId;
         public Long activeEnvironmentId;
         public String activeTabId;
-        /** "dark" | "light". Defaults to dark. */
+        /**
+         * "dark" | "light". Defaults to dark.
+         */
         public String theme;
     }
 
@@ -117,7 +119,8 @@ public final class LocalStore {
 
     public List<SavedTab> loadTabs(long userId) {
         List<SavedTab> list = readJson("user_" + userId + "_tabs.json",
-                new TypeReference<List<SavedTab>>() {});
+                new TypeReference<List<SavedTab>>() {
+                });
         return list == null ? new ArrayList<>() : list;
     }
 
@@ -128,7 +131,8 @@ public final class LocalStore {
     /* -------- Teams -------- */
 
     public List<Team> loadTeams() {
-        List<Team> list = readJson("teams.json", new TypeReference<List<Team>>() {});
+        List<Team> list = readJson("teams.json", new TypeReference<List<Team>>() {
+        });
         return list == null ? new ArrayList<>() : list;
     }
 
@@ -140,7 +144,8 @@ public final class LocalStore {
 
     public List<Collection> loadCollections(long teamId) {
         List<Collection> list = readJson("team_" + teamId + "_collections.json",
-                new TypeReference<List<Collection>>() {});
+                new TypeReference<List<Collection>>() {
+                });
         return list == null ? new ArrayList<>() : list;
     }
 
@@ -152,7 +157,8 @@ public final class LocalStore {
 
     public List<Environment> loadEnvironments(long teamId) {
         List<Environment> list = readJson("team_" + teamId + "_environments.json",
-                new TypeReference<List<Environment>>() {});
+                new TypeReference<List<Environment>>() {
+                });
         return list == null ? new ArrayList<>() : list;
     }
 
@@ -186,12 +192,21 @@ public final class LocalStore {
 
     private void writeJson(String name, Object value) {
         Path p = root.resolve(name);
-        Path tmp = root.resolve(name + ".tmp");
+        // Per-write unique temp file so concurrent writers don't clobber each other's tmp
+        Path tmp = root.resolve(name + "." + Thread.currentThread().threadId() + "." + System.nanoTime() + ".tmp");
         try {
             Files.writeString(tmp, Json.stringify(value));
-            Files.move(tmp, p, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            try {
+                Files.move(tmp, p, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (java.nio.file.AtomicMoveNotSupportedException ignored) {
+                Files.move(tmp, p, StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (IOException e) {
             LOG.error("Failed to write {}: {}", p, e.getMessage());
+            try {
+                Files.deleteIfExists(tmp);
+            } catch (IOException ignored) {
+            }
             throw new RuntimeException("Failed to write " + p, e);
         }
     }

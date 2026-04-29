@@ -24,8 +24,11 @@ public class SavedTab {
     public boolean is_active;
     public int sort_order;
 
-    /** Desktop-only — the backend's tab schema ignores this field. */
+    /**
+     * Desktop-only — the backend's tab schema ignores this field.
+     */
     public Authorization authorization;
 
-    public SavedTab() {}
+    public SavedTab() {
+    }
 }
