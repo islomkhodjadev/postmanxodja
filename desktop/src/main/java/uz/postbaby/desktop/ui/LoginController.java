@@ -6,19 +6,11 @@ import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TextInputDialog;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import uz.postbaby.desktop.PostBabyApp;
 import uz.postbaby.desktop.auth.AuthService;
 import uz.postbaby.desktop.config.AppConfig;
 
-import java.awt.*;
-import java.io.IOException;
-import java.net.URI;
-
 public class LoginController {
-
-    private static final Logger LOG = LoggerFactory.getLogger(LoginController.class);
 
     @FXML
     private Button openSignInButton;
@@ -40,15 +32,17 @@ public class LoginController {
 
     @FXML
     public void onOpenSignInPage() {
-        String url = AppConfig.desktopSignInUrl();
-        try {
-            openBrowser(url);
-            statusLabel.setText("Sign in on the web, then click \"Open in PostBaby Desktop\".");
-            spinner.setVisible(true);
-        } catch (Exception e) {
-            spinner.setVisible(false);
-            statusLabel.setText("Couldn't open the browser. Visit: " + url);
-        }
+        setBusy(true, "Opening browser… complete sign-in there.");
+        auth.signInWithDesktopFlow().whenComplete((user, error) ->
+                javafx.application.Platform.runLater(() -> {
+                    setBusy(false, "");
+                    if (error != null) {
+                        Throwable cause = error.getCause() != null ? error.getCause() : error;
+                        statusLabel.setText("Sign-in failed: " + cause.getMessage());
+                        return;
+                    }
+                    if (app != null) app.showMain();
+                }));
     }
 
     @FXML
@@ -75,22 +69,9 @@ public class LoginController {
         endpointLink.setText("Endpoint: " + AppConfig.apiBaseUrl());
     }
 
-    private void openBrowser(String url) throws IOException {
-        try {
-            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                Desktop.getDesktop().browse(URI.create(url));
-                return;
-            }
-        } catch (Exception e) {
-            LOG.warn("Desktop.browse failed: {}", e.getMessage());
-        }
-        String os = System.getProperty("os.name", "").toLowerCase();
-        if (os.contains("mac")) {
-            new ProcessBuilder("open", url).start();
-        } else if (os.contains("windows")) {
-            new ProcessBuilder("rundll32", "url.dll,FileProtocolHandler", url).start();
-        } else {
-            new ProcessBuilder("xdg-open", url).start();
-        }
+    private void setBusy(boolean busy, String message) {
+        spinner.setVisible(busy);
+        openSignInButton.setDisable(busy);
+        statusLabel.setText(message);
     }
 }

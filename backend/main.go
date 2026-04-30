@@ -59,6 +59,8 @@ func main() {
 		// Google OAuth
 		auth.GET("/google", handlers.GoogleLogin)
 		auth.GET("/google/callback", handlers.GoogleCallback)
+		// Desktop loopback sign-in entry point
+		auth.GET("/desktop", handlers.DesktopLogin)
 	}
 
 	// Public invite route (to view invite details from email link)
