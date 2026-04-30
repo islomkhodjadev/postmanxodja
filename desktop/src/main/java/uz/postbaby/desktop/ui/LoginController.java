@@ -27,7 +27,7 @@ public class LoginController {
     public void bind(PostBabyApp app, AuthService auth) {
         this.app = app;
         this.auth = auth;
-        refreshEndpointLabel();
+//        refreshEndpointLabel();
     }
 
     @FXML
@@ -60,14 +60,14 @@ public class LoginController {
             String trimmed = value.trim();
             if (!trimmed.isEmpty()) {
                 System.setProperty("postbaby.api.base", trimmed);
-                refreshEndpointLabel();
+//                refreshEndpointLabel();
             }
         });
     }
 
-    private void refreshEndpointLabel() {
-        endpointLink.setText("Endpoint: " + AppConfig.apiBaseUrl());
-    }
+//    private void refreshEndpointLabel() {
+//        endpointLink.setText("Endpoint: " + AppConfig.apiBaseUrl());
+//    }
 
     private void setBusy(boolean busy, String message) {
         spinner.setVisible(busy);
