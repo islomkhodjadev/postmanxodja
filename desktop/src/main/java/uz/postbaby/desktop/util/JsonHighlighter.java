@@ -22,8 +22,9 @@ public final class JsonHighlighter {
         // own scrollbar appears when the response is taller than the viewport.
         sb.append("html,body{margin:0;padding:0;background:").append(p.bg).append(";}");
         sb.append("body{color:").append(p.text).append(";")
-                .append("font-family:Menlo,Consolas,'SF Mono','Courier New',monospace;font-size:12px;}");
-        sb.append("pre{margin:0;padding:12px;white-space:pre-wrap;word-break:break-word;tab-size:2;}");
+                .append("font-family:'JetBrains Mono','SF Mono','Cascadia Code','Fira Code',Menlo,Consolas,monospace;")
+                .append("font-size:13px;line-height:1.55;-webkit-font-smoothing:antialiased;}");
+        sb.append("pre{margin:0;padding:14px;white-space:pre-wrap;word-break:break-word;tab-size:2;}");
         sb.append("::-webkit-scrollbar{width:10px;height:10px;}");
         sb.append("::-webkit-scrollbar-track{background:transparent;}");
         sb.append("::-webkit-scrollbar-thumb{background:").append(p.punct).append(";border-radius:6px;}");

@@ -9,4 +9,6 @@ public class ExecuteResponse {
     public Map<String, String> headers = new LinkedHashMap<>();
     public String body = "";
     public long time;
+    /** Response body size in bytes (raw byte count, not character count). */
+    public long size;
 }

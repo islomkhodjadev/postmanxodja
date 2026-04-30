@@ -82,6 +82,8 @@
                     </MenuButton>
                     <Button text="↻" onAction="#onRefreshCollections" styleClass="ghost"/>
                 </HBox>
+                <TextField fx:id="collectionSearchField" promptText="Search names, URLs, body…"
+                           styleClass="collection-search"/>
                 <TreeView fx:id="collectionTree" VBox.vgrow="ALWAYS"/>
             </VBox>
 
@@ -188,6 +190,7 @@
                             <Label text="Response" styleClass="section-title"/>
                             <Label fx:id="responseStatusLabel" styleClass="status-pill"/>
                             <Label fx:id="responseTimeLabel"/>
+                            <Label fx:id="responseSizeLabel" styleClass="status"/>
                             <Region HBox.hgrow="ALWAYS"/>
                             <Button text="Copy" onAction="#onCopyResponse" styleClass="ghost"/>
                         </HBox>

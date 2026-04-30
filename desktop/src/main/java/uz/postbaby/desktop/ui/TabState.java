@@ -32,6 +32,7 @@ public class TabState {
     public Integer responseStatus;
     public String responseStatusText;
     public Long responseTimeMs;
+    public Long responseSizeBytes;
     public String responseBody;
     public final ObservableList<Map.Entry<String, String>> responseHeaders = FXCollections.observableArrayList();
 

@@ -420,10 +420,11 @@ SplitPane.editor-response-split > .split-pane-divider:pressed {
 
 /* Request body — RichTextFX CodeArea with live JSON highlighting */
 .json-editor {
-    -fx-background-color: #1c1c1f;
-    -fx-font-family: "Menlo", "Consolas", "SF Mono", "Courier New", monospace;
-    -fx-font-size: 12;
-    -fx-padding: 6;
+    -fx-background-color: #2a2a2e;
+    -fx-font-family: "JetBrains Mono", "SF Mono", "Cascadia Code", "Fira Code", "Menlo", "Consolas", monospace;
+    -fx-font-size: 13;
+    -fx-font-smoothing-type: gray;
+    -fx-padding: 8;
 }
 .json-editor .text {
     -fx-fill: #d8d8da;          /* default character color */
@@ -503,4 +504,60 @@ SplitPane.editor-response-split > .split-pane-divider:pressed {
 }
 .login-card .endpoint-link:hover {
     -fx-text-fill: #ff6c37;
+}
+
+/* ── Branded name dialog (New Collection / Request / Folder / Rename) ── */
+.brand-dialog-root {
+    -fx-background-color: #1c1c1f;
+    -fx-padding: 14;
+}
+.brand-dialog-card {
+    -fx-background-color: linear-gradient(to bottom, #2a2a2e, #232326);
+    -fx-background-radius: 10;
+    -fx-border-color: #3a3a3e;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.55), 24, 0.18, 0, 8);
+}
+.brand-title {
+    -fx-font-size: 18;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+}
+.brand-subtitle {
+    -fx-text-fill: #9a9ca2;
+    -fx-font-size: 12;
+}
+.brand-accent-bar {
+    -fx-background-color: linear-gradient(to right, #ff6c37, #ff9d6c);
+    -fx-background-radius: 2;
+}
+.brand-field-label {
+    -fx-text-fill: #c3c4c8;
+    -fx-font-size: 11;
+    -fx-font-weight: bold;
+}
+.brand-field {
+    -fx-background-color: #1c1c1f;
+    -fx-text-fill: #ffffff;
+    -fx-prompt-text-fill: #6c6e74;
+    -fx-border-color: #3a3a3e;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 9 12;
+    -fx-font-size: 13;
+}
+.brand-field:focused {
+    -fx-border-color: #ff6c37;
+    -fx-effect: dropshadow(gaussian, rgba(255, 108, 55, 0.35), 6, 0.0, 0, 0);
+}
+.brand-error {
+    -fx-text-fill: #ff8a8a;
+    -fx-font-size: 11;
+}
+.button.brand-primary {
+    -fx-padding: 7 18;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-effect: dropshadow(gaussian, rgba(255, 108, 55, 0.35), 8, 0.0, 0, 2);
 }

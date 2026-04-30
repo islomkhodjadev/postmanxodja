@@ -69,16 +69,19 @@ public class RequestExecutor {
 
             HttpResponse<byte[]> resp = http.send(b.build(), HttpResponse.BodyHandlers.ofByteArray());
             out.status = resp.statusCode();
-            out.status_text = String.valueOf(resp.statusCode());
+            out.status_text = reasonPhrase(resp.statusCode());
             out.headers = new LinkedHashMap<>();
             resp.headers().map().forEach((k, v) -> {
                 if (!v.isEmpty()) out.headers.put(k, v.get(0));
             });
-            out.body = new String(resp.body(), StandardCharsets.UTF_8);
+            byte[] bodyBytes = resp.body() == null ? new byte[0] : resp.body();
+            out.size = bodyBytes.length;
+            out.body = new String(bodyBytes, StandardCharsets.UTF_8);
         } catch (Exception e) {
             out.status = 0;
             out.status_text = "Network Error";
             out.body = "Request failed: " + e.getMessage();
+            out.size = 0;
         }
         out.time = System.currentTimeMillis() - start;
         return out;
@@ -86,6 +89,45 @@ public class RequestExecutor {
 
     private static boolean supportsBody(String method) {
         return !"GET".equals(method) && !"HEAD".equals(method);
+    }
+
+    /**
+     * Map an HTTP status code to its standard reason phrase (RFC 7231 / IANA
+     * registry). Java's HttpClient doesn't expose the reason phrase from the
+     * wire — and HTTP/2 omits it entirely — so we synthesize a sensible one
+     * for display.
+     */
+    private static String reasonPhrase(int code) {
+        return switch (code) {
+            case 200 -> "OK";
+            case 201 -> "Created";
+            case 202 -> "Accepted";
+            case 204 -> "No Content";
+            case 206 -> "Partial Content";
+            case 301 -> "Moved Permanently";
+            case 302 -> "Found";
+            case 303 -> "See Other";
+            case 304 -> "Not Modified";
+            case 307 -> "Temporary Redirect";
+            case 308 -> "Permanent Redirect";
+            case 400 -> "Bad Request";
+            case 401 -> "Unauthorized";
+            case 403 -> "Forbidden";
+            case 404 -> "Not Found";
+            case 405 -> "Method Not Allowed";
+            case 408 -> "Request Timeout";
+            case 409 -> "Conflict";
+            case 410 -> "Gone";
+            case 415 -> "Unsupported Media Type";
+            case 422 -> "Unprocessable Entity";
+            case 429 -> "Too Many Requests";
+            case 500 -> "Internal Server Error";
+            case 501 -> "Not Implemented";
+            case 502 -> "Bad Gateway";
+            case 503 -> "Service Unavailable";
+            case 504 -> "Gateway Timeout";
+            default -> "";
+        };
     }
 
     private static boolean isRestricted(String name) {

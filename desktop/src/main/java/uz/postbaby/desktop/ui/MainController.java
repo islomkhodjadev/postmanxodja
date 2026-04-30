@@ -22,7 +22,6 @@ import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
-import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
@@ -116,6 +115,19 @@ public class MainController {
 
     @FXML
     private TreeView<TreeNodeRef> collectionTree;
+    @FXML
+    private TextField collectionSearchField;
+
+    private List<Collection> currentCollections = java.util.Collections.emptyList();
+
+    private javafx.scene.layout.HBox bodyFindBar;
+    private TextField bodyFindField;
+    private Label bodyFindCountLabel;
+    private final List<int[]> bodyFindMatches = new java.util.ArrayList<>();
+    private int bodyFindIndex = -1;
+
+    private javafx.scene.layout.HBox responseFindBar;
+    private TextField responseFindField;
 
     @FXML
     private TabPane openTabsPane;
@@ -196,6 +208,8 @@ public class MainController {
     @FXML
     private Label responseTimeLabel;
     @FXML
+    private Label responseSizeLabel;
+    @FXML
     private WebView responseBodyView;
     @FXML
     private TableView<Map.Entry<String, String>> responseHeadersTable;
@@ -265,6 +279,8 @@ public class MainController {
         loadTeams();
         loadOpenTabs();
         if (auth.isAuthenticated()) refreshInvitesBadge();
+        installFindAccelerator();
+        installZoomAccelerators();
     }
 
     private void refreshAuthIndicator() {
@@ -306,18 +322,16 @@ public class MainController {
     }
 
     /**
-     * Run the action if signed in; otherwise show a friendly nudge.
+     * Run the action if signed in; otherwise show a brand-colored toast nudging
+     * the user to click Sign in. Toast (not modal Alert) so the user can keep
+     * working — the action just doesn't run.
      */
     private void requireSignIn(String reason, Runnable action) {
         if (auth.isAuthenticated()) {
             action.run();
             return;
         }
-        Alert a = new Alert(Alert.AlertType.INFORMATION);
-        a.setTitle("Sign in required");
-        a.setHeaderText("Sign in to " + reason);
-        a.setContentText("This action talks to the PostBaby server. Click Sign in on the toolbar to continue.");
-        a.showAndWait();
+        showToast("Sign in to " + reason + ".");
     }
 
     /* ================================================================
@@ -340,6 +354,7 @@ public class MainController {
 
         responseStatusLabel.setText("");
         responseTimeLabel.setText("");
+        if (responseSizeLabel != null) responseSizeLabel.setText("");
 
         // WebView's natural size tracks its content — make it fill the tab instead.
         if (responseBodyView != null) {
@@ -364,6 +379,7 @@ public class MainController {
 
         initBodyEditor();
         initAuthTab();
+        initFindBars();
 
         // Debounced sync on field edits — also detect cURL paste
         urlField.textProperty().addListener((obs, old, val) -> {
@@ -540,6 +556,321 @@ public class MainController {
         scroll.getStyleClass().add("json-editor-scroll");
         VBox.setVgrow(scroll, Priority.ALWAYS);
         bodyTabRoot.getChildren().add(scroll);
+    }
+
+    /* ================================================================
+     *  Cmd+F context-aware find
+     * ================================================================ */
+
+    private void initFindBars() {
+        // Body find bar — sits at the top of the body tab, above the CodeArea.
+        bodyFindCountLabel = new Label("");
+        bodyFindCountLabel.getStyleClass().add("status");
+        bodyFindBar = buildFindBar(bodyFindCountLabel,
+                this::onBodyFindPrev, this::onBodyFindNext, this::hideBodyFindBar);
+        bodyFindField = (TextField) bodyFindBar.getProperties().get("findField");
+        hideBar(bodyFindBar);
+        if (bodyTabRoot != null) bodyTabRoot.getChildren().add(0, bodyFindBar);
+        bodyFindField.textProperty().addListener((obs, old, val) -> recomputeBodyMatches(val));
+
+        // Response find bar — inserted above the WebView once it's parented.
+        responseFindBar = buildFindBar(null,
+                this::onResponseFindPrev, this::onResponseFindNext, this::hideResponseFindBar);
+        responseFindField = (TextField) responseFindBar.getProperties().get("findField");
+        hideBar(responseFindBar);
+        Platform.runLater(() -> {
+            if (responseBodyView != null
+                    && responseBodyView.getParent() instanceof javafx.scene.layout.VBox vbox
+                    && !vbox.getChildren().contains(responseFindBar)) {
+                vbox.getChildren().add(0, responseFindBar);
+            }
+        });
+        responseFindField.textProperty().addListener((obs, old, val) -> {
+            // Re-run search from the start whenever the query changes.
+            findInWebView(val, false, true);
+        });
+    }
+
+    private javafx.scene.layout.HBox buildFindBar(Label countLabel,
+                                                  Runnable onPrev, Runnable onNext, Runnable onClose) {
+        TextField field = new TextField();
+        field.setPromptText("Find…");
+        javafx.scene.layout.HBox.setHgrow(field, Priority.ALWAYS);
+
+        Button prev = new Button("▲");
+        prev.getStyleClass().add("ghost");
+        prev.setFocusTraversable(false);
+        prev.setOnAction(e -> onPrev.run());
+
+        Button next = new Button("▼");
+        next.getStyleClass().add("ghost");
+        next.setFocusTraversable(false);
+        next.setOnAction(e -> onNext.run());
+
+        Button close = new Button("✕");
+        close.getStyleClass().add("ghost");
+        close.setFocusTraversable(false);
+        close.setOnAction(e -> onClose.run());
+
+        javafx.scene.layout.HBox bar = new javafx.scene.layout.HBox(6);
+        bar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        bar.setPadding(new javafx.geometry.Insets(4, 6, 4, 6));
+        bar.getStyleClass().add("find-bar");
+        bar.getChildren().add(field);
+        if (countLabel != null) bar.getChildren().add(countLabel);
+        bar.getChildren().addAll(prev, next, close);
+        bar.getProperties().put("findField", field);
+
+        field.setOnKeyPressed(e -> {
+            if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                onClose.run();
+                e.consume();
+            } else if (e.getCode() == javafx.scene.input.KeyCode.ENTER) {
+                if (e.isShiftDown()) onPrev.run();
+                else onNext.run();
+                e.consume();
+            }
+        });
+        return bar;
+    }
+
+    private static void hideBar(javafx.scene.layout.HBox bar) {
+        bar.setVisible(false);
+        bar.setManaged(false);
+    }
+
+    private static void showBar(javafx.scene.layout.HBox bar) {
+        bar.setVisible(true);
+        bar.setManaged(true);
+    }
+
+    /* ================================================================
+     *  Cmd +/- UI zoom
+     * ================================================================ */
+
+    private double uiZoom = 1.0;
+    private static final double UI_ZOOM_MIN = 0.6;
+    private static final double UI_ZOOM_MAX = 2.5;
+    private static final double UI_ZOOM_STEP = 0.1;
+    private static final double UI_BASE_FONT = 13.0;
+
+    private void installZoomAccelerators() {
+        if (collectionTree == null || collectionTree.getScene() == null) return;
+        javafx.scene.Scene scene = collectionTree.getScene();
+        var accel = scene.getAccelerators();
+        // = key is unshifted on most layouts (Shift+= → +). We bind both for safety.
+        accel.putIfAbsent(javafx.scene.input.KeyCombination.keyCombination("Shortcut+EQUALS"),
+                () -> setUiZoom(uiZoom + UI_ZOOM_STEP));
+        accel.putIfAbsent(javafx.scene.input.KeyCombination.keyCombination("Shortcut+PLUS"),
+                () -> setUiZoom(uiZoom + UI_ZOOM_STEP));
+        accel.putIfAbsent(javafx.scene.input.KeyCombination.keyCombination("Shortcut+MINUS"),
+                () -> setUiZoom(uiZoom - UI_ZOOM_STEP));
+        accel.putIfAbsent(javafx.scene.input.KeyCombination.keyCombination("Shortcut+DIGIT0"),
+                () -> setUiZoom(1.0));
+    }
+
+    private void setUiZoom(double zoom) {
+        uiZoom = Math.max(UI_ZOOM_MIN, Math.min(UI_ZOOM_MAX, zoom));
+        javafx.scene.Scene scene = collectionTree == null ? null : collectionTree.getScene();
+        if (scene != null && scene.getRoot() != null) {
+            applyFontSize(scene.getRoot(), UI_BASE_FONT * uiZoom);
+        }
+        if (bodyArea != null) {
+            applyFontSize(bodyArea, UI_BASE_FONT * uiZoom);
+        }
+        if (responseBodyView != null) {
+            responseBodyView.setZoom(uiZoom);
+        }
+        setStatus(String.format("Zoom %d%%", Math.round(uiZoom * 100)));
+    }
+
+    /** Replace just the {@code -fx-font-size} entry in a node's inline style without clobbering the rest. */
+    private static void applyFontSize(javafx.scene.Node node, double sizePx) {
+        String style = node.getStyle();
+        if (style == null) style = "";
+        style = style.replaceAll("(?i)-fx-font-size\\s*:\\s*[^;]*;?\\s*", "");
+        if (!style.isEmpty() && !style.endsWith(";")) style += ";";
+        style += "-fx-font-size: " + sizePx + "px;";
+        node.setStyle(style);
+    }
+
+    /* ================================================================
+     *  Cmd+F context-aware find
+     * ================================================================ */
+
+    private void installFindAccelerator() {
+        if (collectionTree == null || collectionTree.getScene() == null) return;
+        javafx.scene.Scene scene = collectionTree.getScene();
+        javafx.scene.input.KeyCombination combo =
+                javafx.scene.input.KeyCombination.keyCombination("Shortcut+F");
+        // putIfAbsent-like: don't double-register if onShown runs more than once.
+        if (!scene.getAccelerators().containsKey(combo)) {
+            scene.getAccelerators().put(combo, this::onFindShortcut);
+        }
+    }
+
+    private void onFindShortcut() {
+        javafx.scene.Scene scene = collectionTree == null ? null : collectionTree.getScene();
+        if (scene == null) return;
+        javafx.scene.Node owner = scene.getFocusOwner();
+        if (isAncestor(bodyArea, owner) || isAncestor(bodyTabRoot, owner)) {
+            showBodyFindBar();
+        } else if (isAncestor(responseBodyView, owner)) {
+            showResponseFindBar();
+        } else {
+            // Default: collections search. Covers the sidebar tree, the search
+            // field itself, and any other surface that doesn't have its own
+            // dedicated find UI.
+            if (collectionSearchField != null) {
+                collectionSearchField.requestFocus();
+                collectionSearchField.selectAll();
+            }
+        }
+    }
+
+    private static boolean isAncestor(javafx.scene.Node maybeAncestor, javafx.scene.Node node) {
+        if (maybeAncestor == null) return false;
+        javafx.scene.Node n = node;
+        while (n != null) {
+            if (n == maybeAncestor) return true;
+            n = n.getParent();
+        }
+        return false;
+    }
+
+    /* --- Body (CodeArea) --- */
+
+    private void showBodyFindBar() {
+        if (bodyFindBar == null) return;
+        showBar(bodyFindBar);
+        bodyFindField.requestFocus();
+        bodyFindField.selectAll();
+        recomputeBodyMatches(bodyFindField.getText());
+    }
+
+    private void hideBodyFindBar() {
+        if (bodyFindBar == null) return;
+        hideBar(bodyFindBar);
+        if (bodyArea != null) bodyArea.requestFocus();
+    }
+
+    private void recomputeBodyMatches(String query) {
+        bodyFindMatches.clear();
+        bodyFindIndex = -1;
+        if (bodyArea == null || query == null || query.isEmpty()) {
+            updateBodyFindCount();
+            return;
+        }
+        String text = bodyArea.getText();
+        if (text == null || text.isEmpty()) {
+            updateBodyFindCount();
+            return;
+        }
+        String haystack = text.toLowerCase();
+        String needle = query.toLowerCase();
+        int from = 0;
+        while ((from = haystack.indexOf(needle, from)) >= 0) {
+            bodyFindMatches.add(new int[]{from, from + needle.length()});
+            from += Math.max(1, needle.length());
+        }
+        if (!bodyFindMatches.isEmpty()) {
+            bodyFindIndex = 0;
+            applyBodyFindSelection();
+        }
+        updateBodyFindCount();
+    }
+
+    private void applyBodyFindSelection() {
+        if (bodyArea == null || bodyFindIndex < 0 || bodyFindIndex >= bodyFindMatches.size()) return;
+        int[] r = bodyFindMatches.get(bodyFindIndex);
+        bodyArea.selectRange(r[0], r[1]);
+        bodyArea.requestFollowCaret();
+        updateBodyFindCount();
+    }
+
+    private void updateBodyFindCount() {
+        if (bodyFindCountLabel == null) return;
+        if (bodyFindMatches.isEmpty()) {
+            bodyFindCountLabel.setText(bodyFindField != null && !bodyFindField.getText().isEmpty()
+                    ? "0/0" : "");
+        } else {
+            bodyFindCountLabel.setText((bodyFindIndex + 1) + "/" + bodyFindMatches.size());
+        }
+    }
+
+    private void onBodyFindNext() {
+        if (bodyFindMatches.isEmpty()) return;
+        bodyFindIndex = (bodyFindIndex + 1) % bodyFindMatches.size();
+        applyBodyFindSelection();
+    }
+
+    private void onBodyFindPrev() {
+        if (bodyFindMatches.isEmpty()) return;
+        bodyFindIndex = (bodyFindIndex - 1 + bodyFindMatches.size()) % bodyFindMatches.size();
+        applyBodyFindSelection();
+    }
+
+    /* --- Response (WebView) --- */
+
+    private void showResponseFindBar() {
+        if (responseFindBar == null) return;
+        // The WebView's parent isn't always laid out at startup — re-attach if needed.
+        if (responseBodyView != null
+                && responseBodyView.getParent() instanceof javafx.scene.layout.VBox vbox
+                && !vbox.getChildren().contains(responseFindBar)) {
+            vbox.getChildren().add(0, responseFindBar);
+        }
+        showBar(responseFindBar);
+        responseFindField.requestFocus();
+        responseFindField.selectAll();
+        if (!responseFindField.getText().isEmpty()) {
+            findInWebView(responseFindField.getText(), false, true);
+        }
+    }
+
+    private void hideResponseFindBar() {
+        if (responseFindBar == null) return;
+        hideBar(responseFindBar);
+        if (responseBodyView != null) {
+            try {
+                responseBodyView.getEngine().executeScript(
+                        "if(window.getSelection)window.getSelection().removeAllRanges();");
+            } catch (Exception ignored) {
+            }
+            responseBodyView.requestFocus();
+        }
+    }
+
+    private void onResponseFindNext() {
+        findInWebView(responseFindField.getText(), false, false);
+    }
+
+    private void onResponseFindPrev() {
+        findInWebView(responseFindField.getText(), true, false);
+    }
+
+    /**
+     * Drive WebKit's {@code window.find()} for the response body.
+     *
+     * @param query     search string
+     * @param backwards true to search backwards
+     * @param fromStart true to reset selection before searching (used when the
+     *                  query just changed, so we always land on the first hit)
+     */
+    private void findInWebView(String query, boolean backwards, boolean fromStart) {
+        if (responseBodyView == null || query == null || query.isEmpty()) return;
+        String escaped = query.replace("\\", "\\\\").replace("'", "\\'");
+        try {
+            if (fromStart) {
+                responseBodyView.getEngine().executeScript(
+                        "if(window.getSelection)window.getSelection().removeAllRanges();");
+            }
+            String script = String.format(
+                    "window.find && window.find('%s', false, %s, true, false, false, false)",
+                    escaped, backwards ? "true" : "false");
+            responseBodyView.getEngine().executeScript(script);
+        } catch (Exception ignored) {
+        }
     }
 
     /**
@@ -1238,6 +1569,7 @@ public class MainController {
                 responseStatusLabel.getStyleClass().setAll("status-pill");
             }
             responseTimeLabel.setText(s.responseTimeMs == null ? "" : s.responseTimeMs + " ms");
+            responseSizeLabel.setText(s.responseSizeBytes == null ? "" : formatBytes(s.responseSizeBytes));
             renderResponseBody(s.responseBody);
             responseHeadersTable.setItems(s.responseHeaders);
         } finally {
@@ -1253,6 +1585,16 @@ public class MainController {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /** Human-readable response size: "812 B", "12.4 KB", "2.1 MB". */
+    private static String formatBytes(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        double kb = bytes / 1024.0;
+        if (kb < 1024) return String.format("%.1f KB", kb);
+        double mb = kb / 1024.0;
+        if (mb < 1024) return String.format("%.2f MB", mb);
+        return String.format("%.2f GB", mb / 1024.0);
     }
 
     private static Long parseLongOrNull(String s) {
@@ -1323,7 +1665,7 @@ public class MainController {
                     if (e.isUnauthorized()) {
                         auth.signOut();
                         refreshAuthIndicator();
-                        setStatus("Session expired — sign in to sync.");
+                        showToast("Session expired — sign in to sync.");
                     } else if (e.isNetwork()) {
                         setStatus("Offline — Local workspace only");
                     } else {
@@ -1431,12 +1773,20 @@ public class MainController {
                     setContextMenu(null);
                     return;
                 }
-                String prefix = switch (ref.kind) {
-                    case COLLECTION -> "📁 ";
-                    case FOLDER -> "📂 ";
-                    case REQUEST -> methodLabel(ref.item) + " ";
-                };
-                setText(prefix + ref.toString());
+                switch (ref.kind) {
+                    case COLLECTION -> {
+                        setGraphic(buildTreeIcon(true));
+                        setText(ref.toString());
+                    }
+                    case FOLDER -> {
+                        setGraphic(buildTreeIcon(false));
+                        setText(ref.toString());
+                    }
+                    case REQUEST -> {
+                        setGraphic(null);
+                        setText(methodLabel(ref.item) + " " + ref.toString());
+                    }
+                }
                 setContextMenu(buildContextMenu(ref));
             }
         });
@@ -1445,6 +1795,40 @@ public class MainController {
                 openOrFocusRequestTab(val.getValue());
             }
         });
+
+        if (collectionSearchField != null) {
+            collectionSearchField.textProperty().addListener((obs, old, val) -> rebuildCollectionTree(val));
+        }
+    }
+
+    /**
+     * Build a small folder icon for a tree cell. Collections use the brand
+     * orange, plain folders use a neutral grey. Lucide-style outline + tab
+     * silhouette so it reads as a folder at any size without leaning on
+     * platform emoji glyphs.
+     */
+    private static javafx.scene.Node buildTreeIcon(boolean collection) {
+        javafx.scene.shape.SVGPath p = new javafx.scene.shape.SVGPath();
+        // 24x24 viewbox folder shape (with the small tab on top-left)
+        p.setContent("M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z");
+        if (collection) {
+            p.setFill(javafx.scene.paint.Color.web("#ff6c37"));
+            p.setStroke(javafx.scene.paint.Color.web("#ff6c37"));
+        } else {
+            p.setFill(javafx.scene.paint.Color.web("#5b6470"));
+            p.setStroke(javafx.scene.paint.Color.web("#7b8290"));
+        }
+        p.setStrokeWidth(0.5);
+        // 24x24 source → ~14x14 displayed
+        p.setScaleX(0.62);
+        p.setScaleY(0.62);
+        // Tighten the gap that scaling leaves around the shape so the text
+        // stays close to the icon.
+        javafx.scene.layout.StackPane wrap = new javafx.scene.layout.StackPane(p);
+        wrap.setMinSize(16, 16);
+        wrap.setPrefSize(16, 16);
+        wrap.setMaxSize(16, 16);
+        return wrap;
     }
 
     private ContextMenu buildContextMenu(TreeNodeRef ref) {
@@ -1573,31 +1957,109 @@ public class MainController {
     }
 
     private void applyCollections(List<Collection> collections) {
+        this.currentCollections = collections == null ? java.util.Collections.emptyList() : collections;
+        rebuildCollectionTree(collectionSearchField == null ? "" : collectionSearchField.getText());
+    }
+
+    /**
+     * Rebuild the tree from {@link #currentCollections}, optionally filtered by
+     * a search query. A node is kept when its own name matches, or any
+     * descendant matches, or for requests when the URL or body contains the
+     * query. When filtering, matching folders/collections auto-expand so the
+     * matches are visible without manual drill-down.
+     */
+    private void rebuildCollectionTree(String query) {
+        if (collectionTree == null) return;
         TreeItem<TreeNodeRef> root = collectionTree.getRoot();
+        if (root == null) return;
         root.getChildren().clear();
-        for (Collection c : collections) {
-            TreeItem<TreeNodeRef> cItem = new TreeItem<>(TreeNodeRef.collection(c));
-            cItem.setExpanded(true);
+
+        String q = query == null ? "" : query.trim().toLowerCase();
+        boolean filtering = !q.isEmpty();
+
+        for (Collection c : currentCollections) {
             PostmanCollection pc = parsePostman(c.raw_json);
-            if (pc != null) {
+            TreeItem<TreeNodeRef> cItem = new TreeItem<>(TreeNodeRef.collection(c));
+            if (pc != null && pc.item != null) {
                 for (PostmanItem item : pc.item) {
-                    cItem.getChildren().add(buildItemNode(c, item, null));
+                    TreeItem<TreeNodeRef> child = buildItemNode(c, item, null, q);
+                    if (child != null) cItem.getChildren().add(child);
                 }
             }
-            root.getChildren().add(cItem);
+
+            boolean nameMatches = !filtering
+                    || (c.name != null && c.name.toLowerCase().contains(q));
+            boolean hasMatchingChildren = !cItem.getChildren().isEmpty();
+
+            if (!filtering) {
+                cItem.setExpanded(true);
+                root.getChildren().add(cItem);
+            } else if (nameMatches || hasMatchingChildren) {
+                cItem.setExpanded(hasMatchingChildren);
+                root.getChildren().add(cItem);
+            }
         }
     }
 
-    private TreeItem<TreeNodeRef> buildItemNode(Collection c, PostmanItem item, PostmanItem parent) {
+    /**
+     * Build a TreeItem for a Postman item, returning null when the item
+     * (and its subtree) doesn't match the query. Folders match if their name
+     * matches OR any descendant matches; requests match on name, URL, or body.
+     */
+    private TreeItem<TreeNodeRef> buildItemNode(Collection c, PostmanItem item, PostmanItem parent, String q) {
+        boolean filtering = !q.isEmpty();
         if (item.isFolder()) {
             TreeItem<TreeNodeRef> folder = new TreeItem<>(TreeNodeRef.folder(c, item, parent));
-            folder.setExpanded(false);
-            for (PostmanItem child : item.item) {
-                folder.getChildren().add(buildItemNode(c, child, item));
+            if (item.item != null) {
+                for (PostmanItem child : item.item) {
+                    TreeItem<TreeNodeRef> sub = buildItemNode(c, child, item, q);
+                    if (sub != null) folder.getChildren().add(sub);
+                }
             }
-            return folder;
+            boolean nameMatches = !filtering
+                    || (item.name != null && item.name.toLowerCase().contains(q));
+            boolean hasMatchingChildren = !folder.getChildren().isEmpty();
+            if (!filtering) {
+                folder.setExpanded(false);
+                return folder;
+            }
+            if (nameMatches || hasMatchingChildren) {
+                folder.setExpanded(hasMatchingChildren);
+                return folder;
+            }
+            return null;
         }
-        return new TreeItem<>(TreeNodeRef.request(c, item, parent));
+        if (!filtering || requestMatchesQuery(item, q)) {
+            return new TreeItem<>(TreeNodeRef.request(c, item, parent));
+        }
+        return null;
+    }
+
+    private static boolean requestMatchesQuery(PostmanItem item, String q) {
+        if (item.name != null && item.name.toLowerCase().contains(q)) return true;
+        PostmanRequest req = item.request;
+        if (req == null) return false;
+        String url = extractUrl(req.url);
+        if (url != null && url.toLowerCase().contains(q)) return true;
+        PostmanBody body = req.body;
+        if (body != null) {
+            if (body.raw != null && body.raw.toLowerCase().contains(q)) return true;
+            if (body.formdata != null) {
+                for (PostmanKeyValue kv : body.formdata) {
+                    if (kv.key != null && kv.key.toLowerCase().contains(q)) return true;
+                    String v = kv.stringValue();
+                    if (!v.isEmpty() && v.toLowerCase().contains(q)) return true;
+                }
+            }
+            if (body.urlencoded != null) {
+                for (PostmanKeyValue kv : body.urlencoded) {
+                    if (kv.key != null && kv.key.toLowerCase().contains(q)) return true;
+                    String v = kv.stringValue();
+                    if (!v.isEmpty() && v.toLowerCase().contains(q)) return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static String extractUrl(Object url) {
@@ -1670,11 +2132,15 @@ public class MainController {
             responseStatusLabel.setText("ERROR");
             responseStatusLabel.getStyleClass().setAll("status-pill", "error");
         } else {
-            responseStatusLabel.setText(resp.status + " " + (resp.status_text == null ? "" : resp.status_text));
+            String phrase = resp.status_text == null ? "" : resp.status_text.trim();
+            String text = phrase.isEmpty() ? String.valueOf(resp.status)
+                    : resp.status + " " + phrase;
+            responseStatusLabel.setText(text);
             String tier = resp.status / 100 + "xx";
             responseStatusLabel.getStyleClass().setAll("status-pill", "status-" + tier);
         }
         responseTimeLabel.setText(elapsedMs + " ms");
+        responseSizeLabel.setText(formatBytes(resp.size));
         String pretty = prettifyJsonIfPossible(resp.body);
         renderResponseBody(pretty);
         if (currentTab != null) {
@@ -1682,6 +2148,7 @@ public class MainController {
             currentTab.responseStatus = resp.status;
             currentTab.responseStatusText = responseStatusLabel.getText();
             currentTab.responseTimeMs = elapsedMs;
+            currentTab.responseSizeBytes = resp.size;
             currentTab.responseBody = pretty;
         }
         responseHeadersTable.setItems(currentTab != null ? currentTab.responseHeaders
@@ -2083,10 +2550,15 @@ public class MainController {
             setStatus("Select a team first.");
             return;
         }
-        TextInputDialog dlg = new TextInputDialog("New Collection");
-        dlg.setHeaderText("Create collection");
-        dlg.setContentText("Name:");
-        dlg.showAndWait().ifPresent(name -> {
+        NameDialog.builder()
+                .title("New collection")
+                .subtitle("Group related requests, environments, and tests under one collection.")
+                .fieldLabel("Collection name")
+                .placeholder("e.g. Billing API")
+                .initial("New Collection")
+                .okText("Create collection")
+                .show()
+                .ifPresent(name -> {
             if (name.isBlank()) return;
 
             // Local workspace or offline: create entirely in the local store with a synthetic id.
@@ -2165,11 +2637,16 @@ public class MainController {
             // For now, a single-level folder selection works; nested folders use the
             // SaveRequestDialog folder picker.
         }
-        TextInputDialog dlg = new TextInputDialog("New Request");
-        dlg.setHeaderText("Add request to " + (ref.kind == TreeNodeRef.Kind.FOLDER
-                ? ref.item.name : ref.collection.name));
-        dlg.setContentText("Name:");
-        dlg.showAndWait().ifPresent(name -> {
+        String parentName = ref.kind == TreeNodeRef.Kind.FOLDER ? ref.item.name : ref.collection.name;
+        NameDialog.builder()
+                .title("New request")
+                .subtitle("Adding to " + (parentName == null ? "this collection" : parentName) + ".")
+                .fieldLabel("Request name")
+                .placeholder("e.g. Get user profile")
+                .initial("New Request")
+                .okText("Add request")
+                .show()
+                .ifPresent(name -> {
             if (name.isBlank()) return;
             createRequestInCollection(team, ref.collection, folderPath, name.trim(),
                     null, /*openAsNewTab=*/true);
@@ -2182,10 +2659,15 @@ public class MainController {
     private void onAddFolderUnder(TreeNodeRef ref) {
         Team team = teamCombo.getValue();
         if (team == null || ref == null) return;
-        TextInputDialog dlg = new TextInputDialog("New Folder");
-        dlg.setHeaderText("Add folder");
-        dlg.setContentText("Folder name:");
-        dlg.showAndWait().ifPresent(name -> {
+        NameDialog.builder()
+                .title("New folder")
+                .subtitle("Folders help organize requests inside a collection.")
+                .fieldLabel("Folder name")
+                .placeholder("e.g. Auth")
+                .initial("New Folder")
+                .okText("Add folder")
+                .show()
+                .ifPresent(name -> {
             if (name.isBlank()) return;
             // Find collection in cache, mutate, persist
             List<Collection> all = store.loadCollections(team.id);
@@ -2227,10 +2709,18 @@ public class MainController {
         Team team = teamCombo.getValue();
         if (team == null || ref == null) return;
         String oldName = ref.kind == TreeNodeRef.Kind.COLLECTION ? ref.collection.name : ref.item.name;
-        TextInputDialog dlg = new TextInputDialog(oldName == null ? "" : oldName);
-        dlg.setHeaderText("Rename");
-        dlg.setContentText("New name:");
-        dlg.showAndWait().ifPresent(value -> {
+        String kindLabel = ref.kind == TreeNodeRef.Kind.COLLECTION ? "collection"
+                : ref.kind == TreeNodeRef.Kind.FOLDER ? "folder" : "request";
+        NameDialog.builder()
+                .title("Rename " + kindLabel)
+                .subtitle(oldName == null || oldName.isBlank()
+                        ? "Pick a new name."
+                        : "Currently named " + oldName + ".")
+                .fieldLabel("New name")
+                .initial(oldName == null ? "" : oldName)
+                .okText("Rename")
+                .show()
+                .ifPresent(value -> {
             String newName = value == null ? "" : value.trim();
             if (newName.isEmpty() || newName.equals(oldName)) return;
 
@@ -2525,16 +3015,13 @@ public class MainController {
      * Uses a JavaFX Popup so it doesn't steal focus and disappears on its own.
      */
     private void showToast(String message) {
-        if (statusLabel == null || statusLabel.getScene() == null) {
-            // Scene not ready — fall back to status bar.
-            setStatus(message);
-            return;
-        }
+        // Always update the status bar too — guaranteed visible even if the
+        // popup misbehaves (off-screen position, focus stealing, etc.).
+        setStatus(message);
+
+        if (statusLabel == null || statusLabel.getScene() == null) return;
         javafx.stage.Window owner = statusLabel.getScene().getWindow();
-        if (owner == null) {
-            setStatus(message);
-            return;
-        }
+        if (owner == null) return;
 
         Label label = new Label(message);
         label.setStyle(
@@ -2545,33 +3032,50 @@ public class MainController {
                         "-fx-border-radius: 8;" +
                         "-fx-text-fill: #f0f4f8;" +
                         "-fx-font-size: 13px;" +
-                        "-fx-padding: 10 18 10 18;"
+                        "-fx-font-weight: 600;" +
+                        "-fx-padding: 12 20 12 20;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.55), 18, 0.2, 0, 4);"
         );
         label.setOpacity(0);
 
+        // Force layout so prefWidth/prefHeight return real values BEFORE show.
+        // Without this the popup briefly appears at (0,0) and only re-positions
+        // after the first paint, which reads as "the toast didn't appear".
+        label.applyCss();
+        label.layout();
+        double w = Math.max(label.prefWidth(-1), 240);
+        double h = Math.max(label.prefHeight(-1), 40);
+
         javafx.stage.Popup popup = new javafx.stage.Popup();
         popup.getContent().add(label);
-        popup.setAutoFix(true);
+        popup.setAutoFix(false);
+        popup.setHideOnEscape(false);
 
-        // Position at bottom-center of the owner window.
-        popup.setOnShown(e -> {
-            double w = label.prefWidth(-1);
-            double h = label.prefHeight(-1);
-            popup.setX(owner.getX() + (owner.getWidth() - w) / 2.0);
-            popup.setY(owner.getY() + owner.getHeight() - h - 60);
-        });
+        double x = owner.getX() + (owner.getWidth() - w) / 2.0;
+        double y = owner.getY() + owner.getHeight() - h - 80;
+        popup.setX(x);
+        popup.setY(y);
         popup.show(owner);
 
+        // Re-position once shown in case prefWidth was still off (CSS hadn't
+        // fully resolved yet).
+        popup.setOnShown(e -> {
+            double rw = label.getWidth();
+            double rh = label.getHeight();
+            popup.setX(owner.getX() + (owner.getWidth() - rw) / 2.0);
+            popup.setY(owner.getY() + owner.getHeight() - rh - 80);
+        });
+
         javafx.animation.FadeTransition fadeIn =
-                new javafx.animation.FadeTransition(javafx.util.Duration.millis(180), label);
+                new javafx.animation.FadeTransition(javafx.util.Duration.millis(160), label);
         fadeIn.setFromValue(0);
         fadeIn.setToValue(1);
 
         javafx.animation.PauseTransition hold =
-                new javafx.animation.PauseTransition(javafx.util.Duration.seconds(2.5));
+                new javafx.animation.PauseTransition(javafx.util.Duration.seconds(3.5));
 
         javafx.animation.FadeTransition fadeOut =
-                new javafx.animation.FadeTransition(javafx.util.Duration.millis(220), label);
+                new javafx.animation.FadeTransition(javafx.util.Duration.millis(260), label);
         fadeOut.setFromValue(1);
         fadeOut.setToValue(0);
         fadeOut.setOnFinished(e -> popup.hide());
