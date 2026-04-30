@@ -10,6 +10,7 @@ module uz.postbaby.desktop {
     requires com.fasterxml.jackson.annotation;
     requires com.fasterxml.jackson.datatype.jsr310;
     requires org.slf4j;
+    requires org.slf4j.simple;
     requires org.fxmisc.richtext;
     requires org.fxmisc.flowless;
 

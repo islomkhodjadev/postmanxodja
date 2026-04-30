@@ -107,6 +107,47 @@ func verifySignedState(state string) (int, bool) {
 	return port, true
 }
 
+// DesktopLogin is the entry point for the desktop app's loopback sign-in flow.
+//
+// The desktop opens a browser at this route with ?return_to=http://127.0.0.1:<port>/.
+// We validate the loopback URL, extract the port, and redirect the browser
+// straight into the existing Google OAuth dance with that port baked into the
+// signed state — GoogleCallback already knows how to redirect to a loopback
+// target after Google sign-in succeeds.
+//
+// Browser-redirect semantics (not JSON) so the user clicks the desktop's "Open
+// sign-in page" button and lands directly on Google's consent screen with no
+// intermediate stop on a backend page.
+func DesktopLogin(c *gin.Context) {
+	if config.AppConfig.GoogleClientID == "" {
+		c.String(http.StatusServiceUnavailable, "Google OAuth not configured on this backend.")
+		return
+	}
+
+	returnTo := c.Query("return_to")
+	if returnTo == "" {
+		c.String(http.StatusBadRequest, "Missing return_to query parameter.")
+		return
+	}
+
+	parsed, err := url.Parse(returnTo)
+	if err != nil || parsed.Scheme != "http" || parsed.Hostname() != "127.0.0.1" {
+		// Restrict to loopback to prevent open-redirect / token-exfiltration.
+		c.String(http.StatusBadRequest, "return_to must be http://127.0.0.1:<port>/")
+		return
+	}
+
+	port, err := strconv.Atoi(parsed.Port())
+	if err != nil || port < 1024 || port > 65535 {
+		c.String(http.StatusBadRequest, "Invalid loopback port in return_to.")
+		return
+	}
+
+	state := generateSignedState(port)
+	authURL := googleOAuthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	c.Redirect(http.StatusTemporaryRedirect, authURL)
+}
+
 // GoogleLogin initiates Google OAuth flow.
 // Optional ?desktop_port=NNNN routes the final redirect to http://127.0.0.1:NNNN/
 // instead of FRONTEND_URL — used by the desktop app's loopback callback server.

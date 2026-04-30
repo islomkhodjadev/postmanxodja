@@ -52,6 +52,17 @@ public class AuthService {
     }
 
     /**
+     * Desktop sign-in via the loopback HTTP redirect flow. The desktop opens a
+     * browser at the backend's desktop sign-in URL with a {@code return_to}
+     * loopback address; the backend redirects back with tokens once the user
+     * is authenticated.
+     */
+    public CompletableFuture<User> signInWithDesktopFlow() {
+        DesktopSignInFlow flow = new DesktopSignInFlow();
+        return flow.start().thenApply(this::adoptTokensAndFetchUser);
+    }
+
+    /**
      * Fallback path: the user pastes the callback URL or its query string after
      * being redirected to the web app. We extract access_token + refresh_token,
      * adopt them, and load the user. Used when the backend can't redirect to

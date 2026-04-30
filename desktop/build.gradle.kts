@@ -38,6 +38,9 @@ dependencies {
 application {
     mainModule.set("uz.postbaby.desktop")
     mainClass.set("uz.postbaby.desktop.PostBabyApp")
+    applicationDefaultJvmArgs = listOf(
+        "--add-exports=javafx.graphics/com.sun.glass.ui=uz.postbaby.desktop"
+    )
 }
 
 tasks.test {
@@ -46,6 +49,13 @@ tasks.test {
 
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
+    // Allow the deep-link Glass URL handler to subclass JavaFX's internal
+    // com.sun.glass.ui.Application.EventHandler. Public APIs don't expose URL
+    // events to JavaFX apps on macOS — Glass intercepts them via
+    // NSApplicationDelegate.application:openURLs: and never forwards to AWT.
+    options.compilerArgs.addAll(listOf(
+        "--add-exports", "javafx.graphics/com.sun.glass.ui=uz.postbaby.desktop"
+    ))
 }
 
 /**
@@ -62,7 +72,7 @@ val patchMacInfoPlist by tasks.registering {
             logger.warn("Info.plist not found at ${plist.absolutePath}; skipping URL scheme registration.")
             return@doLast
         }
-        val xml = """
+        val urlTypesXml = """
             <array>
               <dict>
                 <key>CFBundleURLName</key>
@@ -74,11 +84,16 @@ val patchMacInfoPlist by tasks.registering {
               </dict>
             </array>
         """.trimIndent()
-        // -replace is idempotent across rebuilds (insert would fail if the key already exists).
         exec {
-            commandLine("plutil", "-replace", "CFBundleURLTypes", "-xml", xml, plist.absolutePath)
+            commandLine("plutil", "-replace", "CFBundleURLTypes", "-xml", urlTypesXml, plist.absolutePath)
         }
-        logger.lifecycle("Registered postbaby:// URL scheme in ${plist.absolutePath}")
+        // Force macOS to single-instance the app. Without this, `open postbaby://`
+        // launches a fresh duplicate instead of dispatching the URL Apple Event
+        // to the running instance — see JDK-8195976.
+        exec {
+            commandLine("plutil", "-replace", "LSMultipleInstancesProhibited", "-bool", "true", plist.absolutePath)
+        }
+        logger.lifecycle("Patched Info.plist (URL scheme + single-instance) at ${plist.absolutePath}")
     }
 }
 
@@ -99,6 +114,9 @@ jlink {
     forceMerge("richtextfx", "flowless", "reactfx", "undofx", "wellbehavedfx")
     launcher {
         name = "postbaby"
+        jvmArgs = listOf(
+            "--add-exports=javafx.graphics/com.sun.glass.ui=uz.postbaby.desktop"
+        )
     }
     jpackage {
         val os = OperatingSystem.current()
@@ -145,6 +163,9 @@ jlink {
 afterEvaluate {
     tasks.findByName("jpackageImage")?.let { image ->
         patchMacInfoPlist.configure { dependsOn(image) }
+        // finalizedBy guarantees the patch runs whenever jpackageImage runs,
+        // not just when something explicitly asks for patchMacInfoPlist.
+        image.finalizedBy(patchMacInfoPlist)
     }
     tasks.findByName("jpackage")?.dependsOn(patchMacInfoPlist)
 }
