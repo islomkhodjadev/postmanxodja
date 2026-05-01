@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 import uz.postbaby.desktop.config.AppConfig;
 import uz.postbaby.desktop.model.AuthTokens;
 
-import java.awt.Desktop;
+import java.awt.*;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -19,22 +19,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Desktop sign-in flow using a loopback HTTP redirect.
- *
- * <ol>
- *   <li>Spin up a tiny HTTP server on 127.0.0.1:&lt;port&gt;.</li>
- *   <li>Open the browser to {@code ${apiBase}/auth/desktop?return_to=http://127.0.0.1:&lt;port&gt;/}.</li>
- *   <li>Backend authenticates the user (its existing OAuth session) and
- *       redirects the browser to {@code return_to} with
- *       {@code access_token}, {@code refresh_token}, {@code expires_in} as
- *       query params.</li>
- *   <li>The loopback handler captures the tokens and completes the future.</li>
- * </ol>
- *
- * Used instead of a {@code postbaby://} deep link because URL Apple Events
- * aren't reliably delivered to JavaFX apps on macOS.
- */
 public class DesktopSignInFlow {
 
     private static final Logger LOG = LoggerFactory.getLogger(DesktopSignInFlow.class);

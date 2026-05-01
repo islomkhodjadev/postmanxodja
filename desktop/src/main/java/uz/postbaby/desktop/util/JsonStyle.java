@@ -6,14 +6,6 @@ import org.fxmisc.richtext.model.StyleSpansBuilder;
 import java.util.Collection;
 import java.util.Collections;
 
-/**
- * Computes RichTextFX StyleSpans for JSON text — assigns CSS classes
- * (json-key, json-string, json-number, json-bool, json-nul, json-punct)
- * so a CodeArea can render colored JSON live as the user edits.
- * <p>
- * Permissive: invalid JSON still gets best-effort tokenization. Unknown
- * fragments (whitespace, malformed leftovers) get an empty style class.
- */
 public final class JsonStyle {
 
     private JsonStyle() {

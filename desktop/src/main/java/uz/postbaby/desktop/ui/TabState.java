@@ -9,11 +9,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Per-tab state held by MainController. The wire-format SavedTab is a strict
- * subset of this — auth, body type, response, and source-collection links are
- * desktop-only and never round-trip through /tabs.
- */
 public class TabState {
 
     public final String tabId;
@@ -26,9 +21,6 @@ public class TabState {
     public final ObservableList<KeyValueRow> headers = FXCollections.observableArrayList();
     public final ObservableList<KeyValueRow> params = FXCollections.observableArrayList();
 
-    /**
-     * Last response (kept in memory only).
-     */
     public Integer responseStatus;
     public String responseStatusText;
     public Long responseTimeMs;
@@ -36,20 +28,11 @@ public class TabState {
     public String responseBody;
     public final ObservableList<Map.Entry<String, String>> responseHeaders = FXCollections.observableArrayList();
 
-    /**
-     * If this tab was opened from a request inside a collection, save links here for save-back.
-     */
     public Long collectionId;
     public String itemPath;
 
-    /**
-     * Per-tab auth config. Stored locally; backend's /tabs schema ignores it.
-     */
     public Authorization authorization = Authorization.noauth();
 
-    /**
-     * True until the tab is synced through /tabs.
-     */
     public boolean dirty = true;
 
     public TabState() {

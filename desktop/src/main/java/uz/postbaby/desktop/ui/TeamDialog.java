@@ -41,7 +41,6 @@ public class TeamDialog {
         Label status = new Label();
         status.getStyleClass().add("status");
 
-        // Members table
         TableView<TeamMember> members = new TableView<>();
         TableColumn<TeamMember, String> nameCol = new TableColumn<>("Name");
         TableColumn<TeamMember, String> emailCol = new TableColumn<>("Email");
@@ -58,13 +57,11 @@ public class TeamDialog {
         members.getColumns().add(emailCol);
         members.getColumns().add(roleCol);
 
-        // Invite controls
         TextField emailField = new TextField();
         emailField.setPromptText("name@example.com");
         Button sendInvite = new Button("Send invite");
         sendInvite.getStyleClass().add("primary");
 
-        // Pending invites
         TableView<TeamInvite> pending = new TableView<>();
         TableColumn<TeamInvite, String> pendingEmail = new TableColumn<>("Email");
         TableColumn<TeamInvite, String> pendingExpiry = new TableColumn<>("Expires");
@@ -94,7 +91,6 @@ public class TeamDialog {
         VBox.setVgrow(pending, Priority.SOMETIMES);
         root.setPadding(new Insets(14));
 
-        // Loaders
         Runnable loadMembers = () -> CompletableFuture.runAsync(() -> {
             try {
                 List<TeamMember> list = teamApi.members(team.id);
@@ -191,8 +187,7 @@ public class TeamDialog {
         loadInvites.run();
 
         Scene scene = new Scene(root, 720, 600);
-        var css = TeamDialog.class.getResource("/css/app.css");
-        if (css != null) scene.getStylesheets().add(css.toExternalForm());
+        Theme.apply(scene);
         stage.setScene(scene);
         stage.show();
     }

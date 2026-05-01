@@ -2,10 +2,7 @@ package uz.postbaby.desktop.util;
 
 import com.fasterxml.jackson.databind.SerializationFeature;
 
-/**
- * Renders a JSON string as syntax-highlighted HTML for display inside a WebView.
- * Falls back to escaped plain text when the input isn't valid JSON.
- */
+
 public final class JsonHighlighter {
 
     public enum Theme {DARK, LIGHT}
@@ -18,8 +15,6 @@ public final class JsonHighlighter {
         Palette p = theme == Theme.LIGHT ? Palette.light() : Palette.dark();
         StringBuilder sb = new StringBuilder(8192);
         sb.append("<!doctype html><html><head><meta charset='utf-8'><style>");
-        // No height:100% — let content drive the body height so the WebView's
-        // own scrollbar appears when the response is taller than the viewport.
         sb.append("html,body{margin:0;padding:0;background:").append(p.bg).append(";}");
         sb.append("body{color:").append(p.text).append(";")
                 .append("font-family:'JetBrains Mono','SF Mono','Cascadia Code','Fira Code',Menlo,Consolas,monospace;")

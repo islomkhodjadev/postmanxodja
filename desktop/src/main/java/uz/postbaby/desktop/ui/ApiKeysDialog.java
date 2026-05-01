@@ -163,8 +163,7 @@ public class ApiKeysDialog {
         load.run();
 
         Scene scene = new Scene(root, 820, 520);
-        var css = ApiKeysDialog.class.getResource("/css/app.css");
-        if (css != null) scene.getStylesheets().add(css.toExternalForm());
+        Theme.apply(scene);
         stage.setScene(scene);
         stage.show();
     }
@@ -194,8 +193,7 @@ public class ApiKeysDialog {
         VBox root = new VBox(12, new Label(key.name), warn, keyField, new HBox(8, copy, done));
         root.setPadding(new Insets(16));
         Scene scene = new Scene(root, 560, 200);
-        var css = ApiKeysDialog.class.getResource("/css/app.css");
-        if (css != null) scene.getStylesheets().add(css.toExternalForm());
+        Theme.apply(scene);
         s.setScene(scene);
         s.show();
     }

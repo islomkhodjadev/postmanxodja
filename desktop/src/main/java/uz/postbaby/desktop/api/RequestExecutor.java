@@ -15,11 +15,6 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * Executes the user's API request directly from the desktop app. This is the
- * default path so users don't have to be online. Mirrors the frontend's
- * "executeRequestDirect" flow.
- */
 public class RequestExecutor {
 
     private static final Logger LOG = LoggerFactory.getLogger(RequestExecutor.class);
@@ -91,12 +86,6 @@ public class RequestExecutor {
         return !"GET".equals(method) && !"HEAD".equals(method);
     }
 
-    /**
-     * Map an HTTP status code to its standard reason phrase (RFC 7231 / IANA
-     * registry). Java's HttpClient doesn't expose the reason phrase from the
-     * wire — and HTTP/2 omits it entirely — so we synthesize a sensible one
-     * for display.
-     */
     private static String reasonPhrase(int code) {
         return switch (code) {
             case 200 -> "OK";
@@ -131,7 +120,6 @@ public class RequestExecutor {
     }
 
     private static boolean isRestricted(String name) {
-        // Java's HttpClient refuses these headers — let it set them itself.
         String n = name.toLowerCase();
         return n.equals("connection") || n.equals("content-length") || n.equals("date")
                 || n.equals("expect") || n.equals("from") || n.equals("host")

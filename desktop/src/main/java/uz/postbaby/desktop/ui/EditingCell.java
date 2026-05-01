@@ -22,8 +22,6 @@ public class EditingCell extends TableCell<KeyValueRow, String> {
 
     @Override
     public void commitEdit(String newValue) {
-        // If the user edits a row that was auto-generated (e.g. by the Authorization tab),
-        // demote it to a normal row so the auth tab no longer overwrites it.
         int row = getIndex();
         if (row >= 0 && row < getTableView().getItems().size()) {
             KeyValueRow data = getTableView().getItems().get(row);
@@ -62,7 +60,6 @@ public class EditingCell extends TableCell<KeyValueRow, String> {
         field.getStyleClass().add("kv-cell-field");
         field.setOnAction(e -> commitEdit(field.getText()));
         field.focusedProperty().addListener((obs, was, isFocused) -> {
-            // When the editor loses focus, commit. JavaFX otherwise drops the edit.
             if (was && !isFocused && isEditing()) {
                 commitEdit(field.getText());
             }

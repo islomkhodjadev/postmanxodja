@@ -1,12 +1,13 @@
 package uz.postbaby.desktop.ui;
 
-import javafx.event.ActionEvent;
+import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -17,58 +18,55 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 
-public class NameDialog {
+public class PickerDialog<T> {
 
-    public static class Builder {
-        private String title = "Name";
+    public static <T> Builder<T> builder() {
+        return new Builder<>();
+    }
+
+    public static class Builder<T> {
+        private String title = "Select";
         private String subtitle;
-        private String fieldLabel = "Name";
-        private String placeholder;
-        private String initial = "";
-        private String okText = "Create";
+        private List<T> items = List.of();
+        private T selected;
+        private Function<T, String> toString = Objects::toString;
 
-        public Builder title(String t) {
+        public Builder<T> title(String t) {
             this.title = t;
             return this;
         }
 
-        public Builder subtitle(String s) {
+        public Builder<T> subtitle(String s) {
             this.subtitle = s;
             return this;
         }
 
-        public Builder fieldLabel(String l) {
-            this.fieldLabel = l;
+        public Builder<T> items(List<T> items) {
+            this.items = items == null ? List.of() : items;
             return this;
         }
 
-        public Builder placeholder(String p) {
-            this.placeholder = p;
+        public Builder<T> selected(T s) {
+            this.selected = s;
             return this;
         }
 
-        public Builder initial(String i) {
-            this.initial = i == null ? "" : i;
+        public Builder<T> toString(Function<T, String> f) {
+            if (f != null) this.toString = f;
             return this;
         }
 
-        public Builder okText(String t) {
-            this.okText = t;
-            return this;
-        }
-
-        public Optional<String> show() {
-            return NameDialog.show(this);
+        public Optional<T> show() {
+            return PickerDialog.show(this);
         }
     }
 
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    private static Optional<String> show(Builder b) {
+    private static <T> Optional<T> show(Builder<T> b) {
         Stage stage = new Stage();
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.initStyle(StageStyle.UTILITY);
@@ -90,19 +88,23 @@ public class NameDialog {
         accentBar.setPrefHeight(3);
         accentBar.setMaxWidth(48);
 
-        Label fieldLabel = new Label(b.fieldLabel);
-        fieldLabel.getStyleClass().add("brand-field-label");
+        ListView<T> list = new ListView<>(FXCollections.observableArrayList(b.items));
+        list.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(T item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : b.toString.apply(item));
+            }
+        });
+        list.setPrefHeight(280);
+        if (b.selected != null) {
+            list.getSelectionModel().select(b.selected);
+            list.scrollTo(b.selected);
+        } else if (!b.items.isEmpty()) {
+            list.getSelectionModel().select(0);
+        }
 
-        TextField field = new TextField(b.initial);
-        if (b.placeholder != null) field.setPromptText(b.placeholder);
-        field.getStyleClass().add("brand-field");
-
-        Label error = new Label();
-        error.getStyleClass().add("brand-error");
-        error.setManaged(false);
-        error.setVisible(false);
-
-        Button ok = new Button(b.okText);
+        Button ok = new Button("Select");
         ok.getStyleClass().addAll("primary", "brand-primary");
         ok.setDefaultButton(true);
 
@@ -115,30 +117,22 @@ public class NameDialog {
         HBox actions = new HBox(8, spacer, cancel, ok);
         actions.setAlignment(Pos.CENTER_RIGHT);
 
-        String[] result = new String[1];
+        @SuppressWarnings("unchecked")
+        T[] result = (T[]) new Object[1];
         Runnable confirm = () -> {
-            String v = field.getText() == null ? "" : field.getText().trim();
-            if (v.isEmpty()) {
-                error.setText("Name can't be empty.");
-                error.setManaged(true);
-                error.setVisible(true);
-                field.requestFocus();
-                return;
-            }
+            T v = list.getSelectionModel().getSelectedItem();
+            if (v == null) return;
             result[0] = v;
             stage.close();
         };
-        ok.setOnAction((ActionEvent e) -> confirm.run());
+        ok.setOnAction(e -> confirm.run());
         cancel.setOnAction(e -> stage.close());
-        field.setOnAction(e -> confirm.run());
-        field.setOnKeyPressed(e -> {
-            if (e.getCode() == KeyCode.ESCAPE) stage.close();
+        list.setOnMouseClicked(e -> {
+            if (e.getClickCount() >= 2) confirm.run();
         });
-        field.textProperty().addListener((obs, oldV, newV) -> {
-            if (error.isVisible()) {
-                error.setManaged(false);
-                error.setVisible(false);
-            }
+        list.setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.ENTER) confirm.run();
+            else if (e.getCode() == KeyCode.ESCAPE) stage.close();
         });
 
         VBox card = new VBox(10);
@@ -146,7 +140,7 @@ public class NameDialog {
         card.setPadding(new Insets(22, 24, 20, 24));
         card.getChildren().add(titleLabel);
         if (subtitleLabel != null) card.getChildren().add(subtitleLabel);
-        card.getChildren().addAll(accentBar, fieldLabel, field, error, actions);
+        card.getChildren().addAll(accentBar, list, actions);
         VBox.setMargin(accentBar, new Insets(2, 0, 6, 0));
         VBox.setMargin(actions, new Insets(8, 0, 0, 0));
 
@@ -158,10 +152,7 @@ public class NameDialog {
         Theme.apply(scene);
 
         stage.setScene(scene);
-        stage.setOnShown(e -> {
-            field.requestFocus();
-            field.selectAll();
-        });
+        stage.setOnShown(e -> list.requestFocus());
         stage.showAndWait();
         return Optional.ofNullable(result[0]);
     }

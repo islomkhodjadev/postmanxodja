@@ -14,17 +14,11 @@ public class InviteApi {
         this.client = client;
     }
 
-    /**
-     * Pending invites for the signed-in user.
-     */
     public List<TeamInvite> listForUser() {
         return client.get("/invites", new TypeReference<List<TeamInvite>>() {
         });
     }
 
-    /**
-     * Pending invites for a team (visible to owner).
-     */
     public List<TeamInvite> listForTeam(long teamId) {
         return client.get("/teams/" + teamId + "/invites", new TypeReference<List<TeamInvite>>() {
         });

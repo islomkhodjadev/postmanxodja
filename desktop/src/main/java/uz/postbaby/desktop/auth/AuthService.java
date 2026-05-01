@@ -16,10 +16,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Holds the current auth state in memory and persists tokens to disk.
- * Tokens travel with every BackendClient call via the configured supplier.
- */
 public class AuthService {
 
     private static final Logger LOG = LoggerFactory.getLogger(AuthService.class);
@@ -51,23 +47,11 @@ public class AuthService {
         return flow.start().thenApply(this::adoptTokensAndFetchUser);
     }
 
-    /**
-     * Desktop sign-in via the loopback HTTP redirect flow. The desktop opens a
-     * browser at the backend's desktop sign-in URL with a {@code return_to}
-     * loopback address; the backend redirects back with tokens once the user
-     * is authenticated.
-     */
     public CompletableFuture<User> signInWithDesktopFlow() {
         DesktopSignInFlow flow = new DesktopSignInFlow();
         return flow.start().thenApply(this::adoptTokensAndFetchUser);
     }
 
-    /**
-     * Fallback path: the user pastes the callback URL or its query string after
-     * being redirected to the web app. We extract access_token + refresh_token,
-     * adopt them, and load the user. Used when the backend can't redirect to
-     * the desktop loopback.
-     */
     public CompletableFuture<User> signInFromCallbackInput(String input) {
         return CompletableFuture.supplyAsync(() -> {
             Map<String, String> q = parseCallbackInput(input);
@@ -100,10 +84,6 @@ public class AuthService {
         }
     }
 
-    /**
-     * Accepts a full URL (http(s)://, postbaby://, or any scheme://), just the
-     * query string, or `key=value&...` pasted by the user.
-     */
     static Map<String, String> parseCallbackInput(String input) {
         Map<String, String> out = new HashMap<>();
         if (input == null) return out;
@@ -112,7 +92,6 @@ public class AuthService {
 
         boolean looksLikeUrl = trimmed.contains("://");
 
-        // Bare access token — user pasted just the token value
         if (!trimmed.contains("=") && !trimmed.contains("&")
                 && !looksLikeUrl
                 && !trimmed.startsWith("?") && !trimmed.startsWith("#")) {
@@ -129,8 +108,6 @@ public class AuthService {
                 } else if (uri.getRawFragment() != null) {
                     query = uri.getRawFragment();
                 } else {
-                    // Custom schemes (postbaby://signin?token=...) sometimes leave
-                    // getRawQuery() null; fall back to splitting the SSP manually.
                     String ssp = uri.getRawSchemeSpecificPart();
                     if (ssp != null) {
                         int q = ssp.indexOf('?');
@@ -145,7 +122,7 @@ public class AuthService {
                 query = trimmed.substring(1);
             }
         } catch (IllegalArgumentException ignored) {
-            // Treat as raw query string
+            System.err.println("Failed to parse URL: " + trimmed);
         }
 
         for (String part : query.split("&")) {
@@ -156,7 +133,7 @@ public class AuthService {
                 String v = URLDecoder.decode(part.substring(eq + 1), StandardCharsets.UTF_8);
                 out.put(k, v);
             } catch (IllegalArgumentException ignored) {
-                // skip malformed segments
+                System.err.println("Failed to decode URL parameter: " + part);
             }
         }
         return out;
@@ -172,9 +149,6 @@ public class AuthService {
         store.clearTokens();
     }
 
-    /**
-     * Re-validates the cached token by hitting /auth/me. Returns null if invalid or offline.
-     */
     public User refreshUser() {
         if (tokens == null) return null;
         try {

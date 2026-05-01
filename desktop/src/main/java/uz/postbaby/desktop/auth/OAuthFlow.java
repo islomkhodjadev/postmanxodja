@@ -20,13 +20,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Performs the desktop Google OAuth flow:
- * 1. Asks the backend for the Google auth URL with desktop_port baked into state.
- * 2. Starts a tiny loopback HTTP server on 127.0.0.1:<port> to receive the redirect.
- * 3. Opens the system browser to the auth URL.
- * 4. Returns the tokens once the loopback server receives them (or an error / timeout).
- */
 public class OAuthFlow {
 
     private static final Logger LOG = LoggerFactory.getLogger(OAuthFlow.class);
@@ -109,7 +102,6 @@ public class OAuthFlow {
             return future;
         }
 
-        // Watchdog timeout
         future.orTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS).whenComplete((ok, ex) -> {
             try {
                 running.stop(0);

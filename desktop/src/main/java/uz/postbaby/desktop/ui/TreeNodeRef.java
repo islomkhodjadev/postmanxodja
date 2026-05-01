@@ -3,10 +3,6 @@ package uz.postbaby.desktop.ui;
 import uz.postbaby.desktop.model.Collection;
 import uz.postbaby.desktop.model.PostmanItem;
 
-/**
- * What a collection-tree node points at. Either a Collection root, a folder
- * (PostmanItem with sub-items) or a request (PostmanItem with a request).
- */
 public class TreeNodeRef {
     public enum Kind {COLLECTION, FOLDER, REQUEST}
 

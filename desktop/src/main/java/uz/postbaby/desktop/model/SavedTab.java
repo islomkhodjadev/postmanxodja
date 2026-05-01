@@ -6,11 +6,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * Wire-format matching the backend /tabs endpoint. Intentionally narrow —
- * the desktop's per-tab UI state (auth, body type, response, etc.) is held
- * elsewhere and only the subset that round-trips to the server lives here.
- */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SavedTab {
@@ -24,9 +19,6 @@ public class SavedTab {
     public boolean is_active;
     public int sort_order;
 
-    /**
-     * Desktop-only — the backend's tab schema ignores this field.
-     */
     public Authorization authorization;
 
     public SavedTab() {

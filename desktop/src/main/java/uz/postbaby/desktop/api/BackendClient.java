@@ -14,10 +14,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.function.Supplier;
 
-/**
- * Thin HTTP wrapper around Java 21's HttpClient. Holds the access token
- * and base URL. Methods throw BackendException on non-2xx or network errors.
- */
+
 public class BackendClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(BackendClient.class);

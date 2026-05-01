@@ -26,11 +26,6 @@ public final class AppConfig {
         return DEFAULT_API_BASE;
     }
 
-    /**
-     * URL the desktop opens in a browser so the user can claim a sign-in code.
-     * Backend is expected to require an authenticated session (its existing
-     * OAuth flow), generate a code/UUID for the user, and display it for copy.
-     */
     public static String desktopSignInUrl() {
         String override = System.getProperty("postbaby.desktop.signin.url");
         if (override != null && !override.isBlank()) {

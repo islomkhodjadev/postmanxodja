@@ -31,12 +31,13 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.web.WebView;
+import javafx.stage.FileChooser;
 import org.fxmisc.flowless.VirtualizedScrollPane;
 import org.fxmisc.richtext.CodeArea;
 import org.fxmisc.richtext.LineNumberFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import uz.postbaby.desktop.PostBabyApp;
+import uz.postbaby.desktop.PostbabyApp;
 import uz.postbaby.desktop.api.ApiKeyApi;
 import uz.postbaby.desktop.api.BackendClient;
 import uz.postbaby.desktop.api.BackendException;
@@ -67,9 +68,12 @@ import uz.postbaby.desktop.util.JsonHighlighter;
 import uz.postbaby.desktop.util.JsonStyle;
 import uz.postbaby.desktop.util.Variables;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
@@ -89,19 +93,16 @@ public class MainController {
 
     private static final Logger LOG = LoggerFactory.getLogger(MainController.class);
     private static final long TABS_SYNC_DEBOUNCE_MS = 1500;
-    /**
-     * Sentinel team id used when the user isn't signed in. Server team ids start at 1.
-     */
     private static final long LOCAL_TEAM_ID = 0L;
-    /**
-     * User id used to key local-only files when no real user is signed in.
-     */
     private static final long ANON_USER_ID = 0L;
 
+    private final ComboBox<Team> teamCombo = new ComboBox<>();
+    private final ComboBox<Environment> environmentCombo = new ComboBox<>();
+
     @FXML
-    private ComboBox<Team> teamCombo;
+    private Button teamButton;
     @FXML
-    private ComboBox<Environment> environmentCombo;
+    private Button environmentButton;
     @FXML
     private Label statusLabel;
     @FXML
@@ -175,9 +176,7 @@ public class MainController {
     private ComboBox<String> bodyTypeCombo;
     @FXML
     private VBox bodyTabRoot;
-    /**
-     * Built programmatically inside bodyTabRoot — RichTextFX needs VirtualizedScrollPane.
-     */
+
     private CodeArea bodyArea;
 
     @FXML
@@ -222,7 +221,7 @@ public class MainController {
     @FXML
     private TableColumn<Map.Entry<String, String>, String> respHeaderValueCol;
 
-    private PostBabyApp app;
+    private PostbabyApp app;
     private AuthService auth;
     private BackendClient backend;
     private LocalStore store;
@@ -238,9 +237,7 @@ public class MainController {
     private final Map<String, Tab> tabsByState = new HashMap<>();
     private TabState currentTab;
     private boolean suppressUiSync = false;
-    /**
-     * Re-entrancy guard for URL ⇄ Params two-way sync.
-     */
+
     private boolean syncingUrlParams = false;
 
     private final ScheduledExecutorService scheduler =
@@ -251,7 +248,7 @@ public class MainController {
             });
     private ScheduledFuture<?> pendingTabsSync;
 
-    public void bind(PostBabyApp app, AuthService auth, BackendClient backend, LocalStore store) {
+    public void bind(PostbabyApp app, AuthService auth, BackendClient backend, LocalStore store) {
         this.app = app;
         this.auth = auth;
         this.backend = backend;
@@ -267,6 +264,7 @@ public class MainController {
         initRequestEditor();
         initTabs();
         initTree();
+        initPickerButtons();
         refreshAuthIndicator();
         if ("light".equals(store.loadTheme())) {
             if (lightThemeItem != null) lightThemeItem.setSelected(true);
@@ -321,11 +319,6 @@ public class MainController {
         return t;
     }
 
-    /**
-     * Run the action if signed in; otherwise show a brand-colored toast nudging
-     * the user to click Sign in. Toast (not modal Alert) so the user can keep
-     * working — the action just doesn't run.
-     */
     private void requireSignIn(String reason, Runnable action) {
         if (auth.isAuthenticated()) {
             action.run();
@@ -333,10 +326,6 @@ public class MainController {
         }
         showToast("Sign in to " + reason + ".");
     }
-
-    /* ================================================================
-     *  Request editor (URL / method / params / headers / body)
-     * ================================================================ */
 
     private void initRequestEditor() {
         methodCombo.setItems(FXCollections.observableArrayList(
@@ -356,17 +345,13 @@ public class MainController {
         responseTimeLabel.setText("");
         if (responseSizeLabel != null) responseSizeLabel.setText("");
 
-        // WebView's natural size tracks its content — make it fill the tab instead.
         if (responseBodyView != null) {
             responseBodyView.setMinSize(0, 0);
             responseBodyView.setPrefSize(100, 100);
             responseBodyView.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
         }
 
-        // Defer divider positioning until after the SplitPane has its own size,
-        // and force-style the divider in case the CSS rule loses the cascade.
         if (editorResponseSplit != null) {
-            // Allow the children to shrink so the divider is actually draggable
             for (javafx.scene.Node child : editorResponseSplit.getItems()) {
                 if (child instanceof javafx.scene.layout.Region r) r.setMinHeight(40);
             }
@@ -381,7 +366,6 @@ public class MainController {
         initAuthTab();
         initFindBars();
 
-        // Debounced sync on field edits — also detect cURL paste
         urlField.textProperty().addListener((obs, old, val) -> {
             if (CurlParser.looksLikeCurl(val)) {
                 if (importCurl(val)) return;
@@ -397,11 +381,6 @@ public class MainController {
         bodyTypeCombo.valueProperty().addListener((obs, old, val) -> onTabFieldChanged());
     }
 
-    /**
-     * JavaFX's modena CSS often outranks user CSS for SplitPane dividers in
-     * the cascade. We look the divider up after layout and apply inline style
-     * so it's guaranteed to be visible and draggable.
-     */
     private static void forceDividerStyle(javafx.scene.control.SplitPane sp) {
         String base =
                 "-fx-background-color:#3b556b;" +
@@ -445,19 +424,9 @@ public class MainController {
     private static final javafx.scene.paint.Color CHEVRON_COLOR = javafx.scene.paint.Color.web("#c8d4e3");
     private static final javafx.scene.paint.Color CHEVRON_HOVER = javafx.scene.paint.Color.web("#ff6c37");
 
-    /**
-     * Build a small chevron-pill toggle and parent it to the SplitPane's own
-     * divider node so it's painted on the divider line. The divider keeps
-     * its native drag behavior on areas not covered by the pill — the pill
-     * only swallows clicks within its own bounds.
-     *
-     * We use a plain StackPane (not a Button) to avoid the JavaFX Button
-     * skin, which can clash with custom backgrounds and graphic positioning
-     * when nested inside the SplitPane skin's own divider StackPane.
-     */
     private void setupResponseCollapseButton() {
         if (editorResponseSplit == null) return;
-        if (responseCollapseButton != null) return; // already wired
+        if (responseCollapseButton != null) return;
 
         responseCollapseChevron = new javafx.scene.shape.SVGPath();
         responseCollapseChevron.setContent("M2 4 L8 10 L14 4");
@@ -489,8 +458,6 @@ public class MainController {
             e.consume();
         });
 
-        // Defer until the divider node has been laid out — lookup returns null
-        // before the SplitPane has gone through a layout pass.
         Platform.runLater(this::attachCollapseButtonToDivider);
     }
 
@@ -502,9 +469,6 @@ public class MainController {
             return;
         }
         if (responseCollapseButton.getParent() == sp) return;
-        // managed=false → StackPane skin won't try to lay it out (the
-        // SplitPaneSkin's ContentDivider has finicky layout). We position
-        // it manually on every width change.
         responseCollapseButton.setManaged(false);
         sp.getChildren().add(responseCollapseButton);
 
@@ -514,8 +478,6 @@ public class MainController {
             double dh = sp.getHeight();
             double bh = responseCollapseButton.getHeight();
             if (dw <= 0 || bw <= 0) return;
-            // Center horizontally; vertically pin to divider center so the
-            // pill overflows above and below the 4px divider.
             responseCollapseButton.setLayoutX((dw - bw) / 2.0);
             responseCollapseButton.setLayoutY((dh - bh) / 2.0);
         };
@@ -558,12 +520,10 @@ public class MainController {
         bodyTabRoot.getChildren().add(scroll);
     }
 
-    /* ================================================================
-     *  Cmd+F context-aware find
-     * ================================================================ */
+
 
     private void initFindBars() {
-        // Body find bar — sits at the top of the body tab, above the CodeArea.
+
         bodyFindCountLabel = new Label("");
         bodyFindCountLabel.getStyleClass().add("status");
         bodyFindBar = buildFindBar(bodyFindCountLabel,
@@ -573,7 +533,7 @@ public class MainController {
         if (bodyTabRoot != null) bodyTabRoot.getChildren().add(0, bodyFindBar);
         bodyFindField.textProperty().addListener((obs, old, val) -> recomputeBodyMatches(val));
 
-        // Response find bar — inserted above the WebView once it's parented.
+
         responseFindBar = buildFindBar(null,
                 this::onResponseFindPrev, this::onResponseFindNext, this::hideResponseFindBar);
         responseFindField = (TextField) responseFindBar.getProperties().get("findField");
@@ -586,7 +546,7 @@ public class MainController {
             }
         });
         responseFindField.textProperty().addListener((obs, old, val) -> {
-            // Re-run search from the start whenever the query changes.
+
             findInWebView(val, false, true);
         });
     }
@@ -644,9 +604,7 @@ public class MainController {
         bar.setManaged(true);
     }
 
-    /* ================================================================
-     *  Cmd +/- UI zoom
-     * ================================================================ */
+
 
     private double uiZoom = 1.0;
     private static final double UI_ZOOM_MIN = 0.6;
@@ -658,7 +616,7 @@ public class MainController {
         if (collectionTree == null || collectionTree.getScene() == null) return;
         javafx.scene.Scene scene = collectionTree.getScene();
         var accel = scene.getAccelerators();
-        // = key is unshifted on most layouts (Shift+= → +). We bind both for safety.
+
         accel.putIfAbsent(javafx.scene.input.KeyCombination.keyCombination("Shortcut+EQUALS"),
                 () -> setUiZoom(uiZoom + UI_ZOOM_STEP));
         accel.putIfAbsent(javafx.scene.input.KeyCombination.keyCombination("Shortcut+PLUS"),
@@ -684,7 +642,7 @@ public class MainController {
         setStatus(String.format("Zoom %d%%", Math.round(uiZoom * 100)));
     }
 
-    /** Replace just the {@code -fx-font-size} entry in a node's inline style without clobbering the rest. */
+
     private static void applyFontSize(javafx.scene.Node node, double sizePx) {
         String style = node.getStyle();
         if (style == null) style = "";
@@ -694,16 +652,14 @@ public class MainController {
         node.setStyle(style);
     }
 
-    /* ================================================================
-     *  Cmd+F context-aware find
-     * ================================================================ */
+
 
     private void installFindAccelerator() {
         if (collectionTree == null || collectionTree.getScene() == null) return;
         javafx.scene.Scene scene = collectionTree.getScene();
         javafx.scene.input.KeyCombination combo =
                 javafx.scene.input.KeyCombination.keyCombination("Shortcut+F");
-        // putIfAbsent-like: don't double-register if onShown runs more than once.
+
         if (!scene.getAccelerators().containsKey(combo)) {
             scene.getAccelerators().put(combo, this::onFindShortcut);
         }
@@ -718,9 +674,6 @@ public class MainController {
         } else if (isAncestor(responseBodyView, owner)) {
             showResponseFindBar();
         } else {
-            // Default: collections search. Covers the sidebar tree, the search
-            // field itself, and any other surface that doesn't have its own
-            // dedicated find UI.
             if (collectionSearchField != null) {
                 collectionSearchField.requestFocus();
                 collectionSearchField.selectAll();
@@ -738,7 +691,7 @@ public class MainController {
         return false;
     }
 
-    /* --- Body (CodeArea) --- */
+
 
     private void showBodyFindBar() {
         if (bodyFindBar == null) return;
@@ -810,11 +763,11 @@ public class MainController {
         applyBodyFindSelection();
     }
 
-    /* --- Response (WebView) --- */
+
 
     private void showResponseFindBar() {
         if (responseFindBar == null) return;
-        // The WebView's parent isn't always laid out at startup — re-attach if needed.
+
         if (responseBodyView != null
                 && responseBodyView.getParent() instanceof javafx.scene.layout.VBox vbox
                 && !vbox.getChildren().contains(responseFindBar)) {
@@ -849,14 +802,7 @@ public class MainController {
         findInWebView(responseFindField.getText(), true, false);
     }
 
-    /**
-     * Drive WebKit's {@code window.find()} for the response body.
-     *
-     * @param query     search string
-     * @param backwards true to search backwards
-     * @param fromStart true to reset selection before searching (used when the
-     *                  query just changed, so we always land on the first hit)
-     */
+
     private void findInWebView(String query, boolean backwards, boolean fromStart) {
         if (responseBodyView == null || query == null || query.isEmpty()) return;
         String escaped = query.replace("\\", "\\\\").replace("'", "\\'");
@@ -873,17 +819,12 @@ public class MainController {
         }
     }
 
-    /**
-     * Smart-paste: when the URL field's contents look like a curl command,
-     * parse it and populate method, URL, headers, params, body, and basic
-     * auth across the editor. Returns true if the import succeeded so the
-     * caller can skip the normal URL→Params syncing.
-     */
+
     private boolean importCurl(String raw) {
         CurlParser.Parsed c = CurlParser.parse(raw);
         if (c == null || c.url == null || c.url.isBlank()) return false;
 
-        // Suppress the URL listener and the URL⇄Params guard during the rebuild
+
         boolean prevSuppress = suppressUiSync;
         boolean prevSyncing = syncingUrlParams;
         suppressUiSync = true;
@@ -891,7 +832,7 @@ public class MainController {
         try {
             methodCombo.getSelectionModel().select(c.method == null ? "GET" : c.method);
 
-            // Headers — wipe non-auto rows, then drop in the parsed ones above any auto rows
+
             ObservableList<KeyValueRow> headers = headersTable.getItems();
             headers.removeIf(r -> !r.isAuto() && !r.isBlank());
             int insertAt = 0;
@@ -902,7 +843,7 @@ public class MainController {
             if (!c.headers.isEmpty()) headers.addAll(Math.min(insertAt, headers.size()), c.headers);
             ensureBlankRow(headers);
 
-            // Body
+
             if (c.body != null && !c.body.isEmpty()) {
                 bodyTypeCombo.getSelectionModel().select("raw");
                 bodyArea.replaceText(c.body);
@@ -911,17 +852,17 @@ public class MainController {
                 bodyArea.replaceText("");
             }
 
-            // Auth (currently only Basic from -u user:pass)
+
             if (c.auth != null) {
                 loadAuthIntoUi(c.auth);
             }
 
-            // Replace URL with the parsed URL — release the URL guard for this call only
-            // so syncUrlIntoParams below can do its work.
+
+
             urlField.setText(c.url);
             syncingUrlParams = false;
             syncUrlIntoParams(c.url);
-            // Re-sync the auth-injected header rows now that headers were rewritten
+
             syncAuthIntoHeaders();
         } finally {
             syncingUrlParams = prevSyncing;
@@ -937,9 +878,7 @@ public class MainController {
         return true;
     }
 
-    /**
-     * Recompute and apply JSON syntax-highlighting style spans. Cheap to call.
-     */
+
     private void applyJsonHighlight() {
         if (bodyArea == null) return;
         String text = bodyArea.getText();
@@ -947,13 +886,11 @@ public class MainController {
         try {
             bodyArea.setStyleSpans(0, JsonStyle.compute(text));
         } catch (Exception ignored) {
-            // Tokenizer is permissive but defensive — never let a styling glitch crash typing
+
         }
     }
 
-    /* ================================================================
-     *  Authorization tab
-     * ================================================================ */
+
 
     private static final String AUTH_NOAUTH = "No Auth";
     private static final String AUTH_BEARER = "Bearer Token";
@@ -972,7 +909,7 @@ public class MainController {
             onTabFieldChanged();
         });
 
-        // Field-level listeners so edits sync into headers + debounce-save into the tab
+
         bearerTokenField.textProperty().addListener((obs, old, val) -> {
             syncAuthIntoHeaders();
             onTabFieldChanged();
@@ -1070,14 +1007,11 @@ public class MainController {
                 a.apikey.value = apiKeyValueField.getText();
                 a.apikey.addTo = "Query Params".equals(apiKeyAddToCombo.getValue()) ? "query" : "header";
             }
-            default -> { /* noauth */ }
+            default -> {
+            }
         }
         return a;
     }
-
-    /* ================================================================
-     *  URL ⇄ Params bidirectional sync
-     * ================================================================ */
 
     private void syncUrlIntoParams(String url) {
         if (syncingUrlParams) return;
@@ -1085,9 +1019,9 @@ public class MainController {
         try {
             List<KeyValueRow> parsed = parseQueryFromUrl(url);
             ObservableList<KeyValueRow> items = paramsTable.getItems();
-            // Strip non-auto rows; preserve auto rows (none today, but defensive)
+
             items.removeIf(r -> !r.isAuto() && !r.isBlank());
-            // Insert parsed rows above any auto rows, in their original order
+
             int insertAt = 0;
             for (KeyValueRow row : items) {
                 if (row.isAuto()) break;
@@ -1112,9 +1046,6 @@ public class MainController {
         }
     }
 
-    /**
-     * Strip everything from the first '?' to the (optional) '#' fragment.
-     */
     private static String stripQueryString(String url) {
         if (url == null) return "";
         int q = url.indexOf('?');
@@ -1126,7 +1057,7 @@ public class MainController {
 
     private static String appendQuery(String urlBase, List<KeyValueRow> rows) {
         if (urlBase == null) urlBase = "";
-        // Pull off fragment so we put query before it
+
         String fragment = "";
         int hash = urlBase.indexOf('#');
         if (hash >= 0) {
@@ -1166,9 +1097,7 @@ public class MainController {
         return out;
     }
 
-    /**
-     * Decode that preserves {{var}} placeholders untouched.
-     */
+
     private static String safeDecode(String s) {
         if (s == null || s.isEmpty()) return "";
         if (s.contains("{{") || s.contains("}}")) return s;
@@ -1179,27 +1108,19 @@ public class MainController {
         }
     }
 
-    /**
-     * Encode that preserves {{var}} placeholders untouched.
-     */
+
     private static String safeEncode(String s) {
         if (s == null || s.isEmpty()) return "";
         if (s.contains("{{") || s.contains("}}")) return s;
         return URLEncoder.encode(s, StandardCharsets.UTF_8);
     }
 
-    /* ================================================================
-     *  Auth → Headers/Params auto-row sync
-     * ================================================================ */
 
-    /**
-     * Maintains an auto-generated row in the Headers table (or Params, for API key
-     * in query mode) reflecting the current Authorization tab. Rows that the user
-     * has manually edited are left alone — see EditingCell.commitEdit.
-     */
+
+
     private void syncAuthIntoHeaders() {
         if (paramsTable.getItems() == null || headersTable.getItems() == null) return;
-        // Drop any prior auto rows
+
         Iterator<KeyValueRow> hi = headersTable.getItems().iterator();
         while (hi.hasNext()) if (hi.next().isAuto()) hi.remove();
         Iterator<KeyValueRow> pi = paramsTable.getItems().iterator();
@@ -1217,8 +1138,8 @@ public class MainController {
                 }
                 case "basic" -> {
                     if (a.basic != null && a.basic.username != null && !a.basic.username.isBlank()) {
-                        // Show the encoded value the same way it's sent. Variable
-                        // substitution for the Basic header happens at send time.
+
+
                         String u = a.basic.username == null ? "" : a.basic.username;
                         String p = a.basic.password == null ? "" : a.basic.password;
                         if (u.contains("{{") || p.contains("{{")) {
@@ -1236,13 +1157,14 @@ public class MainController {
                         toQuery = "query".equals(a.apikey.addTo);
                     }
                 }
-                default -> { /* noauth */ }
+                default -> {
+                }
             }
         }
         if (row != null) {
             row.setAuto(true);
             ObservableList<KeyValueRow> target = toQuery ? paramsTable.getItems() : headersTable.getItems();
-            // Insert above any blank trailing row
+
             int idx = target.size();
             for (int i = target.size() - 1; i >= 0; i--) {
                 if (target.get(i).isBlank()) idx = i;
@@ -1254,9 +1176,7 @@ public class MainController {
         ensureBlankRow(paramsTable.getItems());
     }
 
-    /**
-     * Apply the tab's auth into the request being sent. Variable substitution happens here too.
-     */
+
     private void applyAuthorization(ExecuteRequest req, Authorization a, Map<String, String> vars) {
         if (a == null || a.type == null) return;
         switch (a.type) {
@@ -1286,7 +1206,8 @@ public class MainController {
                     }
                 }
             }
-            default -> { /* noauth — nothing */ }
+            default -> {
+            }
         }
     }
 
@@ -1340,9 +1261,7 @@ public class MainController {
         }
     }
 
-    /* ================================================================
-     *  Open-request tabs
-     * ================================================================ */
+
 
     private void initTabs() {
         openTabsPane.getSelectionModel().selectedItemProperty().addListener((obs, oldT, newT) -> {
@@ -1363,9 +1282,7 @@ public class MainController {
         });
     }
 
-    /**
-     * Load tabs from local store, then (if signed in) fetch /tabs and merge.
-     */
+
     private void loadOpenTabs() {
         long uid = effectiveUserId();
         List<SavedTab> cached = store.loadTabs(uid);
@@ -1411,7 +1328,7 @@ public class MainController {
             addTabFor(s, false);
         }
         if (openTabsPane.getTabs().isEmpty()) {
-            // Always have at least one tab
+
             createBlankTab();
         } else {
             Tab toSelect = null;
@@ -1444,9 +1361,7 @@ public class MainController {
         return tab;
     }
 
-    /**
-     * Replace the tab's label with a TextField until the user commits / cancels.
-     */
+
     private void startInlineRename(Tab tab, Label label, TabState state) {
         TextField field = new TextField(state.name == null ? "" : state.name);
         field.getStyleClass().add("open-tab-rename");
@@ -1455,7 +1370,7 @@ public class MainController {
             String typed = field.getText() == null ? "" : field.getText().trim();
             if (!typed.isEmpty()) {
                 state.name = typed;
-                if (state.itemPath != null) state.itemPath = typed; // keep tab→collection link aligned
+                if (state.itemPath != null) state.itemPath = typed;
             }
             label.setText(displayTitle(state));
             tab.setGraphic(label);
@@ -1517,7 +1432,7 @@ public class MainController {
 
     private void onTabFieldChanged() {
         if (suppressUiSync || currentTab == null) return;
-        // Push UI state into the model and refresh tab title
+
         flushUiToTab(currentTab);
         setTabTitle(tabsByState.get(currentTab.tabId), currentTab);
         scheduleTabsSync();
@@ -1534,8 +1449,8 @@ public class MainController {
         s.responseStatus = parseIntOrNull(responseStatusLabel.getText());
         s.responseStatusText = responseStatusLabel.getText();
         s.responseTimeMs = parseLongOrNull(responseTimeLabel.getText());
-        // s.responseBody is the source of truth — only updated by applyResponse;
-        // the WebView is purely a renderer of it.
+
+
         s.responseHeaders.setAll(responseHeadersTable.getItems());
         s.dirty = true;
     }
@@ -1548,7 +1463,7 @@ public class MainController {
             bodyTypeCombo.getSelectionModel().select(s.bodyType == null ? "none" : s.bodyType);
             bodyArea.replaceText(s.body == null ? "" : s.body);
 
-            // Strip any auto rows from the previous render so we start clean
+
             s.params.removeIf(KeyValueRow::isAuto);
             s.headers.removeIf(KeyValueRow::isAuto);
             ensureBlankRow(s.params);
@@ -1587,7 +1502,7 @@ public class MainController {
         }
     }
 
-    /** Human-readable response size: "812 B", "12.4 KB", "2.1 MB". */
+
     private static String formatBytes(long bytes) {
         if (bytes < 1024) return bytes + " B";
         double kb = bytes / 1024.0;
@@ -1606,9 +1521,7 @@ public class MainController {
         }
     }
 
-    /**
-     * Debounce-saves the open tab set to the local store + (if signed in) /tabs.
-     */
+
     private void scheduleTabsSync() {
         if (pendingTabsSync != null) pendingTabsSync.cancel(false);
         pendingTabsSync = scheduler.schedule(() -> Platform.runLater(this::commitTabsSync),
@@ -1637,12 +1550,47 @@ public class MainController {
         });
     }
 
-    /* ================================================================
-     *  Teams + environments
-     * ================================================================ */
+
+
+    private void initPickerButtons() {
+        teamButton.setText("Select team…");
+        environmentButton.setText("(no environment)");
+        teamCombo.getSelectionModel().selectedItemProperty().addListener((obs, old, val) ->
+                teamButton.setText(val == null ? "Select team…" : val.name));
+        environmentCombo.getSelectionModel().selectedItemProperty().addListener((obs, old, val) ->
+                environmentButton.setText(val == null ? "(no environment)" : val.name));
+    }
+
+    @FXML
+    public void onChooseTeam() {
+        List<Team> items = teamCombo.getItems();
+        if (items == null || items.isEmpty()) return;
+        PickerDialog.<Team>builder()
+                .title("Select team")
+                .subtitle("Pick the workspace to load.")
+                .items(items)
+                .selected(teamCombo.getValue())
+                .toString(t -> t == null ? "" : t.name)
+                .show()
+                .ifPresent(t -> teamCombo.getSelectionModel().select(t));
+    }
+
+    @FXML
+    public void onChooseEnvironment() {
+        List<Environment> items = environmentCombo.getItems();
+        if (items == null || items.isEmpty()) return;
+        PickerDialog.<Environment>builder()
+                .title("Select environment")
+                .subtitle("Variables from this environment will be substituted into requests.")
+                .items(items)
+                .selected(environmentCombo.getValue())
+                .toString(e -> e == null ? "" : e.name)
+                .show()
+                .ifPresent(e -> environmentCombo.getSelectionModel().select(e));
+    }
 
     private void loadTeams() {
-        // Always start with at least the Local workspace, then layer on cached + fresh server teams.
+
         List<Team> initial = new ArrayList<>();
         initial.add(localTeam());
         for (Team t : store.loadTeams()) {
@@ -1754,9 +1702,7 @@ public class MainController {
         });
     }
 
-    /* ================================================================
-     *  Collection tree
-     * ================================================================ */
+
 
     private void initTree() {
         TreeItem<TreeNodeRef> root = new TreeItem<>();
@@ -1801,15 +1747,10 @@ public class MainController {
         }
     }
 
-    /**
-     * Build a small folder icon for a tree cell. Collections use the brand
-     * orange, plain folders use a neutral grey. Lucide-style outline + tab
-     * silhouette so it reads as a folder at any size without leaning on
-     * platform emoji glyphs.
-     */
+
     private static javafx.scene.Node buildTreeIcon(boolean collection) {
         javafx.scene.shape.SVGPath p = new javafx.scene.shape.SVGPath();
-        // 24x24 viewbox folder shape (with the small tab on top-left)
+
         p.setContent("M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z");
         if (collection) {
             p.setFill(javafx.scene.paint.Color.web("#ff6c37"));
@@ -1819,11 +1760,11 @@ public class MainController {
             p.setStroke(javafx.scene.paint.Color.web("#7b8290"));
         }
         p.setStrokeWidth(0.5);
-        // 24x24 source → ~14x14 displayed
+
         p.setScaleX(0.62);
         p.setScaleY(0.62);
-        // Tighten the gap that scaling leaves around the shape so the text
-        // stays close to the icon.
+
+
         javafx.scene.layout.StackPane wrap = new javafx.scene.layout.StackPane(p);
         wrap.setMinSize(16, 16);
         wrap.setPrefSize(16, 16);
@@ -1841,9 +1782,11 @@ public class MainController {
                 addFolder.setOnAction(e -> onAddFolderUnder(ref));
                 MenuItem rename = new MenuItem("Rename");
                 rename.setOnAction(e -> onRenameNode(ref));
+                MenuItem export = new MenuItem("Export…");
+                export.setOnAction(e -> exportCollectionToFile(ref.collection));
                 MenuItem delete = new MenuItem("Delete collection");
                 delete.setOnAction(e -> onDeleteNode(ref));
-                menu.getItems().addAll(addReq, addFolder, new SeparatorMenuItem(), rename, delete);
+                menu.getItems().addAll(addReq, addFolder, new SeparatorMenuItem(), rename, export, delete);
             }
             case FOLDER -> {
                 MenuItem addReq = new MenuItem("Add request");
@@ -1877,7 +1820,7 @@ public class MainController {
     }
 
     private void openOrFocusRequestTab(TreeNodeRef ref) {
-        // If a tab is already open for this collectionId+itemPath, focus it
+
         for (Tab t : openTabsPane.getTabs()) {
             if (t.getUserData() instanceof TabState s
                     && Objects.equals(s.collectionId, ref.collection.id)
@@ -1886,7 +1829,7 @@ public class MainController {
                 return;
             }
         }
-        // Else open a new tab populated from the request
+
         TabState s = new TabState();
         s.name = ref.item.name == null ? "Untitled" : ref.item.name;
         s.collectionId = ref.collection.id;
@@ -1961,13 +1904,7 @@ public class MainController {
         rebuildCollectionTree(collectionSearchField == null ? "" : collectionSearchField.getText());
     }
 
-    /**
-     * Rebuild the tree from {@link #currentCollections}, optionally filtered by
-     * a search query. A node is kept when its own name matches, or any
-     * descendant matches, or for requests when the URL or body contains the
-     * query. When filtering, matching folders/collections auto-expand so the
-     * matches are visible without manual drill-down.
-     */
+
     private void rebuildCollectionTree(String query) {
         if (collectionTree == null) return;
         TreeItem<TreeNodeRef> root = collectionTree.getRoot();
@@ -2001,11 +1938,7 @@ public class MainController {
         }
     }
 
-    /**
-     * Build a TreeItem for a Postman item, returning null when the item
-     * (and its subtree) doesn't match the query. Folders match if their name
-     * matches OR any descendant matches; requests match on name, URL, or body.
-     */
+
     private TreeItem<TreeNodeRef> buildItemNode(Collection c, PostmanItem item, PostmanItem parent, String q) {
         boolean filtering = !q.isEmpty();
         if (item.isFolder()) {
@@ -2072,9 +2005,7 @@ public class MainController {
         return "";
     }
 
-    /* ================================================================
-     *  Send request
-     * ================================================================ */
+
 
     @FXML
     public void onSend() {
@@ -2156,9 +2087,7 @@ public class MainController {
         setStatus("Done");
     }
 
-    /**
-     * Render the (already-pretty-printed) body into the response WebView with JSON syntax highlighting.
-     */
+
     private void renderResponseBody(String body) {
         if (responseBodyView == null) return;
         JsonHighlighter.Theme theme = "light".equals(store.loadTheme())
@@ -2194,22 +2123,16 @@ public class MainController {
         Clipboard.getSystemClipboard().setContent(c);
     }
 
-    /* ================================================================
-     *  Save current tab back into its source collection
-     * ================================================================ */
 
-    /**
-     * Right-click "Sync from backend" — open the tree's request in a tab and pull fresh.
-     */
+
+
     private void syncRequestNode(TreeNodeRef ref) {
         if (ref == null || ref.kind != TreeNodeRef.Kind.REQUEST) return;
         openOrFocusRequestTab(ref);
         onSyncRequest();
     }
 
-    /**
-     * Pull the latest version of the current tab's linked request from the backend.
-     */
+
     @FXML
     public void onSyncRequest() {
         if (currentTab == null) {
@@ -2240,7 +2163,7 @@ public class MainController {
         runAsync(() -> {
             try {
                 Collection fresh = collectionApi.get(team.id, collectionId);
-                // Cache the fresh collection
+
                 List<Collection> all = store.loadCollections(team.id);
                 boolean replaced = false;
                 for (int i = 0; i < all.size(); i++) {
@@ -2265,22 +2188,20 @@ public class MainController {
                     }
                     if (target == currentTab) {
                         replaceTabFromItem(target, item);
-                        setStatus("Synced.");
+                        showToast("Request synced.");
                     }
                 });
             } catch (BackendException e) {
                 Platform.runLater(() -> {
                     syncRequestButton.setDisable(false);
-                    setStatus(e.isNetwork() ? "Offline — can't sync right now."
+                    showToast(e.isNetwork() ? "Offline — can't sync right now."
                             : "Sync failed: " + e.getMessage());
                 });
             }
         });
     }
 
-    /**
-     * Replace a tab's editor state with the contents of a Postman item from disk.
-     */
+
     private void replaceTabFromItem(TabState s, PostmanItem item) {
         s.headers.clear();
         s.params.clear();
@@ -2318,7 +2239,7 @@ public class MainController {
         }
         ensureBlankRow(s.params);
         ensureBlankRow(s.headers);
-        // Reload the currently-displayed tab UI so user sees the fresh content
+
         if (s == currentTab) loadTabIntoUi(s);
     }
 
@@ -2342,9 +2263,7 @@ public class MainController {
         }
     }
 
-    /**
-     * Save a tab that's already linked to a collection request.
-     */
+
     private void saveExistingRequest(Team team, TabState tab) {
         List<Collection> all = store.loadCollections(team.id);
         Collection target = null;
@@ -2365,7 +2284,7 @@ public class MainController {
         }
         PostmanItem item = findItemByPath(pc.item, tab.itemPath);
         if (item == null) {
-            // Request was renamed / deleted under us — fall back to creating a new entry
+
             saveAsNewRequest(team, tab);
             return;
         }
@@ -2376,9 +2295,7 @@ public class MainController {
         pushCollectionIfOnline(team, target);
     }
 
-    /**
-     * Open the Save dialog and create a fresh request in the chosen collection.
-     */
+
     private void saveAsNewRequest(Team team, TabState tab) {
         List<Collection> all = store.loadCollections(team.id);
         String defaultName = deriveRequestName(tab);
@@ -2386,7 +2303,7 @@ public class MainController {
                 SaveRequestDialog.show(all, defaultName, "Save request to collection");
         if (picked.isEmpty()) return;
         SaveRequestDialog.Result r = picked.get();
-        createRequestInCollection(team, r.collection, r.folderPath, r.name, tab, /*openAsNewTab=*/false);
+        createRequestInCollection(team, r.collection, r.folderPath, r.name, tab, false);
     }
 
     private static String deriveRequestName(TabState s) {
@@ -2400,11 +2317,7 @@ public class MainController {
         return "New Request";
     }
 
-    /**
-     * Insert a new request into a collection (optionally inside a nested folder),
-     * persist locally, push to the backend if online, and either link the existing
-     * tab to it or open a brand-new tab.
-     */
+
     private void createRequestInCollection(Team team, Collection collection, List<String> folderPath,
                                            String name, TabState sourceTab, boolean openAsNewTab) {
         PostmanCollection pc = parsePostman(collection.raw_json);
@@ -2472,7 +2385,7 @@ public class MainController {
     private void pushCollectionIfOnline(Team team, Collection collection) {
         if (team.id == LOCAL_TEAM_ID || !auth.isAuthenticated()
                 || collection.id == null || collection.id <= 0) {
-            setStatus("Saved locally.");
+            showToast("Saved locally.");
             return;
         }
         setStatus("Saving…");
@@ -2482,9 +2395,9 @@ public class MainController {
                 collection.raw_json = updated.raw_json;
                 collection.dirty = false;
                 persistCollectionLocal(collection);
-                Platform.runLater(() -> setStatus("Saved & synced."));
+                Platform.runLater(() -> showToast("Saved & synced."));
             } catch (BackendException e) {
-                Platform.runLater(() -> setStatus(
+                Platform.runLater(() -> showToast(
                         e.isNetwork() ? "Saved locally. Will sync when online."
                                 : "Saved locally. Sync failed: " + e.getMessage()));
             }
@@ -2510,7 +2423,7 @@ public class MainController {
         item.request.header = new ArrayList<>();
         for (KeyValueRow row : s.headers) {
             if (row.isBlank() || row.getKey() == null || row.getKey().isBlank()) continue;
-            if (row.isAuto()) continue; // auth-injected — saved via Authorization tab instead
+            if (row.isAuto()) continue;
             item.request.header.add(new PostmanKeyValue(row.getKey(), row.getValue()));
         }
         if ("raw".equals(s.bodyType)) {
@@ -2539,9 +2452,7 @@ public class MainController {
         store.saveCollections(team.id, all);
     }
 
-    /* ================================================================
-     *  Collections menu actions
-     * ================================================================ */
+
 
     @FXML
     public void onNewCollection() {
@@ -2559,49 +2470,174 @@ public class MainController {
                 .okText("Create collection")
                 .show()
                 .ifPresent(name -> {
-            if (name.isBlank()) return;
+                    if (name.isBlank()) return;
 
-            // Local workspace or offline: create entirely in the local store with a synthetic id.
-            if (team.id == LOCAL_TEAM_ID || !auth.isAuthenticated()) {
-                Collection created = new Collection();
-                created.id = -System.currentTimeMillis();
-                created.team_id = team.id;
-                created.name = name;
-                created.localOnly = true;
-                PostmanCollection pc = new PostmanCollection();
-                pc.info.name = name;
-                created.raw_json = Json.stringify(pc);
-                persistCollectionLocal(created);
-                applyCollections(store.loadCollections(team.id));
-                setStatus("Collection created locally.");
-                return;
-            }
 
-            runAsync(() -> {
-                try {
-                    Collection created = collectionApi.create(team.id, name, "");
-                    if (created.raw_json == null || created.raw_json.isBlank()) {
+                    if (team.id == LOCAL_TEAM_ID || !auth.isAuthenticated()) {
+                        Collection created = new Collection();
+                        created.id = -System.currentTimeMillis();
+                        created.team_id = team.id;
+                        created.name = name;
+                        created.localOnly = true;
                         PostmanCollection pc = new PostmanCollection();
                         pc.info.name = name;
                         created.raw_json = Json.stringify(pc);
+                        persistCollectionLocal(created);
+                        applyCollections(store.loadCollections(team.id));
+                        setStatus("Collection created locally.");
+                        return;
                     }
-                    persistCollectionLocal(created);
-                    Platform.runLater(() -> {
-                        loadCollections(team.id);
-                        setStatus("Collection created.");
+
+                    runAsync(() -> {
+                        try {
+                            Collection created = collectionApi.create(team.id, name, "");
+                            if (created.raw_json == null || created.raw_json.isBlank()) {
+                                PostmanCollection pc = new PostmanCollection();
+                                pc.info.name = name;
+                                created.raw_json = Json.stringify(pc);
+                            }
+                            persistCollectionLocal(created);
+                            Platform.runLater(() -> {
+                                loadCollections(team.id);
+                                setStatus("Collection created.");
+                            });
+                        } catch (BackendException e) {
+                            Platform.runLater(() -> setStatus(
+                                    e.isNetwork() ? "Offline — collection creation requires online." : "Failed: " + e.getMessage()));
+                        }
                     });
-                } catch (BackendException e) {
-                    Platform.runLater(() -> setStatus(
-                            e.isNetwork() ? "Offline — collection creation requires online." : "Failed: " + e.getMessage()));
-                }
-            });
-        });
+                });
     }
 
     @FXML
     public void onRefreshCollections() {
         Team team = teamCombo.getValue();
         if (team != null) loadCollections(team.id);
+    }
+
+    @FXML
+    public void onImportCollection() {
+        Team team = teamCombo.getValue();
+        if (team == null) {
+            setStatus("Select a team first.");
+            return;
+        }
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Import Postman collection");
+        fc.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Postman collection (*.json)", "*.json"),
+                new FileChooser.ExtensionFilter("All files", "*.*"));
+        File chosen = fc.showOpenDialog(ownerWindow());
+        if (chosen == null) return;
+
+        String raw;
+        try {
+            raw = Files.readString(chosen.toPath());
+        } catch (IOException ex) {
+            setStatus("Failed to read file: " + ex.getMessage());
+            return;
+        }
+        PostmanCollection pc = parsePostman(raw);
+        if (pc == null || pc.info == null) {
+            setStatus("Not a valid Postman collection.");
+            return;
+        }
+        String name = (pc.info.name == null || pc.info.name.isBlank())
+                ? chosen.getName().replaceFirst("(?i)\\.postman_collection\\.json$", "")
+                .replaceFirst("(?i)\\.json$", "")
+                : pc.info.name;
+        pc.info.name = name;
+
+        pc.info._postman_id = null;
+        String pretty = Json.stringify(pc);
+
+        if (team.id == LOCAL_TEAM_ID || !auth.isAuthenticated()) {
+            Collection imported = new Collection();
+            imported.id = -System.currentTimeMillis();
+            imported.team_id = team.id;
+            imported.name = name;
+            imported.localOnly = true;
+            imported.raw_json = pretty;
+            persistCollectionLocal(imported);
+            applyCollections(store.loadCollections(team.id));
+            showToast("Imported \"" + name + "\".");
+            return;
+        }
+
+        setStatus("Importing \"" + name + "\"…");
+        runAsync(() -> {
+            try {
+                Collection created = collectionApi.create(team.id, name, "");
+                Collection updated = collectionApi.update(team.id, created.id, null, pretty);
+                persistCollectionLocal(updated);
+                Platform.runLater(() -> {
+                    loadCollections(team.id);
+                    showToast("Imported \"" + name + "\".");
+                });
+            } catch (BackendException ex) {
+                Platform.runLater(() -> setStatus(ex.isNetwork()
+                        ? "Offline — import requires online for server teams."
+                        : "Import failed: " + ex.getMessage()));
+            }
+        });
+    }
+
+    @FXML
+    public void onExportCollection() {
+        Team team = teamCombo.getValue();
+        if (team == null) {
+            setStatus("Select a team first.");
+            return;
+        }
+        List<Collection> all = store.loadCollections(team.id);
+        if (all.isEmpty()) {
+            setStatus("No collections to export.");
+            return;
+        }
+        Collection picked = all.size() == 1 ? all.get(0)
+                : PickerDialog.<Collection>builder()
+                .title("Export collection")
+                .subtitle("Choose which collection to export as Postman v2.1.0 JSON.")
+                .items(all)
+                .selected(all.get(0))
+                .toString(c -> c == null ? "" : c.name)
+                .show()
+                .orElse(null);
+        if (picked == null) return;
+        exportCollectionToFile(picked);
+    }
+
+    private void exportCollectionToFile(Collection c) {
+        if (c == null) return;
+        String raw;
+        PostmanCollection pc = parsePostman(c.raw_json);
+        if (pc == null) pc = new PostmanCollection();
+        if (pc.info == null) pc.info = new PostmanCollection.Info();
+        if (pc.info.name == null || pc.info.name.isBlank()) pc.info.name = c.name;
+        raw = Json.stringify(pc);
+
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Export Postman collection");
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Postman collection (*.json)", "*.json"));
+        fc.setInitialFileName(safeFileName(c.name) + ".postman_collection.json");
+        File chosen = fc.showSaveDialog(ownerWindow());
+        if (chosen == null) return;
+        try {
+            Files.writeString(chosen.toPath(), raw);
+            showToast("Exported \"" + c.name + "\".");
+        } catch (IOException ex) {
+            setStatus("Export failed: " + ex.getMessage());
+        }
+    }
+
+    private static String safeFileName(String s) {
+        if (s == null || s.isBlank()) return "collection";
+        return s.replaceAll("[\\\\/:*?\"<>|]", "_").trim();
+    }
+
+    private javafx.stage.Window ownerWindow() {
+        return statusLabel != null && statusLabel.getScene() != null
+                ? statusLabel.getScene().getWindow() : null;
     }
 
     @FXML
@@ -2620,22 +2656,20 @@ public class MainController {
                 SaveRequestDialog.show(all, "New Request", "Create new request");
         if (picked.isEmpty()) return;
         SaveRequestDialog.Result r = picked.get();
-        createRequestInCollection(team, r.collection, r.folderPath, r.name, null, /*openAsNewTab=*/true);
+        createRequestInCollection(team, r.collection, r.folderPath, r.name, null, true);
     }
 
-    /**
-     * Used by the tree context menu to add a request directly under a collection or folder.
-     */
+
     private void onAddRequestUnder(TreeNodeRef ref) {
         Team team = teamCombo.getValue();
         if (team == null || ref == null) return;
-        // Build folder path leading to ref (empty if ref is the collection root)
+
         List<String> folderPath = new ArrayList<>();
         if (ref.kind == TreeNodeRef.Kind.FOLDER) {
             folderPath.add(ref.item.name == null ? "" : ref.item.name);
-            // Note: we don't currently track ancestor folder names on TreeNodeRef.
-            // For now, a single-level folder selection works; nested folders use the
-            // SaveRequestDialog folder picker.
+
+
+
         }
         String parentName = ref.kind == TreeNodeRef.Kind.FOLDER ? ref.item.name : ref.collection.name;
         NameDialog.builder()
@@ -2647,15 +2681,13 @@ public class MainController {
                 .okText("Add request")
                 .show()
                 .ifPresent(name -> {
-            if (name.isBlank()) return;
-            createRequestInCollection(team, ref.collection, folderPath, name.trim(),
-                    null, /*openAsNewTab=*/true);
-        });
+                    if (name.isBlank()) return;
+                    createRequestInCollection(team, ref.collection, folderPath, name.trim(),
+                            null, true);
+                });
     }
 
-    /**
-     * Used by the tree context menu to add a folder.
-     */
+
     private void onAddFolderUnder(TreeNodeRef ref) {
         Team team = teamCombo.getValue();
         if (team == null || ref == null) return;
@@ -2668,43 +2700,41 @@ public class MainController {
                 .okText("Add folder")
                 .show()
                 .ifPresent(name -> {
-            if (name.isBlank()) return;
-            // Find collection in cache, mutate, persist
-            List<Collection> all = store.loadCollections(team.id);
-            Collection target = null;
-            for (Collection c : all) {
-                if (Objects.equals(c.id, ref.collection.id)) {
-                    target = c;
-                    break;
-                }
-            }
-            if (target == null) {
-                setStatus("Collection not found.");
-                return;
-            }
-            PostmanCollection pc = parsePostman(target.raw_json);
-            if (pc == null) {
-                pc = new PostmanCollection();
-                pc.info.name = target.name == null ? "Untitled" : target.name;
-            }
-            List<PostmanItem> dest = pc.item;
-            if (ref.kind == TreeNodeRef.Kind.FOLDER) {
-                dest = ref.item.item; // this mutates the ref's folder live; we'll rewrite raw_json
-            }
-            PostmanItem folder = new PostmanItem();
-            folder.name = name.trim();
-            dest.add(folder);
-            target.raw_json = Json.stringify(pc);
-            target.dirty = true;
-            persistCollectionLocal(target);
-            applyCollections(store.loadCollections(team.id));
-            pushCollectionIfOnline(team, target);
-        });
+                    if (name.isBlank()) return;
+
+                    List<Collection> all = store.loadCollections(team.id);
+                    Collection target = null;
+                    for (Collection c : all) {
+                        if (Objects.equals(c.id, ref.collection.id)) {
+                            target = c;
+                            break;
+                        }
+                    }
+                    if (target == null) {
+                        setStatus("Collection not found.");
+                        return;
+                    }
+                    PostmanCollection pc = parsePostman(target.raw_json);
+                    if (pc == null) {
+                        pc = new PostmanCollection();
+                        pc.info.name = target.name == null ? "Untitled" : target.name;
+                    }
+                    List<PostmanItem> dest = pc.item;
+                    if (ref.kind == TreeNodeRef.Kind.FOLDER) {
+                        dest = ref.item.item;
+                    }
+                    PostmanItem folder = new PostmanItem();
+                    folder.name = name.trim();
+                    dest.add(folder);
+                    target.raw_json = Json.stringify(pc);
+                    target.dirty = true;
+                    persistCollectionLocal(target);
+                    applyCollections(store.loadCollections(team.id));
+                    pushCollectionIfOnline(team, target);
+                });
     }
 
-    /**
-     * Rename a tree node (collection root, folder, or request).
-     */
+
     private void onRenameNode(TreeNodeRef ref) {
         Team team = teamCombo.getValue();
         if (team == null || ref == null) return;
@@ -2721,36 +2751,36 @@ public class MainController {
                 .okText("Rename")
                 .show()
                 .ifPresent(value -> {
-            String newName = value == null ? "" : value.trim();
-            if (newName.isEmpty() || newName.equals(oldName)) return;
+                    String newName = value == null ? "" : value.trim();
+                    if (newName.isEmpty() || newName.equals(oldName)) return;
 
-            List<Collection> all = store.loadCollections(team.id);
-            Collection target = null;
-            for (Collection c : all) {
-                if (Objects.equals(c.id, ref.collection.id)) {
-                    target = c;
-                    break;
-                }
-            }
-            if (target == null) return;
-            PostmanCollection pc = parsePostman(target.raw_json);
+                    List<Collection> all = store.loadCollections(team.id);
+                    Collection target = null;
+                    for (Collection c : all) {
+                        if (Objects.equals(c.id, ref.collection.id)) {
+                            target = c;
+                            break;
+                        }
+                    }
+                    if (target == null) return;
+                    PostmanCollection pc = parsePostman(target.raw_json);
 
-            if (ref.kind == TreeNodeRef.Kind.COLLECTION) {
-                target.name = newName;
-                if (pc != null) {
-                    pc.info.name = newName;
-                    target.raw_json = Json.stringify(pc);
-                }
-            } else {
-                if (pc == null) return;
-                if (!renameByName(pc.item, oldName, newName)) return;
-                target.raw_json = Json.stringify(pc);
-            }
-            target.dirty = true;
-            persistCollectionLocal(target);
-            applyCollections(store.loadCollections(team.id));
-            pushCollectionIfOnline(team, target);
-        });
+                    if (ref.kind == TreeNodeRef.Kind.COLLECTION) {
+                        target.name = newName;
+                        if (pc != null) {
+                            pc.info.name = newName;
+                            target.raw_json = Json.stringify(pc);
+                        }
+                    } else {
+                        if (pc == null) return;
+                        if (!renameByName(pc.item, oldName, newName)) return;
+                        target.raw_json = Json.stringify(pc);
+                    }
+                    target.dirty = true;
+                    persistCollectionLocal(target);
+                    applyCollections(store.loadCollections(team.id));
+                    pushCollectionIfOnline(team, target);
+                });
     }
 
     private static boolean renameByName(List<PostmanItem> items, String oldName, String newName) {
@@ -2776,7 +2806,7 @@ public class MainController {
         if (confirm.showAndWait().filter(b -> b == javafx.scene.control.ButtonType.OK).isEmpty()) return;
 
         if (ref.kind == TreeNodeRef.Kind.COLLECTION) {
-            // Delete collection — backend if online; local only for Local team
+
             List<Collection> all = store.loadCollections(team.id);
             all.removeIf(c -> Objects.equals(c.id, ref.collection.id));
             store.saveCollections(team.id, all);
@@ -2793,7 +2823,7 @@ public class MainController {
             return;
         }
 
-        // Folder or request — locate in raw_json by walking and remove
+
         List<Collection> all = store.loadCollections(team.id);
         Collection target = null;
         for (Collection c : all) {
@@ -2863,10 +2893,10 @@ public class MainController {
                     store.saveCollections(team.id, fresh);
                     Platform.runLater(() -> {
                         applyCollections(fresh);
-                        setStatus("Synced.");
+                        showToast("Collections synced.");
                     });
                 } catch (BackendException e) {
-                    Platform.runLater(() -> setStatus("Sync failed: " + e.getMessage()));
+                    Platform.runLater(() -> showToast("Sync failed: " + e.getMessage()));
                 }
             });
             commitTabsSync();
@@ -2886,9 +2916,7 @@ public class MainController {
                         () -> loadEnvironments(team.id)));
     }
 
-    /* ================================================================
-     *  Phase 2 dialogs
-     * ================================================================ */
+
 
     @FXML
     public void onShowTeam() {
@@ -2902,6 +2930,48 @@ public class MainController {
                 TeamDialog.show(team, auth.user(), teamApi, inviteApi, () -> {
                     loadTeams();
                     refreshInvitesBadge();
+                }));
+    }
+
+    @FXML
+    public void onCreateTeam() {
+        requireSignIn("create a team", () -> NameDialog.builder()
+                .title("New team")
+                .subtitle("Teams scope collections, environments, and members on the server.")
+                .fieldLabel("Team name")
+                .placeholder("e.g. Billing API squad")
+                .okText("Create team")
+                .show()
+                .ifPresent(name -> {
+                    setStatus("Creating team…");
+                    runAsync(() -> {
+                        try {
+                            Team created = teamApi.create(name);
+                            // Make the new team active so applyTeams selects it after the
+                            // refresh — applyTeams reads store.loadActiveTeamId() to pick.
+                            store.saveActiveTeamId(created.id);
+                            // Seed the local cache too so the picker shows the team
+                            // immediately, before the background list refresh returns.
+                            List<Team> cached = new ArrayList<>(store.loadTeams());
+                            boolean seen = false;
+                            for (Team t : cached) {
+                                if (Objects.equals(t.id, created.id)) {
+                                    seen = true;
+                                    break;
+                                }
+                            }
+                            if (!seen) cached.add(created);
+                            store.saveTeams(cached);
+                            Platform.runLater(() -> {
+                                loadTeams();
+                                showToast("Team \"" + created.name + "\" created.");
+                            });
+                        } catch (BackendException ex) {
+                            Platform.runLater(() -> showToast(ex.isNetwork()
+                                    ? "Offline — team creation requires online."
+                                    : "Failed to create team: " + ex.getMessage()));
+                        }
+                    });
                 }));
     }
 
@@ -2927,7 +2997,7 @@ public class MainController {
 
     @FXML
     public void onSignIn() {
-        // Stop any pending tabs sync — login swap rebuilds the controller
+
         if (pendingTabsSync != null) pendingTabsSync.cancel(false);
         commitTabsSync();
         app.showLogin();
@@ -2944,25 +3014,20 @@ public class MainController {
         });
     }
 
-    /* ================================================================
-     *  Misc
-     * ================================================================ */
+
 
     @FXML
     public void onSignOut() {
         if (pendingTabsSync != null) pendingTabsSync.cancel(false);
         commitTabsSync();
         auth.signOut();
-        // Stay in the main window — just refresh into offline mode
+
         app.showMain();
     }
 
     @FXML
     public void onAbout() {
-        Alert a = new Alert(Alert.AlertType.INFORMATION,
-                "PostBaby Desktop\nVersion 0.1.0\nBackend: " + backend.baseUrl());
-        a.setHeaderText("About");
-        a.showAndWait();
+        AboutDialog.show(backend.baseUrl());
     }
 
     @FXML
@@ -2977,16 +3042,14 @@ public class MainController {
 
     private void switchTheme(String theme) {
         if (theme.equals(store.loadTheme())) return;
-        // Flush any pending state before the controller is rebuilt
+
         if (pendingTabsSync != null) pendingTabsSync.cancel(false);
         commitTabsSync();
         store.saveTheme(theme);
         app.showMain();
     }
 
-    /* ================================================================
-     *  Helpers
-     * ================================================================ */
+
 
     private static PostmanCollection parsePostman(String rawJson) {
         if (rawJson == null || rawJson.isBlank()) return null;
@@ -3010,13 +3073,10 @@ public class MainController {
         statusLabel.setText(msg);
     }
 
-    /**
-     * Show a small brand-colored toast near the bottom of the main window.
-     * Uses a JavaFX Popup so it doesn't steal focus and disappears on its own.
-     */
+
     private void showToast(String message) {
-        // Always update the status bar too — guaranteed visible even if the
-        // popup misbehaves (off-screen position, focus stealing, etc.).
+
+
         setStatus(message);
 
         if (statusLabel == null || statusLabel.getScene() == null) return;
@@ -3038,9 +3098,9 @@ public class MainController {
         );
         label.setOpacity(0);
 
-        // Force layout so prefWidth/prefHeight return real values BEFORE show.
-        // Without this the popup briefly appears at (0,0) and only re-positions
-        // after the first paint, which reads as "the toast didn't appear".
+
+
+
         label.applyCss();
         label.layout();
         double w = Math.max(label.prefWidth(-1), 240);
@@ -3057,8 +3117,8 @@ public class MainController {
         popup.setY(y);
         popup.show(owner);
 
-        // Re-position once shown in case prefWidth was still off (CSS hadn't
-        // fully resolved yet).
+
+
         popup.setOnShown(e -> {
             double rw = label.getWidth();
             double rh = label.getHeight();

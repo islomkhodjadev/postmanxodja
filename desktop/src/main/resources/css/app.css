@@ -163,6 +163,17 @@
     -fx-background-color: #c2333f;
 }
 
+/* Workspace / environment picker — looks like a combo box but opens a dialog */
+.button.picker-button {
+    -fx-alignment: CENTER_LEFT;
+    -fx-content-display: LEFT;
+    -fx-padding: 4 10 4 10;
+    -fx-text-fill: #d8d8da;
+}
+.button.picker-button:hover {
+    -fx-background-color: #34343a;
+}
+
 /* ── Sidebar / sections ── */
 .sidebar {
     -fx-background-color: #232326;
@@ -175,6 +186,88 @@
     -fx-font-size: 11;
     -fx-font-weight: bold;
     -fx-padding: 4 0 0 0;
+}
+
+/* ── Sidebar header icon buttons (Add / Refresh) ── */
+.menu-button.add-menu,
+.button.icon-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-background-radius: 8;
+    -fx-padding: 4 6;
+    -fx-cursor: hand;
+}
+.menu-button.add-menu:hover,
+.button.icon-button:hover {
+    -fx-background-color: rgba(255, 108, 55, 0.16);
+}
+.menu-button.add-menu:focused,
+.button.icon-button:focused {
+    -fx-background-color: rgba(255, 108, 55, 0.10);
+}
+.menu-button.add-menu:showing {
+    -fx-background-color: rgba(255, 108, 55, 0.26);
+}
+/* Hide the default disclosure caret on the add menu */
+.menu-button.add-menu > .arrow-button {
+    -fx-padding: 0;
+}
+.menu-button.add-menu > .arrow-button > .arrow {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+    -fx-shape: " ";
+}
+.menu-button.add-menu > .label {
+    -fx-padding: 0;
+}
+
+/* SVG glyph fills */
+.icon-glyph {
+    -fx-fill: #c3c4c8;
+}
+.menu-button.add-menu:hover .icon-glyph,
+.menu-button.add-menu:showing .icon-glyph,
+.button.icon-button:hover .icon-glyph {
+    -fx-fill: #ff6c37;
+}
+
+/* Icons inside menu items in the add-menu popup */
+.menu-icon {
+    -fx-fill: #888a90;
+}
+.menu-item:focused .menu-icon,
+.menu-item:hover .menu-icon {
+    -fx-fill: #ff6c37;
+}
+
+/* ── Modern context-menu popup styling ── */
+.context-menu {
+    -fx-background-color: #1f1f23;
+    -fx-background-radius: 8;
+    -fx-border-color: #3a3a3e;
+    -fx-border-radius: 8;
+    -fx-padding: 4;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.45), 14, 0.18, 0, 6);
+}
+.context-menu .menu-item {
+    -fx-background-color: transparent;
+    -fx-background-radius: 6;
+    -fx-padding: 6 12 6 8;
+}
+.context-menu .menu-item:focused,
+.context-menu .menu-item:hover {
+    -fx-background-color: rgba(255, 108, 55, 0.18);
+}
+.context-menu .menu-item .label {
+    -fx-text-fill: #d8d8da;
+    -fx-padding: 0 0 0 8;
+}
+.context-menu .menu-item:focused .label,
+.context-menu .menu-item:hover .label {
+    -fx-text-fill: #ffffff;
+}
+.context-menu .separator .line {
+    -fx-border-color: #3a3a3e transparent transparent transparent;
 }
 
 /* ── Tree view ── */
@@ -312,9 +405,11 @@ SplitPane.editor-response-split > .split-pane-divider:pressed {
 .tab-pane > .tab-header-area > .headers-region > .tab {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
+    -fx-background-radius: 6 6 0 0;
     -fx-padding: 4 14 4 14;
     -fx-border-color: transparent transparent #3a3a3e transparent;
     -fx-border-width: 0 0 1 0;
+    -fx-border-radius: 6 6 0 0;
 }
 .tab-pane > .tab-header-area > .headers-region > .tab:selected {
     -fx-border-color: transparent transparent #ff6c37 transparent;
@@ -355,7 +450,8 @@ SplitPane.editor-response-split > .split-pane-divider:pressed {
     -fx-padding: 3 10 3 10;
     -fx-border-color: transparent;
     -fx-background-insets: 0;
-    -fx-background-radius: 4 4 0 0;
+    -fx-background-radius: 8 8 0 0;
+    -fx-border-radius: 8 8 0 0;
 }
 .open-tabs > .tab-header-area > .headers-region > .tab:selected {
     -fx-background-color: #1c1c1f;
@@ -560,4 +656,41 @@ SplitPane.editor-response-split > .split-pane-divider:pressed {
     -fx-background-radius: 6;
     -fx-border-radius: 6;
     -fx-effect: dropshadow(gaussian, rgba(255, 108, 55, 0.35), 8, 0.0, 0, 2);
+}
+
+/* ── About dialog ── */
+.about-logo {
+    -fx-background-color: linear-gradient(to bottom right, #ff6c37, #ff9d6c);
+    -fx-background-radius: 18;
+    -fx-effect: dropshadow(gaussian, rgba(255, 108, 55, 0.45), 16, 0.2, 0, 4);
+}
+.about-logo-letter {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 34;
+    -fx-font-weight: bold;
+}
+.about-product {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 24;
+    -fx-font-weight: bold;
+}
+.about-tagline {
+    -fx-text-fill: #c3c4c8;
+    -fx-font-size: 12;
+}
+.about-row-label {
+    -fx-text-fill: #888a90;
+    -fx-font-size: 11;
+    -fx-font-weight: bold;
+}
+.about-row-value {
+    -fx-text-fill: #d8d8da;
+    -fx-font-size: 12;
+}
+.about-credit {
+    -fx-text-fill: #888a90;
+    -fx-font-size: 11;
+}
+.about-divider {
+    -fx-background-color: #3a3a3e;
 }

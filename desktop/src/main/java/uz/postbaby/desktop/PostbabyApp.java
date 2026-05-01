@@ -14,34 +14,26 @@ import uz.postbaby.desktop.auth.AuthService;
 import uz.postbaby.desktop.store.LocalStore;
 import uz.postbaby.desktop.ui.LoginController;
 import uz.postbaby.desktop.ui.MainController;
+import uz.postbaby.desktop.ui.Theme;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class PostBabyApp extends Application {
+public class PostbabyApp extends Application {
 
-    private static final Logger LOG = LoggerFactory.getLogger(PostBabyApp.class);
+    private static final Logger LOG = LoggerFactory.getLogger(PostbabyApp.class);
     private static final String DEEP_LINK_SCHEME = "postbaby://";
 
-    /**
-     * URLs received before {@link #start(Stage)} has finished mounting the
-     * scene. Drained as soon as the app is ready. Static because the AWT
-     * URI handler is installed in {@link #main(String[])} before the FX
-     * application instance exists.
-     */
     private static final AtomicReference<String> EARLY_DEEP_LINK = new AtomicReference<>();
-    private static volatile PostBabyApp instance;
+    private static volatile PostbabyApp instance;
 
     private LocalStore store;
     private BackendClient backend;
     private AuthService auth;
     private Stage primaryStage;
 
-    /**
-     * Cold-start deep link captured in init(); applied after the main scene mounts.
-     */
     private volatile String pendingDeepLink;
 
     @Override
@@ -65,7 +57,7 @@ public class PostBabyApp extends Application {
         stage.setMinWidth(1100);
         stage.setMinHeight(700);
 
-        URL iconUrl = PostBabyApp.class.getResource("/icons/postbaby.png");
+        URL iconUrl = PostbabyApp.class.getResource("/icons/postbaby.png");
         if (iconUrl != null) {
             try {
                 stage.getIcons().add(new Image(iconUrl.toExternalForm()));
@@ -79,13 +71,9 @@ public class PostBabyApp extends Application {
         showMain();
         stage.show();
 
-        // Re-register the URI handler after JavaFX is fully up. Glass toolkit
-        // can stomp the main() registration during init; the last setter wins.
         Platform.runLater(this::reRegisterUriHandler);
         Platform.runLater(this::registerGlassUrlHandler);
 
-        // Drain any URL captured before the app finished mounting (cold start
-        // arg, or URL that arrived during JavaFX init).
         String early = EARLY_DEEP_LINK.getAndSet(null);
         if (early != null) handleDeepLink(early);
         if (pendingDeepLink != null) {
@@ -95,17 +83,6 @@ public class PostBabyApp extends Application {
         }
     }
 
-    /**
-     * Override JavaFX's Glass toolkit's internal event handler so we can see
-     * `kAEGetURL` Apple Events. Glass receives them via NSApplicationDelegate's
-     * {@code application:openURLs:} method and routes them through
-     * {@code Application.EventHandler.handleOpenURLAction(...)}, which is the
-     * channel the public {@code Desktop.setOpenURIHandler} can't reach.
-     *
-     * Uses {@code com.sun.glass.ui} (a non-exported JavaFX internal package).
-     * The build adds {@code --add-exports javafx.graphics/com.sun.glass.ui=uz.postbaby.desktop}
-     * for both compile and runtime (jlink launcher jvmArgs).
-     */
     private void registerGlassUrlHandler() {
         try {
             com.sun.glass.ui.Application glassApp = com.sun.glass.ui.Application.GetApplication();
@@ -115,8 +92,6 @@ public class PostBabyApp extends Application {
             }
             com.sun.glass.ui.Application.EventHandler existing = glassApp.getEventHandler();
             glassApp.setEventHandler(new com.sun.glass.ui.Application.EventHandler() {
-                // On macOS Glass routes both kAEGetURL and kAEOpenDocuments
-                // Apple Events through this method. Filter for our scheme.
                 @Override
                 public void handleOpenFilesAction(com.sun.glass.ui.Application app, long time, String[] files) {
                     if (files != null) {
@@ -204,19 +179,15 @@ public class PostBabyApp extends Application {
     }
 
     private FXMLLoader loaderFor(String resource) {
-        URL url = PostBabyApp.class.getResource(resource);
+        URL url = PostbabyApp.class.getResource(resource);
         if (url == null) throw new IllegalStateException("Missing resource " + resource);
         return new FXMLLoader(url);
     }
 
     private void setScene(Parent root, String title) {
+        Theme.set(store.loadTheme());
         Scene scene = new Scene(root);
-        URL css = PostBabyApp.class.getResource("/css/app.css");
-        if (css != null) scene.getStylesheets().add(css.toExternalForm());
-        if ("light".equals(store.loadTheme())) {
-            URL light = PostBabyApp.class.getResource("/css/theme-light.css");
-            if (light != null) scene.getStylesheets().add(light.toExternalForm());
-        }
+        Theme.apply(scene);
         primaryStage.setTitle("PostBaby — " + title);
         primaryStage.setScene(scene);
     }
@@ -227,9 +198,6 @@ public class PostBabyApp extends Application {
     }
 
     public static void main(String[] args) {
-        // Register the macOS URL handler BEFORE JavaFX starts, otherwise
-        // JavaFX's Glass toolkit may claim the Apple Event hook first and our
-        // handler never fires for `open postbaby://...`.
         try {
             if (java.awt.Desktop.isDesktopSupported()) {
                 java.awt.Desktop d = java.awt.Desktop.getDesktop();
@@ -239,7 +207,7 @@ public class PostBabyApp extends Application {
                     String url = u.toString();
                     System.err.println("[postbaby] AWT received deep link: " + url);
                     LOG.info("AWT received deep link");
-                    PostBabyApp app = instance;
+                    PostbabyApp app = instance;
                     if (app != null) {
                         Platform.runLater(() -> app.handleDeepLink(url));
                     } else {
