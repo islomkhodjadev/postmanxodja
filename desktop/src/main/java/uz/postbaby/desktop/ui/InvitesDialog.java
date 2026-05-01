@@ -120,8 +120,7 @@ public class InvitesDialog {
         load.run();
 
         Scene scene = new Scene(root, 700, 460);
-        var css = InvitesDialog.class.getResource("/css/app.css");
-        if (css != null) scene.getStylesheets().add(css.toExternalForm());
+        Theme.apply(scene);
         stage.setScene(scene);
         stage.show();
     }

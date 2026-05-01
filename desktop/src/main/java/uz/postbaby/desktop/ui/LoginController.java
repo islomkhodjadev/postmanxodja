@@ -6,7 +6,7 @@ import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TextInputDialog;
-import uz.postbaby.desktop.PostBabyApp;
+import uz.postbaby.desktop.PostbabyApp;
 import uz.postbaby.desktop.auth.AuthService;
 import uz.postbaby.desktop.config.AppConfig;
 
@@ -21,13 +21,13 @@ public class LoginController {
     @FXML
     private Hyperlink endpointLink;
 
-    private PostBabyApp app;
+    private PostbabyApp app;
     private AuthService auth;
 
-    public void bind(PostBabyApp app, AuthService auth) {
+    public void bind(PostbabyApp app, AuthService auth) {
         this.app = app;
         this.auth = auth;
-        refreshEndpointLabel();
+//        refreshEndpointLabel();
     }
 
     @FXML
@@ -60,14 +60,14 @@ public class LoginController {
             String trimmed = value.trim();
             if (!trimmed.isEmpty()) {
                 System.setProperty("postbaby.api.base", trimmed);
-                refreshEndpointLabel();
+//                refreshEndpointLabel();
             }
         });
     }
 
-    private void refreshEndpointLabel() {
-        endpointLink.setText("Endpoint: " + AppConfig.apiBaseUrl());
-    }
+//    private void refreshEndpointLabel() {
+//        endpointLink.setText("Endpoint: " + AppConfig.apiBaseUrl());
+//    }
 
     private void setBusy(boolean busy, String message) {
         spinner.setVisible(busy);

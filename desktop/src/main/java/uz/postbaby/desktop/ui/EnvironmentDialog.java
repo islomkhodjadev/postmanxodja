@@ -169,8 +169,7 @@ public class EnvironmentDialog {
         });
 
         Scene scene = new Scene(root, 760, 480);
-        var css = EnvironmentDialog.class.getResource("/css/app.css");
-        if (css != null) scene.getStylesheets().add(css.toExternalForm());
+        Theme.apply(scene);
         stage.setScene(scene);
         stage.show();
     }

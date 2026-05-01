@@ -18,10 +18,6 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Filesystem-backed cache. Each top-level resource is its own JSON file so writes
- * are independent. Writes are atomic: serialize → temp file → atomic rename.
- */
 public final class LocalStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(LocalStore.class);
@@ -41,8 +37,6 @@ public final class LocalStore {
         return root;
     }
 
-    /* -------- Tokens -------- */
-
     public AuthTokens loadTokens() {
         return readJson("tokens.json", AuthTokens.class);
     }
@@ -54,8 +48,6 @@ public final class LocalStore {
     public void clearTokens() {
         delete("tokens.json");
     }
-
-    /* -------- Active team -------- */
 
     public Long loadActiveTeamId() {
         Settings s = readJson("settings.json", Settings.class);
@@ -85,9 +77,7 @@ public final class LocalStore {
         public Long activeTeamId;
         public Long activeEnvironmentId;
         public String activeTabId;
-        /**
-         * "dark" | "light". Defaults to dark.
-         */
+
         public String theme;
     }
 
@@ -115,7 +105,6 @@ public final class LocalStore {
         writeJson("settings.json", s);
     }
 
-    /* -------- Saved tabs (per-user) -------- */
 
     public List<SavedTab> loadTabs(long userId) {
         List<SavedTab> list = readJson("user_" + userId + "_tabs.json",
@@ -128,7 +117,6 @@ public final class LocalStore {
         writeJson("user_" + userId + "_tabs.json", tabs);
     }
 
-    /* -------- Teams -------- */
 
     public List<Team> loadTeams() {
         List<Team> list = readJson("teams.json", new TypeReference<List<Team>>() {
@@ -140,7 +128,6 @@ public final class LocalStore {
         writeJson("teams.json", teams);
     }
 
-    /* -------- Collections (per team) -------- */
 
     public List<Collection> loadCollections(long teamId) {
         List<Collection> list = readJson("team_" + teamId + "_collections.json",
@@ -153,7 +140,6 @@ public final class LocalStore {
         writeJson("team_" + teamId + "_collections.json", collections);
     }
 
-    /* -------- Environments (per team) -------- */
 
     public List<Environment> loadEnvironments(long teamId) {
         List<Environment> list = readJson("team_" + teamId + "_environments.json",
@@ -166,7 +152,6 @@ public final class LocalStore {
         writeJson("team_" + teamId + "_environments.json", envs);
     }
 
-    /* -------- File primitives -------- */
 
     private <T> T readJson(String name, Class<T> type) {
         Path p = root.resolve(name);
@@ -192,7 +177,6 @@ public final class LocalStore {
 
     private void writeJson(String name, Object value) {
         Path p = root.resolve(name);
-        // Per-write unique temp file so concurrent writers don't clobber each other's tmp
         Path tmp = root.resolve(name + "." + Thread.currentThread().threadId() + "." + System.nanoTime() + ".tmp");
         try {
             Files.writeString(tmp, Json.stringify(value));

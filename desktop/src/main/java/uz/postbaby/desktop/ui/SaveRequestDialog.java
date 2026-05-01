@@ -25,12 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Modal that asks where to save / create a request:
- * - which Collection
- * - which folder inside it (root or any nested folder)
- * - request name
- */
 public class SaveRequestDialog {
 
     public static final String ROOT_LABEL = "(root)";
@@ -81,7 +75,7 @@ public class SaveRequestDialog {
         Label folderLabel = new Label("Folder");
         ComboBox<String> folderCombo = new ComboBox<>();
         folderCombo.setMaxWidth(Double.MAX_VALUE);
-        // Map combo entry → list of folder names (empty list = root)
+
         Map<String, List<String>> folderPaths = new LinkedHashMap<>();
 
         Runnable refreshFolders = () -> {
@@ -144,8 +138,7 @@ public class SaveRequestDialog {
         root.setPadding(new Insets(16));
 
         Scene scene = new Scene(root, 460, 340);
-        var css = SaveRequestDialog.class.getResource("/css/app.css");
-        if (css != null) scene.getStylesheets().add(css.toExternalForm());
+        Theme.apply(scene);
         stage.setScene(scene);
         stage.showAndWait();
         return Optional.ofNullable(result[0]);

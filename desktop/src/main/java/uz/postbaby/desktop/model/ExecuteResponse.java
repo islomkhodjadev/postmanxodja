@@ -9,4 +9,5 @@ public class ExecuteResponse {
     public Map<String, String> headers = new LinkedHashMap<>();
     public String body = "";
     public long time;
+    public long size;
 }

@@ -9,9 +9,7 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class PostmanBody {
-    /**
-     * raw, formdata, urlencoded, none
-     */
+
     public String mode;
     public String raw;
     public List<PostmanKeyValue> formdata = new ArrayList<>();

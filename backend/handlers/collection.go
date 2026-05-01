@@ -200,7 +200,11 @@ func GetCollection(c *gin.Context) {
 		"team_id":        collection.TeamID,
 		"environment_id": collection.EnvironmentID,
 		"created_at":     collection.CreatedAt,
-		"collection":     parsed,
+		// raw_json is what the desktop client deserializes back into its
+		// Collection model; without it, desktop sync wipes the local copy of
+		// the items because it ends up overwriting raw_json with empty.
+		"raw_json":   collection.RawJSON,
+		"collection": parsed,
 	})
 }
 

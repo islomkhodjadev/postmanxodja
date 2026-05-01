@@ -159,7 +159,6 @@ public final class CurlParser {
 
 
     static List<String> tokenize(String input) {
-        // Collapse line continuations: backslash followed by newline (and optional CR)
         String s = input.replace("\\\r\n", " ").replace("\\\n", " ");
         List<String> out = new ArrayList<>();
         StringBuilder cur = new StringBuilder();

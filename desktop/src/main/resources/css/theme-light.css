@@ -131,6 +131,13 @@
     -fx-border-color: #c2333f;
 }
 
+.button.picker-button {
+    -fx-text-fill: #1f2328;
+}
+.button.picker-button:hover {
+    -fx-background-color: #f3f4f6;
+}
+
 .sidebar {
     -fx-background-color: #f4f5f7;
     -fx-border-color: transparent #e1e4e8 transparent transparent;
@@ -218,6 +225,8 @@ SplitPane.editor-response-split > .split-pane-divider:pressed {
 
 .tab-pane > .tab-header-area > .headers-region > .tab {
     -fx-border-color: transparent transparent #e1e4e8 transparent;
+    -fx-background-radius: 6 6 0 0;
+    -fx-border-radius: 6 6 0 0;
 }
 .tab-pane > .tab-header-area > .headers-region > .tab:selected {
     -fx-border-color: transparent transparent #ff6c37 transparent;
@@ -234,6 +243,8 @@ SplitPane.editor-response-split > .split-pane-divider:pressed {
 
 .open-tabs > .tab-header-area > .headers-region > .tab {
     -fx-background-color: #eaecf0;
+    -fx-background-radius: 8 8 0 0;
+    -fx-border-radius: 8 8 0 0;
 }
 .open-tabs > .tab-header-area > .headers-region > .tab:selected {
     -fx-background-color: #ffffff;
@@ -326,4 +337,79 @@ SplitPane.editor-response-split > .split-pane-divider:pressed {
 }
 .login-card .endpoint-link:hover {
     -fx-text-fill: #ff6c37;
+}
+
+/* ── Branded dialogs (NameDialog / PickerDialog / AboutDialog) ── */
+.brand-dialog-root {
+    -fx-background-color: #f4f5f7;
+}
+.brand-dialog-card {
+    -fx-background-color: linear-gradient(to bottom, #ffffff, #f7f8fa);
+    -fx-border-color: #e1e4e8;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.10), 24, 0.18, 0, 8);
+}
+.brand-title {
+    -fx-text-fill: #1f2328;
+}
+.brand-subtitle {
+    -fx-text-fill: #6b7280;
+}
+.brand-field-label {
+    -fx-text-fill: #4b5563;
+}
+.brand-field {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #1f2328;
+    -fx-prompt-text-fill: #9ca3af;
+    -fx-border-color: #d0d7de;
+}
+.brand-field:focused {
+    -fx-border-color: #ff6c37;
+    -fx-effect: dropshadow(gaussian, rgba(255, 108, 55, 0.30), 6, 0.0, 0, 0);
+}
+.brand-error {
+    -fx-text-fill: #c5333d;
+}
+
+/* About dialog — light variant */
+.about-product {
+    -fx-text-fill: #1f2328;
+}
+.about-tagline {
+    -fx-text-fill: #4b5563;
+}
+.about-row-label {
+    -fx-text-fill: #6b7280;
+}
+.about-row-value {
+    -fx-text-fill: #1f2328;
+}
+.about-credit {
+    -fx-text-fill: #6b7280;
+}
+.about-divider {
+    -fx-background-color: #e1e4e8;
+}
+
+/* ── Sidebar icon buttons / popup — light variant ── */
+.icon-glyph {
+    -fx-fill: #4b5563;
+}
+.menu-icon {
+    -fx-fill: #6b7280;
+}
+.context-menu {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e1e4e8;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.10), 14, 0.18, 0, 6);
+}
+.context-menu .menu-item .label {
+    -fx-text-fill: #1f2328;
+}
+.context-menu .menu-item:focused .label,
+.context-menu .menu-item:hover .label {
+    -fx-text-fill: #1f2328;
+}
+.context-menu .separator .line {
+    -fx-border-color: #e1e4e8 transparent transparent transparent;
 }
