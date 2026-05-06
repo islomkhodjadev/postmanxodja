@@ -335,13 +335,13 @@ export default function VariableInput({
                             'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
                         fontSize: "0.875rem",
                         lineHeight: "1.25rem",
-                        width: "max-content !important",
+                        minWidth: "100%",
+                        width: "max-content",
                         minHeight: `${minHeight}px`,
                         ...(!multiline
                             ? {
                                 maxHeight: `${minHeight}px`,
                                 overflow: "visible",
-                                width: "max-content",
                             }
                             : {}),
                     }}

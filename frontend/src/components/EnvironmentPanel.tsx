@@ -139,34 +139,31 @@ export default function EnvironmentPanel({ onUpdate }: Props) {
           <h4 className="font-semibold text-foreground mb-2 text-xs">Variables</h4>
           <div className="max-h-48 overflow-y-auto">
             {formVariables.map((variable, index) => (
-              <div key={index} className="flex gap-2 mb-2">
-                <div className="w-1/3 min-w-0">
-                  <label htmlFor={`env-var-key-${index}`} className="sr-only">Variable key</label>
-                  <input
-                    id={`env-var-key-${index}`}
-                    type="text"
-                    value={variable.key}
-                    onChange={(e) => updateVariable(index, 'key', e.target.value)}
-                    placeholder="Key"
-                    className="w-full border border-border rounded-lg px-2 py-1 text-xs focus:ring-2 focus:ring-ring focus:border-primary outline-none bg-card text-foreground"
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <label htmlFor={`env-var-value-${index}`} className="sr-only">Variable value</label>
-                  <input
-                    id={`env-var-value-${index}`}
-                    type="text"
-                    value={variable.value}
-                    onChange={(e) => updateVariable(index, 'value', e.target.value)}
-                    placeholder="Value"
-                    title={variable.value}
-                    className="w-full border border-border rounded-lg px-2 py-1 text-xs focus:ring-2 focus:ring-ring focus:border-primary outline-none truncate bg-card text-foreground"
-                  />
-                </div>
+              <div key={index} className="flex items-stretch mb-1 border border-border rounded-md overflow-hidden focus-within:border-ring focus-within:ring-1 focus-within:ring-ring/30 transition-shadow">
+                <label htmlFor={`env-var-key-${index}`} className="sr-only">Variable key</label>
+                <input
+                  id={`env-var-key-${index}`}
+                  type="text"
+                  value={variable.key}
+                  onChange={(e) => updateVariable(index, 'key', e.target.value)}
+                  placeholder="Key"
+                  className="w-1/3 min-w-0 px-2 py-1 text-xs bg-card text-foreground outline-none border-r border-border"
+                />
+                <label htmlFor={`env-var-value-${index}`} className="sr-only">Variable value</label>
+                <input
+                  id={`env-var-value-${index}`}
+                  type="text"
+                  value={variable.value}
+                  onChange={(e) => updateVariable(index, 'value', e.target.value)}
+                  placeholder="Value"
+                  title={variable.value}
+                  className="flex-1 min-w-0 px-2 py-1 text-xs bg-card text-foreground outline-none truncate"
+                />
                 <button
                   onClick={() => removeVariable(index)}
-                  className="px-2 py-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-xs shrink-0 focus-visible:ring-2 focus-visible:ring-ring"
+                  className="border-l border-border px-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors shrink-0 text-sm outline-none"
                   aria-label={`Remove variable ${variable.key || index + 1}`}
+                  title="Remove variable"
                 >
                   ×
                 </button>
