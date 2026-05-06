@@ -138,43 +138,49 @@ export default function EnvironmentPanel({ onUpdate }: Props) {
 
           <h4 className="font-semibold text-foreground mb-2 text-xs">Variables</h4>
           <div className="max-h-48 overflow-y-auto">
-            {formVariables.map((variable, index) => (
-              <div key={index} className="flex items-stretch mb-1 border border-border rounded-md overflow-hidden focus-within:border-ring focus-within:ring-1 focus-within:ring-ring/30 transition-shadow">
-                <label htmlFor={`env-var-key-${index}`} className="sr-only">Variable key</label>
-                <input
-                  id={`env-var-key-${index}`}
-                  type="text"
-                  value={variable.key}
-                  onChange={(e) => updateVariable(index, 'key', e.target.value)}
-                  placeholder="Key"
-                  className="w-1/3 min-w-0 px-2 py-1 text-xs bg-card text-foreground outline-none border-r border-border"
-                />
-                <label htmlFor={`env-var-value-${index}`} className="sr-only">Variable value</label>
-                <input
-                  id={`env-var-value-${index}`}
-                  type="text"
-                  value={variable.value}
-                  onChange={(e) => updateVariable(index, 'value', e.target.value)}
-                  placeholder="Value"
-                  title={variable.value}
-                  className="flex-1 min-w-0 px-2 py-1 text-xs bg-card text-foreground outline-none truncate"
-                />
-                <button
-                  onClick={() => removeVariable(index)}
-                  className="border-l border-border px-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors shrink-0 text-sm outline-none"
-                  aria-label={`Remove variable ${variable.key || index + 1}`}
-                  title="Remove variable"
-                >
-                  ×
-                </button>
+            {formVariables.length > 0 && (
+              <div className="border border-border rounded-md overflow-hidden divide-y divide-border mb-2">
+                {formVariables.map((variable, index) => (
+                  <div key={index} className="flex items-stretch group hover:bg-muted/30 transition-colors">
+                    <label htmlFor={`env-var-key-${index}`} className="sr-only">Variable key</label>
+                    <input
+                      id={`env-var-key-${index}`}
+                      type="text"
+                      value={variable.key}
+                      onChange={(e) => updateVariable(index, 'key', e.target.value)}
+                      placeholder="Key"
+                      className="w-1/3 min-w-0 px-2 py-1.5 text-xs bg-transparent text-foreground outline-none border-r border-border placeholder:text-muted-foreground/60"
+                    />
+                    <label htmlFor={`env-var-value-${index}`} className="sr-only">Variable value</label>
+                    <input
+                      id={`env-var-value-${index}`}
+                      type="text"
+                      value={variable.value}
+                      onChange={(e) => updateVariable(index, 'value', e.target.value)}
+                      placeholder="Value"
+                      title={variable.value}
+                      className="flex-1 min-w-0 px-2 py-1.5 text-xs bg-transparent text-foreground outline-none truncate placeholder:text-muted-foreground/60"
+                    />
+                    <button
+                      onClick={() => removeVariable(index)}
+                      className="w-7 flex items-center justify-center border-l border-border text-muted-foreground/40 hover:text-destructive hover:bg-destructive/5 transition-colors shrink-0 outline-none opacity-0 group-hover:opacity-100"
+                      aria-label={`Remove variable ${variable.key || index + 1}`}
+                      title="Remove variable"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
           <button
             onClick={addVariable}
-            className="mb-2 px-3 py-1 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs shadow-sm focus-visible:ring-2 focus-visible:ring-ring"
+            className="mb-2 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-md hover:bg-muted/50 transition-colors"
           >
-            Add Variable
+            + Add Variable
           </button>
 
           <div className="flex gap-2">
