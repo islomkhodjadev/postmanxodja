@@ -214,6 +214,7 @@ body {
 .vi-editor-wrapper.vi-no-border {
     border: none;
     border-radius: 0;
+    background: transparent;
 }
 .vi-editor-wrapper.vi-no-border:focus-within {
     border: none;

@@ -662,44 +662,48 @@ export default function RequestBuilder({
                     {/* Params Tab */}
                     {activeSection === 'params' && (
                         <div>
-                            {queryParams.map((param, index) => (
-                                <div key={index} className="flex items-stretch mb-1 border border-border rounded-md overflow-hidden focus-within:border-ring focus-within:ring-1 focus-within:ring-ring/30 transition-shadow">
-                                    <label htmlFor={`param-key-${index}`} className="sr-only">Parameter key</label>
-                                    <input
-                                        id={`param-key-${index}`}
-                                        type="text"
-                                        value={param.key}
-                                        onChange={(e) => updateQueryParam(index, 'key', e.target.value)}
-                                        placeholder="Key"
-                                        className="w-2/5 px-3 py-2 text-sm bg-card text-foreground outline-none border-r border-border"
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                        <VariableInput
-                                            value={param.value}
-                                            onChange={(value) => updateQueryParam(index, 'value', value)}
-                                            placeholder="Value"
-                                            environments={environments}
-                                            selectedEnvId={selectedEnvId}
-                                            className="vi-no-border"
-                                        />
-                                    </div>
-                                    <button
-                                        onClick={() => removeQueryParam(index)}
-                                        className="border-l border-border px-2.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors shrink-0 outline-none"
-                                        title="Remove parameter"
-                                        aria-label="Remove parameter"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>
+                            {queryParams.length > 0 && (
+                                <div className="border border-border rounded-md overflow-hidden divide-y divide-border mb-2">
+                                    {queryParams.map((param, index) => (
+                                        <div key={index} className="flex items-stretch group hover:bg-muted/30 transition-colors">
+                                            <label htmlFor={`param-key-${index}`} className="sr-only">Parameter key</label>
+                                            <input
+                                                id={`param-key-${index}`}
+                                                type="text"
+                                                value={param.key}
+                                                onChange={(e) => updateQueryParam(index, 'key', e.target.value)}
+                                                placeholder="Key"
+                                                className="flex-1 px-3 py-2 text-sm bg-transparent text-foreground outline-none border-r border-border placeholder:text-muted-foreground/60"
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <VariableInput
+                                                    value={param.value}
+                                                    onChange={(value) => updateQueryParam(index, 'value', value)}
+                                                    placeholder="Value"
+                                                    environments={environments}
+                                                    selectedEnvId={selectedEnvId}
+                                                    className="vi-no-border"
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => removeQueryParam(index)}
+                                                className="w-8 flex items-center justify-center border-l border-border text-muted-foreground/40 hover:text-destructive hover:bg-destructive/5 transition-colors shrink-0 outline-none opacity-0 group-hover:opacity-100"
+                                                title="Remove parameter"
+                                                aria-label="Remove parameter"
+                                            >
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
+                            )}
                             <button
                                 onClick={addQueryParam}
-                                className="mt-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm shadow-sm transition-colors duration-150"
+                                className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-md hover:bg-muted/50 transition-colors"
                             >
-                                Add Param
+                                + Add Param
                             </button>
                         </div>
                     )}
@@ -707,44 +711,48 @@ export default function RequestBuilder({
                     {/* Headers Tab */}
                     {activeSection === 'headers' && (
                         <div>
-                            {headers.map((header, index) => (
-                                <div key={index} className="flex items-stretch mb-1 border border-border rounded-md overflow-hidden focus-within:border-ring focus-within:ring-1 focus-within:ring-ring/30 transition-shadow">
-                                    <label htmlFor={`header-key-${index}`} className="sr-only">Header key</label>
-                                    <input
-                                        id={`header-key-${index}`}
-                                        type="text"
-                                        value={header.key}
-                                        onChange={(e) => updateHeader(index, 'key', e.target.value)}
-                                        placeholder="Key"
-                                        className="w-2/5 px-3 py-2 text-sm bg-card text-foreground outline-none border-r border-border"
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                        <VariableInput
-                                            value={header.value}
-                                            onChange={(value) => updateHeader(index, 'value', value)}
-                                            placeholder="Value"
-                                            environments={environments}
-                                            selectedEnvId={selectedEnvId}
-                                            className="vi-no-border"
-                                        />
-                                    </div>
-                                    <button
-                                        onClick={() => removeHeader(index)}
-                                        className="border-l border-border px-2.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors shrink-0 outline-none"
-                                        title="Remove header"
-                                        aria-label="Remove header"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>
+                            {headers.length > 0 && (
+                                <div className="border border-border rounded-md overflow-hidden divide-y divide-border mb-2">
+                                    {headers.map((header, index) => (
+                                        <div key={index} className="flex items-stretch group hover:bg-muted/30 transition-colors">
+                                            <label htmlFor={`header-key-${index}`} className="sr-only">Header key</label>
+                                            <input
+                                                id={`header-key-${index}`}
+                                                type="text"
+                                                value={header.key}
+                                                onChange={(e) => updateHeader(index, 'key', e.target.value)}
+                                                placeholder="Key"
+                                                className="flex-1 px-3 py-2 text-sm bg-transparent text-foreground outline-none border-r border-border placeholder:text-muted-foreground/60"
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <VariableInput
+                                                    value={header.value}
+                                                    onChange={(value) => updateHeader(index, 'value', value)}
+                                                    placeholder="Value"
+                                                    environments={environments}
+                                                    selectedEnvId={selectedEnvId}
+                                                    className="vi-no-border"
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => removeHeader(index)}
+                                                className="w-8 flex items-center justify-center border-l border-border text-muted-foreground/40 hover:text-destructive hover:bg-destructive/5 transition-colors shrink-0 outline-none opacity-0 group-hover:opacity-100"
+                                                title="Remove header"
+                                                aria-label="Remove header"
+                                            >
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
+                            )}
                             <button
                                 onClick={addHeader}
-                                className="mt-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm shadow-sm transition-colors duration-150"
+                                className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-md hover:bg-muted/50 transition-colors"
                             >
-                                Add Header
+                                + Add Header
                             </button>
                         </div>
                     )}
@@ -873,115 +881,123 @@ export default function RequestBuilder({
 
                             {bodyType === 'form-data' && (
                                 <div>
-                                    {formData.map((item, index) => (
-                                        <div key={index} className="flex items-stretch mb-1 border border-border rounded-md overflow-hidden focus-within:border-ring focus-within:ring-1 focus-within:ring-ring/30 transition-shadow">
-                                            <label htmlFor={`formdata-key-${index}`} className="sr-only">Field key</label>
-                                            <input
-                                                id={`formdata-key-${index}`}
-                                                type="text"
-                                                value={item.key}
-                                                onChange={(e) => updateFormDataItem(index, 'key', e.target.value)}
-                                                placeholder="Key"
-                                                className="w-2/5 px-3 py-2 text-sm bg-card text-foreground outline-none border-r border-border"
-                                            />
-                                            <select
-                                                value={item.type}
-                                                onChange={(e) => updateFormDataItem(index, 'type', e.target.value)}
-                                                className="px-2 py-2 text-sm bg-card text-foreground outline-none border-r border-border text-muted-foreground"
-                                            >
-                                                <option value="text">Text</option>
-                                                <option value="file">File</option>
-                                            </select>
-                                            <div className="flex-1 min-w-0">
-                                                {item.type === 'text' ? (
-                                                    <VariableInput
-                                                        value={item.value}
-                                                        onChange={(value) => updateFormDataItem(index, 'value', value)}
-                                                        placeholder="Value"
-                                                        environments={environments}
-                                                        selectedEnvId={selectedEnvId}
-                                                        className="vi-no-border"
+                                    {formData.length > 0 && (
+                                        <div className="border border-border rounded-md overflow-hidden divide-y divide-border mb-2">
+                                            {formData.map((item, index) => (
+                                                <div key={index} className="flex items-stretch group hover:bg-muted/30 transition-colors">
+                                                    <label htmlFor={`formdata-key-${index}`} className="sr-only">Field key</label>
+                                                    <input
+                                                        id={`formdata-key-${index}`}
+                                                        type="text"
+                                                        value={item.key}
+                                                        onChange={(e) => updateFormDataItem(index, 'key', e.target.value)}
+                                                        placeholder="Key"
+                                                        className="flex-1 px-3 py-2 text-sm bg-transparent text-foreground outline-none border-r border-border placeholder:text-muted-foreground/60"
                                                     />
-                                                ) : (
-                                                    <label className="flex items-center gap-2 cursor-pointer px-3 py-2 text-sm hover:bg-accent transition-colors text-foreground h-full">
-                                                        <svg className="w-4 h-4 text-muted-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    <select
+                                                        value={item.type}
+                                                        onChange={(e) => updateFormDataItem(index, 'type', e.target.value)}
+                                                        className="px-2 py-2 text-xs bg-transparent text-muted-foreground outline-none border-r border-border"
+                                                    >
+                                                        <option value="text">Text</option>
+                                                        <option value="file">File</option>
+                                                    </select>
+                                                    <div className="flex-1 min-w-0">
+                                                        {item.type === 'text' ? (
+                                                            <VariableInput
+                                                                value={item.value}
+                                                                onChange={(value) => updateFormDataItem(index, 'value', value)}
+                                                                placeholder="Value"
+                                                                environments={environments}
+                                                                selectedEnvId={selectedEnvId}
+                                                                className="vi-no-border"
+                                                            />
+                                                        ) : (
+                                                            <label className="flex items-center gap-2 cursor-pointer px-3 py-2 text-sm hover:bg-accent transition-colors text-foreground h-full">
+                                                                <svg className="w-4 h-4 text-muted-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                                </svg>
+                                                                <span className="text-muted-foreground truncate text-sm">
+                                                                    {item.file ? item.file.name : 'Choose file...'}
+                                                                </span>
+                                                                <input
+                                                                    type="file"
+                                                                    onChange={(e) => {
+                                                                        const file = e.target.files?.[0];
+                                                                        if (file) updateFormDataItem(index, 'file', file);
+                                                                    }}
+                                                                    className="hidden"
+                                                                />
+                                                            </label>
+                                                        )}
+                                                    </div>
+                                                    <button
+                                                        onClick={() => removeFormDataItem(index)}
+                                                        className="w-8 flex items-center justify-center border-l border-border text-muted-foreground/40 hover:text-destructive hover:bg-destructive/5 transition-colors shrink-0 outline-none opacity-0 group-hover:opacity-100"
+                                                        title="Remove field"
+                                                        aria-label="Remove field"
+                                                    >
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                                         </svg>
-                                                        <span className="text-muted-foreground truncate text-sm">
-                                                            {item.file ? item.file.name : 'Choose file...'}
-                                                        </span>
-                                                        <input
-                                                            type="file"
-                                                            onChange={(e) => {
-                                                                const file = e.target.files?.[0];
-                                                                if (file) updateFormDataItem(index, 'file', file);
-                                                            }}
-                                                            className="hidden"
-                                                        />
-                                                    </label>
-                                                )}
-                                            </div>
-                                            <button
-                                                onClick={() => removeFormDataItem(index)}
-                                                className="border-l border-border px-2.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors shrink-0 outline-none"
-                                                title="Remove field"
-                                                aria-label="Remove field"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            </button>
+                                                    </button>
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
+                                    )}
                                     <button
                                         onClick={addFormDataItem}
-                                        className="mt-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm shadow-sm transition-colors duration-150"
+                                        className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-md hover:bg-muted/50 transition-colors"
                                     >
-                                        Add Field
+                                        + Add Field
                                     </button>
                                 </div>
                             )}
 
                             {bodyType === 'x-www-form-urlencoded' && (
                                 <div>
-                                    {formData.map((item, index) => (
-                                        <div key={index} className="flex items-stretch mb-1 border border-border rounded-md overflow-hidden focus-within:border-ring focus-within:ring-1 focus-within:ring-ring/30 transition-shadow">
-                                            <label htmlFor={`urlencoded-key-${index}`} className="sr-only">Field key</label>
-                                            <input
-                                                id={`urlencoded-key-${index}`}
-                                                type="text"
-                                                value={item.key}
-                                                onChange={(e) => updateFormDataItem(index, 'key', e.target.value)}
-                                                placeholder="Key"
-                                                className="w-2/5 px-3 py-2 text-sm bg-card text-foreground outline-none border-r border-border"
-                                            />
-                                            <div className="flex-1 min-w-0">
-                                                <VariableInput
-                                                    value={item.value}
-                                                    onChange={(value) => updateFormDataItem(index, 'value', value)}
-                                                    placeholder="Value"
-                                                    environments={environments}
-                                                    selectedEnvId={selectedEnvId}
-                                                    className="vi-no-border"
-                                                />
-                                            </div>
-                                            <button
-                                                onClick={() => removeFormDataItem(index)}
-                                                className="border-l border-border px-2.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors shrink-0 outline-none"
-                                                title="Remove field"
-                                                aria-label="Remove field"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            </button>
+                                    {formData.length > 0 && (
+                                        <div className="border border-border rounded-md overflow-hidden divide-y divide-border mb-2">
+                                            {formData.map((item, index) => (
+                                                <div key={index} className="flex items-stretch group hover:bg-muted/30 transition-colors">
+                                                    <label htmlFor={`urlencoded-key-${index}`} className="sr-only">Field key</label>
+                                                    <input
+                                                        id={`urlencoded-key-${index}`}
+                                                        type="text"
+                                                        value={item.key}
+                                                        onChange={(e) => updateFormDataItem(index, 'key', e.target.value)}
+                                                        placeholder="Key"
+                                                        className="flex-1 px-3 py-2 text-sm bg-transparent text-foreground outline-none border-r border-border placeholder:text-muted-foreground/60"
+                                                    />
+                                                    <div className="flex-1 min-w-0">
+                                                        <VariableInput
+                                                            value={item.value}
+                                                            onChange={(value) => updateFormDataItem(index, 'value', value)}
+                                                            placeholder="Value"
+                                                            environments={environments}
+                                                            selectedEnvId={selectedEnvId}
+                                                            className="vi-no-border"
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        onClick={() => removeFormDataItem(index)}
+                                                        className="w-8 flex items-center justify-center border-l border-border text-muted-foreground/40 hover:text-destructive hover:bg-destructive/5 transition-colors shrink-0 outline-none opacity-0 group-hover:opacity-100"
+                                                        title="Remove field"
+                                                        aria-label="Remove field"
+                                                    >
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
+                                    )}
                                     <button
                                         onClick={addFormDataItem}
-                                        className="mt-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm shadow-sm transition-colors duration-150"
+                                        className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-md hover:bg-muted/50 transition-colors"
                                     >
-                                        Add Field
+                                        + Add Field
                                     </button>
                                 </div>
                             )}
