@@ -565,7 +565,6 @@ export default function RequestBuilder({
                     className="border-l border-border !rounded-none !shadow-none"
                 />
             </div>
-            </div>
 
             {/* Tab Bar */}
             <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
