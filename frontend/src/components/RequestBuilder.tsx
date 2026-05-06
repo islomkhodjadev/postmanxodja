@@ -444,134 +444,127 @@ export default function RequestBuilder({
                     </p>
                 </div>
             )}
-            <div className="mb-2 md:mb-3 space-y-2 md:space-y-0 md:flex md:gap-2 md:items-center">
-                <div className="flex gap-2 items-center md:flex-1 md:min-w-0">
-                    <select
-                        value={method}
-                        onChange={(e) => {
-                            setMethod(e.target.value);
-                            notifyUpdate({ method: e.target.value });
-                        }}
-                        className="border border-border rounded px-2 py-1.5 text-sm font-medium focus:ring-2 focus:ring-ring focus:border-ring outline-none bg-card text-foreground shadow-sm flex-shrink-0"
-                    >
-                        <option>GET</option>
-                        <option>POST</option>
-                        <option>PUT</option>
-                        <option>DELETE</option>
-                        <option>PATCH</option>
-                    </select>
+            <div className="mb-3 flex items-stretch border border-border rounded-md overflow-hidden">
+                {/* Method */}
+                <select
+                    value={method}
+                    onChange={(e) => {
+                        setMethod(e.target.value);
+                        notifyUpdate({ method: e.target.value });
+                    }}
+                    className="px-2 py-2 text-sm font-semibold bg-transparent outline-none border-r border-border shrink-0 cursor-pointer"
+                    style={{ color: ({ GET: '#16a34a', POST: '#2563eb', PUT: '#ca8a04', DELETE: '#dc2626', PATCH: '#0d9488' } as Record<string, string>)[method] || 'var(--primary)' }}
+                >
+                    <option>GET</option>
+                    <option>POST</option>
+                    <option>PUT</option>
+                    <option>DELETE</option>
+                    <option>PATCH</option>
+                </select>
 
-                    <div className="flex-1 min-w-0">
-                        <VariableInput
-                            value={url}
-                            onChange={(newUrl) => {
-                                // Detect pasted cURL command
-                                const trimmed = newUrl.trim();
-                                if (/^curl\s/i.test(trimmed)) {
-                                    try {
-                                        const parsed = parseCurl(trimmed);
-                                        setUrl(parsed.url);
-                                        setMethod(parsed.method);
-                                        // Always reset body/bodyType — if curl has no body, clear it
-                                        setBody(parsed.body || '');
-                                        setBodyType(parsed.body ? 'raw' : 'none');
-                                        // Always reset headers — if curl has no headers, clear them
-                                        const parsedHeaders = Object.entries(parsed.headers).map(([key, value]) => ({ key, value }));
-                                        setHeaders(parsedHeaders);
-                                        const parsedParams = parseQueryParamsFromUrl(parsed.url);
-                                        setQueryParams(parsedParams.length > 0 ? parsedParams : []);
-                                        notifyUpdate({
-                                            method: parsed.method,
-                                            url: parsed.url,
-                                            headers: parsedHeaders,
-                                            body: parsed.body || '',
-                                            queryParams: parsedParams,
-                                        });
-                                        return;
-                                    } catch {
-                                        // Not a valid curl — fall through to normal URL handling
-                                    }
+                {/* URL */}
+                <div className="flex-1 min-w-0">
+                    <VariableInput
+                        value={url}
+                        onChange={(newUrl) => {
+                            const trimmed = newUrl.trim();
+                            if (/^curl\s/i.test(trimmed)) {
+                                try {
+                                    const parsed = parseCurl(trimmed);
+                                    setUrl(parsed.url);
+                                    setMethod(parsed.method);
+                                    setBody(parsed.body || '');
+                                    setBodyType(parsed.body ? 'raw' : 'none');
+                                    const parsedHeaders = Object.entries(parsed.headers).map(([key, value]) => ({ key, value }));
+                                    setHeaders(parsedHeaders);
+                                    const parsedParams = parseQueryParamsFromUrl(parsed.url);
+                                    setQueryParams(parsedParams.length > 0 ? parsedParams : []);
+                                    notifyUpdate({
+                                        method: parsed.method,
+                                        url: parsed.url,
+                                        headers: parsedHeaders,
+                                        body: parsed.body || '',
+                                        queryParams: parsedParams,
+                                    });
+                                    return;
+                                } catch {
+                                    // Not a valid curl — fall through to normal URL handling
                                 }
-
-                                setUrl(newUrl);
-                                // Parse query params from URL and update params list
-                                if (!isUpdatingFromParams.current) {
-                                    const parsedParams = parseQueryParamsFromUrl(newUrl);
-                                    // Merge with existing params that have keys not in URL
-                                    // This preserves params with empty keys being edited
-                                    const existingEmptyKeyParams = queryParams.filter(p => !p.key);
-                                    const newParams = [...parsedParams, ...existingEmptyKeyParams];
-                                    setQueryParams(newParams.length > 0 ? newParams : []);
-                                    notifyUpdate({ url: newUrl, queryParams: newParams });
-                                } else {
-                                    notifyUpdate({ url: newUrl });
-                                }
-                            }}
-                            placeholder="Enter request URL or paste cURL"
-                            environments={environments}
-                            selectedEnvId={selectedEnvId}
-                            className="shadow-sm"
-                        />
-                    </div>
-                </div>
-
-                <div className="flex gap-2 items-center flex-wrap min-w-0">
-                    <select
-                        value={selectedEnvId || ''}
-                        onChange={(e) => {
-                            const newEnvId = e.target.value ? Number(e.target.value) : undefined;
-                            setSelectedEnvId(newEnvId);
-                            onEnvironmentChange?.(newEnvId);
-                        }}
-                        className="border border-border rounded-lg px-2 sm:px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:border-ring outline-none bg-card text-foreground shadow-sm flex-1 md:flex-initial min-w-0 max-w-[140px] sm:max-w-none"
-                    >
-                        <option value="">No Environment</option>
-                        {environments.map(env => (
-                            <option key={env.id} value={env.id}>{env.name}</option>
-                        ))}
-                    </select>
-
-                    <button
-                        onClick={handleSend}
-                        disabled={loading}
-                        className={`
-              px-4 md:px-6 py-2 rounded-lg shadow-sm font-medium text-sm transition-colors duration-150
-              ${loading
-                            ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                            : 'bg-primary hover:bg-primary/90 text-primary-foreground'
-                        }
-            `}
-                    >
-                        {loading ? 'Sending...' : 'Send'}
-                    </button>
-                    <button
-                        onClick={() => {
-                            const headersObj = Object.fromEntries(headers.filter(h => h.key).map(h => [h.key.trim(), h.value]));
-                            const curl = generateCurl({
-                                method,
-                                url,
-                                headers: headersObj,
-                                body: bodyType === 'raw' ? body : undefined,
-                            });
-                            navigator.clipboard.writeText(curl);
-                            setCurlCopied(true);
-                            setTimeout(() => setCurlCopied(false), 2000);
-                        }}
-                        className="px-3 md:px-4 py-2 rounded-lg shadow-sm font-medium text-sm transition-colors duration-150 bg-muted-foreground hover:bg-muted-foreground/80 text-background"
-                        title="Copy as cURL"
-                    >
-                        {curlCopied ? 'Copied!' : 'cURL'}
-                    </button>
-                    <SaveButton
-                        text={{ idle: "Save", saving: "Saving...", saved: "Saved!" }}
-                        onSave={async () => {
-                            notifyUpdate({});
-                            if (onSaveToCollection) {
-                                await onSaveToCollection();
+                            }
+                            setUrl(newUrl);
+                            if (!isUpdatingFromParams.current) {
+                                const parsedParams = parseQueryParamsFromUrl(newUrl);
+                                const existingEmptyKeyParams = queryParams.filter(p => !p.key);
+                                const newParams = [...parsedParams, ...existingEmptyKeyParams];
+                                setQueryParams(newParams.length > 0 ? newParams : []);
+                                notifyUpdate({ url: newUrl, queryParams: newParams });
+                            } else {
+                                notifyUpdate({ url: newUrl });
                             }
                         }}
+                        placeholder="Enter request URL or paste cURL"
+                        environments={environments}
+                        selectedEnvId={selectedEnvId}
+                        className="vi-no-border"
                     />
                 </div>
+
+                {/* Environment */}
+                <select
+                    value={selectedEnvId || ''}
+                    onChange={(e) => {
+                        const newEnvId = e.target.value ? Number(e.target.value) : undefined;
+                        setSelectedEnvId(newEnvId);
+                        onEnvironmentChange?.(newEnvId);
+                    }}
+                    className="border-l border-border px-2 py-2 text-xs bg-transparent text-muted-foreground outline-none shrink-0 max-w-[120px] cursor-pointer"
+                >
+                    <option value="">No Env</option>
+                    {environments.map(env => (
+                        <option key={env.id} value={env.id}>{env.name}</option>
+                    ))}
+                </select>
+
+                {/* Send */}
+                <button
+                    onClick={handleSend}
+                    disabled={loading}
+                    className={`border-l border-border px-4 py-2 text-sm font-medium shrink-0 transition-colors ${
+                        loading
+                            ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                            : 'bg-primary hover:bg-primary/90 text-primary-foreground'
+                    }`}
+                >
+                    {loading ? 'Sending...' : 'Send'}
+                </button>
+
+                {/* cURL */}
+                <button
+                    onClick={() => {
+                        const headersObj = Object.fromEntries(headers.filter(h => h.key).map(h => [h.key.trim(), h.value]));
+                        const curl = generateCurl({ method, url, headers: headersObj, body: bodyType === 'raw' ? body : undefined });
+                        navigator.clipboard.writeText(curl);
+                        setCurlCopied(true);
+                        setTimeout(() => setCurlCopied(false), 2000);
+                    }}
+                    className="border-l border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted/50 transition-colors shrink-0"
+                    title="Copy as cURL"
+                >
+                    {curlCopied ? 'Copied!' : 'cURL'}
+                </button>
+
+                {/* Save */}
+                <SaveButton
+                    text={{ idle: "Save", saving: "Saving...", saved: "Saved!" }}
+                    onSave={async () => {
+                        notifyUpdate({});
+                        if (onSaveToCollection) {
+                            await onSaveToCollection();
+                        }
+                    }}
+                    className="border-l border-border !rounded-none !shadow-none"
+                />
+            </div>
             </div>
 
             {/* Tab Bar */}
