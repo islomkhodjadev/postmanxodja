@@ -20,8 +20,9 @@ export default function InvitesPage() {
     try {
       const data = await getUserInvites();
       setInvites(data);
-    } catch (error) {
-      console.error('Failed to load invites:', error);
+    } catch (err: any) {
+      console.error('Failed to load invites:', err);
+      setError(err.message || 'Failed to load invites');
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTeam } from '../contexts/TeamContext';
@@ -21,6 +21,7 @@ export default function InviteAcceptPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [accepting, setAccepting] = useState(false);
+  const autoAcceptTriggered = useRef(false);
 
   useEffect(() => {
     const fetchInvite = async () => {
@@ -64,8 +65,27 @@ export default function InviteAcceptPage() {
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to accept invite');
       setAccepting(false);
+      autoAcceptTriggered.current = false;
     }
   };
+
+  // Auto-accept when user just registered/logged in via invite link and email matches
+  useEffect(() => {
+    if (
+      !autoAcceptTriggered.current &&
+      isAuthenticated &&
+      !authLoading &&
+      !loading &&
+      invite &&
+      user &&
+      user.email === invite.invitee_email &&
+      !error
+    ) {
+      autoAcceptTriggered.current = true;
+      handleAccept();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, authLoading, loading, invite, user, error]);
 
   if (loading || authLoading) {
     return (

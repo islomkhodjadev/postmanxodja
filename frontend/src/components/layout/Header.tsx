@@ -35,11 +35,19 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   const networkMode = useNetworkStatus(apiBaseUrl);
 
   useEffect(() => {
-    loadPendingInvites();
+    if (user) {
+      loadPendingInvites();
+    } else {
+      setPendingInvitesCount(0);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user) return;
     // Refresh every 30 seconds
     const interval = setInterval(loadPendingInvites, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user?.id]);
 
   // Check if current user is owner of current team
   useEffect(() => {
