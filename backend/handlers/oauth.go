@@ -207,12 +207,18 @@ func GoogleCallback(c *gin.Context) {
 		return
 	}
 
-	// Find or create user
+	// Find or create user — look up by Google ID first, then fall back to email.
+	// This prevents duplicate accounts when the email Google returns differs
+	// slightly from the one stored (e.g. apostrophe in local part).
 	var user models.User
-	result := database.DB.Where("email = ?", userInfo.Email).First(&user)
+	result := database.DB.Where("google_id = ?", userInfo.ID).First(&user)
+	if result.Error != nil {
+		// No account linked to this Google ID yet — try matching by email
+		result = database.DB.Where("email = ?", userInfo.Email).First(&user)
+	}
 
 	if result.Error != nil {
-		// Create new user (no password for OAuth users)
+		// No existing account — create one
 		user = models.User{
 			Email:          userInfo.Email,
 			Name:           userInfo.Name,
@@ -232,7 +238,7 @@ func GoogleCallback(c *gin.Context) {
 			fmt.Println("Failed to create personal team:", err.Error())
 		}
 	} else {
-		// Update Google info if not set
+		// Existing account found — keep Google info up to date
 		if user.GoogleID == nil {
 			user.GoogleID = &userInfo.ID
 			user.ProfilePicture = &userInfo.Picture
